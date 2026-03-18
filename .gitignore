@@ -13,3 +13,8 @@ log/
 
 # OS
 .DS_Store
+
+# Existing workspace packages not included in this repo
+src/cart_for_urdf_description/
+src/cart_teleop/
+src/my_first_pkg/

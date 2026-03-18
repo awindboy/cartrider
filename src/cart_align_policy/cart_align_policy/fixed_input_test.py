@@ -3,6 +3,7 @@ from typing import Optional
 
 import rclpy
 from cart_align_msgs.msg import AlignTargetLocal, WheelCmd
+from rclpy.executors import ExternalShutdownException
 from rclpy.node import Node
 from sensor_msgs.msg import JointState
 
@@ -66,7 +67,8 @@ class FixedInputTestNode(Node):
 
         self.timer = self.create_timer(1.0 / self.publish_rate_hz, self._on_timer)
         self.get_logger().info(
-            'Fixed input test node started: rate=%.2fHz, target=(%.3f, %.3f, %.3f), '
+            'Fixed input test node started: rate=%.2fHz, '
+            'target=(x=%.3f, y=%.3f, heading_err=%.3f), '
             'joint=(%s: %.3f, %s: %.3f)'
             % (
                 self.publish_rate_hz,
@@ -81,6 +83,9 @@ class FixedInputTestNode(Node):
         )
 
     def _on_timer(self) -> None:
+        if not self.context.ok():
+            return
+
         now_msg = self.get_clock().now().to_msg()
 
         target_msg = AlignTargetLocal()
@@ -89,13 +94,19 @@ class FixedInputTestNode(Node):
         target_msg.target_x_local = self.target_x_local
         target_msg.target_y_local = self.target_y_local
         target_msg.heading_error = self.heading_error
-        self.target_pub.publish(target_msg)
+        try:
+            self.target_pub.publish(target_msg)
+        except Exception:
+            return
 
         joint_msg = JointState()
         joint_msg.header.stamp = now_msg
         joint_msg.name = [self.left_joint_name, self.right_joint_name]
         joint_msg.velocity = [self.left_wheel_joint_vel, self.right_wheel_joint_vel]
-        self.joint_pub.publish(joint_msg)
+        try:
+            self.joint_pub.publish(joint_msg)
+        except Exception:
+            return
 
     def _wheel_cmd_callback(self, msg: WheelCmd) -> None:
         self._wheel_count += 1
@@ -121,7 +132,7 @@ def main(args=None) -> None:
     node = FixedInputTestNode()
     try:
         rclpy.spin(node)
-    except KeyboardInterrupt:
+    except (KeyboardInterrupt, ExternalShutdownException):
         pass
     finally:
         try:

@@ -108,12 +108,12 @@ class CartAlignPolicyNode(Node):
             )
 
         providers = ort.get_available_providers()
-        if 'CUDAExecutionProvider' in providers:
-            selected_providers = ['CUDAExecutionProvider', 'CPUExecutionProvider']
-        elif 'CPUExecutionProvider' in providers:
-            selected_providers = ['CPUExecutionProvider']
-        else:
-            selected_providers = providers
+        if 'CPUExecutionProvider' not in providers:
+            raise RuntimeError(
+                f'CPUExecutionProvider is not available. available={providers}'
+            )
+
+        selected_providers = ['CPUExecutionProvider']
 
         self.session = ort.InferenceSession(
             self.model_path,
@@ -134,20 +134,10 @@ class CartAlignPolicyNode(Node):
         in_shape = tuple(inputs[0].shape)
         out_shape = tuple(outputs[0].shape)
 
-        if (
-            'CUDAExecutionProvider' in selected_providers
-            and 'CUDAExecutionProvider' not in active_providers
-        ):
-            self.get_logger().warn(
-                'CUDAExecutionProvider requested but not active. '
-                f'Falling back providers={active_providers}'
-            )
-
         self.get_logger().info(
             f'Loaded ONNX model with input={self.input_name} shape={in_shape}, '
             f'output={self.output_name} shape={out_shape}, '
-            f'requested_providers={selected_providers}, '
-            f'active_providers={active_providers}'
+            f'providers={active_providers}'
         )
 
     def _target_callback(self, msg: AlignTargetLocal) -> None:

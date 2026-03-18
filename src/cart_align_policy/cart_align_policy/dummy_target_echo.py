@@ -18,7 +18,7 @@ class DummyTargetEchoNode(Node):
         )
         self.motor_pub = self.create_publisher(
             MotorStateArray,
-            '/motor_states',
+            '/rmd_state',
             10,
         )
         self.wheel_sub = self.create_subscription(
@@ -32,7 +32,7 @@ class DummyTargetEchoNode(Node):
         self._wheel_log_count = 0
 
         self.get_logger().info(
-            'Dummy node started: publishing /align/target_local and /motor_states '
+            'Dummy node started: publishing /align/target_local and /rmd_state '
             'at 10 Hz, echoing /cmd_vel.'
         )
 

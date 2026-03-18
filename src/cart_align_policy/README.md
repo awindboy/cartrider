@@ -23,7 +23,7 @@ IsaacLab에서 export한 `policy.onnx`를 ROS2 노드로 실행하여,
   - `pose.orientation`(quaternion)에서 yaw 추출 = `heading_error` (wrap_to_pi)
 
 ### 2) 현재 모터 속도 입력 -> Policy
-- Topic: `/motor_states`
+- Topic: `/rmd_state`
 - Type: `cartrider_rmd_sdk/msg/MotorStateArray` (기본값)
 - 매핑:
   - `states` 배열에서 `id=1`의 `speed` = `left_wheel_joint_vel` (rad/s)
@@ -54,7 +54,7 @@ IsaacLab에서 export한 `policy.onnx`를 ROS2 노드로 실행하여,
 
 - `model_path` (default: 패키지 설치 경로의 `models/policy.onnx`)
 - `target_topic` (default: `/align/target_local`)
-- `motor_state_topic` (default: `/motor_states`)
+- `motor_state_topic` (default: `/rmd_state`)
 - `motor_state_type` (default: `cartrider_rmd_sdk/msg/MotorStateArray`)
 - `wheel_cmd_topic` (default: `/cmd_vel`)
 - `action_scale` (default: `4.0055306333`)

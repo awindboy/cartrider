@@ -42,7 +42,7 @@ class FixedInputTestNode(Node):
         )
         self.motor_pub = self.create_publisher(
             MotorStateArray,
-            '/motor_states',
+            '/rmd_state',
             10,
         )
 

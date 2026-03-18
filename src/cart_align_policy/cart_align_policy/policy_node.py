@@ -19,7 +19,7 @@ class CartAlignPolicyNode(Node):
 
         self.declare_parameter('model_path', self._default_model_path())
         self.declare_parameter('target_topic', '/align/target_local')
-        self.declare_parameter('motor_state_topic', '/motor_states')
+        self.declare_parameter('motor_state_topic', '/rmd_state')
         self.declare_parameter(
             'motor_state_type',
             'cartrider_rmd_sdk/msg/MotorStateArray',

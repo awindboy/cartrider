@@ -26,7 +26,7 @@ def generate_launch_description() -> LaunchDescription:
         [
             DeclareLaunchArgument('model_path', default_value=default_model_path),
             DeclareLaunchArgument('target_topic', default_value='/align/target_local'),
-            DeclareLaunchArgument('motor_state_topic', default_value='/motor_states'),
+            DeclareLaunchArgument('motor_state_topic', default_value='/rmd_state'),
             DeclareLaunchArgument(
                 'motor_state_type',
                 default_value='cartrider_rmd_sdk/msg/MotorStateArray',

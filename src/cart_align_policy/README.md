@@ -47,6 +47,7 @@ IsaacLab에서 export한 `policy.onnx`를 ROS2 노드로 실행하여,
   4. `motor_state(id=1).speed` (left motor vel)
   5. `motor_state(id=2).speed` (right motor vel)
 - ONNX 출력 action(2D) -> `[-1, 1]` clamp -> `action_scale` 곱하여 rad/s 명령 생성
+- `|target_x_local| <= 0.01`m, `|target_y_local| <= 0.01`m, `|heading_error| <= 5deg`이면 양쪽 모터 0 명령 publish
 - `target` 또는 `motor` 메시지가 stale(timeout)면 안전하게 0 명령 publish
 - ONNX Runtime은 CPU provider만 사용
 
@@ -65,6 +66,8 @@ IsaacLab에서 export한 `policy.onnx`를 ROS2 노드로 실행하여,
 - `control_rate_hz` (default: `10.0`)
 - `target_timeout_sec` (default: `0.3`)
 - `motor_timeout_sec` (default: `0.3`)
+- `target_xy_stop_tolerance_m` (default: `0.01`)
+- `target_yaw_stop_tolerance_deg` (default: `5.0`)
 - `invert_left` (default: `false`)
 - `invert_right` (default: `false`)
 

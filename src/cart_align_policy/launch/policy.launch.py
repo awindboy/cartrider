@@ -17,6 +17,8 @@ def generate_launch_description() -> LaunchDescription:
     control_rate_hz = LaunchConfiguration('control_rate_hz')
     target_timeout_sec = LaunchConfiguration('target_timeout_sec')
     motor_timeout_sec = LaunchConfiguration('motor_timeout_sec')
+    target_xy_stop_tolerance_m = LaunchConfiguration('target_xy_stop_tolerance_m')
+    target_yaw_stop_tolerance_deg = LaunchConfiguration('target_yaw_stop_tolerance_deg')
     invert_left = LaunchConfiguration('invert_left')
     invert_right = LaunchConfiguration('invert_right')
     left_motor_id = LaunchConfiguration('left_motor_id')
@@ -48,6 +50,8 @@ def generate_launch_description() -> LaunchDescription:
             DeclareLaunchArgument('control_rate_hz', default_value='10.0'),
             DeclareLaunchArgument('target_timeout_sec', default_value='0.3'),
             DeclareLaunchArgument('motor_timeout_sec', default_value='0.3'),
+            DeclareLaunchArgument('target_xy_stop_tolerance_m', default_value='0.01'),
+            DeclareLaunchArgument('target_yaw_stop_tolerance_deg', default_value='5.0'),
             DeclareLaunchArgument('invert_left', default_value='false'),
             DeclareLaunchArgument('invert_right', default_value='false'),
             DeclareLaunchArgument('left_motor_id', default_value='1'),
@@ -70,6 +74,8 @@ def generate_launch_description() -> LaunchDescription:
                         'control_rate_hz': control_rate_hz,
                         'target_timeout_sec': target_timeout_sec,
                         'motor_timeout_sec': motor_timeout_sec,
+                        'target_xy_stop_tolerance_m': target_xy_stop_tolerance_m,
+                        'target_yaw_stop_tolerance_deg': target_yaw_stop_tolerance_deg,
                         'invert_left': invert_left,
                         'invert_right': invert_right,
                         'left_motor_id': left_motor_id,

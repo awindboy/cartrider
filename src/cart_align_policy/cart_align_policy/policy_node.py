@@ -37,6 +37,8 @@ class CartAlignPolicyNode(Node):
         self.declare_parameter('control_rate_hz', 10.0)
         self.declare_parameter('target_timeout_sec', 1000.0)
         self.declare_parameter('motor_timeout_sec', 1000.0)
+        self.declare_parameter('target_xy_stop_tolerance_m', 0.01)
+        self.declare_parameter('target_yaw_stop_tolerance_deg', 5.0)
         self.declare_parameter('invert_left', False)
         self.declare_parameter('invert_right', False)
         self.declare_parameter('left_motor_id', 1)
@@ -55,6 +57,12 @@ class CartAlignPolicyNode(Node):
         self.control_rate_hz = float(self.get_parameter('control_rate_hz').value)
         self.target_timeout_sec = float(self.get_parameter('target_timeout_sec').value)
         self.motor_timeout_sec = float(self.get_parameter('motor_timeout_sec').value)
+        self.target_xy_stop_tolerance_m = float(
+            self.get_parameter('target_xy_stop_tolerance_m').value
+        )
+        self.target_yaw_stop_tolerance_deg = float(
+            self.get_parameter('target_yaw_stop_tolerance_deg').value
+        )
         self.invert_left = bool(self.get_parameter('invert_left').value)
         self.invert_right = bool(self.get_parameter('invert_right').value)
         self.left_motor_id = int(self.get_parameter('left_motor_id').value)
@@ -77,6 +85,21 @@ class CartAlignPolicyNode(Node):
                 'motor_timeout_sec must be > 0. Falling back to 0.3 sec.'
             )
             self.motor_timeout_sec = 0.3
+
+        if self.target_xy_stop_tolerance_m < 0.0:
+            self.get_logger().warn(
+                'target_xy_stop_tolerance_m must be >= 0. Falling back to 0.01 m.'
+            )
+            self.target_xy_stop_tolerance_m = 0.01
+
+        if self.target_yaw_stop_tolerance_deg < 0.0:
+            self.get_logger().warn(
+                'target_yaw_stop_tolerance_deg must be >= 0. Falling back to 5.0 deg.'
+            )
+            self.target_yaw_stop_tolerance_deg = 5.0
+        self.target_yaw_stop_tolerance_rad = math.radians(
+            self.target_yaw_stop_tolerance_deg
+        )
 
         self.latest_target: Optional[PoseStamped] = None
         self.last_target_rx_time = None
@@ -118,7 +141,9 @@ class CartAlignPolicyNode(Node):
             'wheel_cmd_type=%s, wheel_cmd_item_type=%s, '
             'left_motor_id=%d, right_motor_id=%d, '
             'rate=%.2fHz, '
-            'target_timeout=%.3fs, motor_timeout=%.3fs, action_scale=%.6f'
+            'target_timeout=%.3fs, motor_timeout=%.3fs, '
+            'target_xy_stop_tolerance=%.4fm, '
+            'target_yaw_stop_tolerance=%.2fdeg, action_scale=%.6f'
             % (
                 self.model_path,
                 self.target_topic,
@@ -132,6 +157,8 @@ class CartAlignPolicyNode(Node):
                 self.control_rate_hz,
                 self.target_timeout_sec,
                 self.motor_timeout_sec,
+                self.target_xy_stop_tolerance_m,
+                self.target_yaw_stop_tolerance_deg,
                 self.action_scale,
             )
         )
@@ -255,6 +282,17 @@ class CartAlignPolicyNode(Node):
             self._publish_zero('stale_target')
             return
 
+        target_x_local = float(self.latest_target.pose.position.x)
+        target_y_local = float(self.latest_target.pose.position.y)
+        heading_error = self._yaw_from_quaternion(self.latest_target)
+        if (
+            abs(target_x_local) <= self.target_xy_stop_tolerance_m
+            and abs(target_y_local) <= self.target_xy_stop_tolerance_m
+            and abs(heading_error) <= self.target_yaw_stop_tolerance_rad
+        ):
+            self._publish_wheel_cmd(cmd_vel_r=0.0, cmd_vel_l=0.0)
+            return
+
         if (
             self.left_motor_speed is None
             or self.right_motor_speed is None
@@ -273,7 +311,7 @@ class CartAlignPolicyNode(Node):
                 [
                     self.latest_target.pose.position.x,
                     self.latest_target.pose.position.y,
-                    self._yaw_from_quaternion(self.latest_target),
+                    heading_error,
                     self.left_motor_speed,
                     self.right_motor_speed,
                 ]

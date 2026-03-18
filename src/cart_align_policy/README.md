@@ -30,12 +30,12 @@ IsaacLab에서 export한 `policy.onnx`를 ROS2 노드로 실행하여,
   - `states` 배열에서 `id=2`의 `speed` = `right_wheel_joint_vel` (rad/s)
 
 ### 3) 바퀴 속도 출력 (Policy -> Nav)
-- Topic: `/cmd_vel`
-- Type: `geometry_msgs/msg/Twist`
+- Topic: `/rmd_command`
+- Type: `cartrider_rmd_sdk/msg/MotorCommandArray`
 - 매핑:
-  - `angular.x` = `cmd_vel_r` (rad/s)
-  - `angular.y` = `cmd_vel_l` (rad/s)
-  - `linear.*` / `angular.z`는 0으로 publish
+  - `commands` 배열에 2개 명령 publish
+  - `id=1` -> left motor, `target=cmd_vel_l` (rad/s)
+  - `id=2` -> right motor, `target=cmd_vel_r` (rad/s)
 
 ## policy_node 동작
 
@@ -56,7 +56,11 @@ IsaacLab에서 export한 `policy.onnx`를 ROS2 노드로 실행하여,
 - `target_topic` (default: `/align/target_local`)
 - `motor_state_topic` (default: `/rmd_state`)
 - `motor_state_type` (default: `cartrider_rmd_sdk/msg/MotorStateArray`)
-- `wheel_cmd_topic` (default: `/cmd_vel`)
+- `wheel_cmd_topic` (default: `/rmd_command`)
+- `wheel_cmd_type` (default: `cartrider_rmd_sdk/msg/MotorCommandArray`)
+- `wheel_cmd_item_type` (default: `cartrider_rmd_sdk/msg/MotorCommand`)
+- `left_motor_id` (default: `1`)
+- `right_motor_id` (default: `2`)
 - `action_scale` (default: `4.0055306333`)
 - `control_rate_hz` (default: `10.0`)
 - `target_timeout_sec` (default: `0.3`)
@@ -133,5 +137,5 @@ ros2 run cart_align_policy fixed_input_test --ros-args \
 ### 출력 확인
 
 ```bash
-ros2 topic echo /cmd_vel
+ros2 topic echo /rmd_command
 ```

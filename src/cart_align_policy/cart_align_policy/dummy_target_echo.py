@@ -3,14 +3,18 @@ import math
 
 import rclpy
 from cart_align_msgs.msg import MotorState, MotorStateArray
-from geometry_msgs.msg import PoseStamped, Twist
+from geometry_msgs.msg import PoseStamped
 from rclpy.executors import ExternalShutdownException
 from rclpy.node import Node
+from rosidl_runtime_py.utilities import get_message
 
 
 class DummyTargetEchoNode(Node):
     def __init__(self) -> None:
         super().__init__('dummy_target_echo')
+        self.wheel_cmd_type = 'cartrider_rmd_sdk/msg/MotorCommandArray'
+        self.wheel_cmd_msg_cls = get_message(self.wheel_cmd_type)
+
         self.target_pub = self.create_publisher(
             PoseStamped,
             '/align/target_local',
@@ -22,8 +26,8 @@ class DummyTargetEchoNode(Node):
             10,
         )
         self.wheel_sub = self.create_subscription(
-            Twist,
-            '/cmd_vel',
+            self.wheel_cmd_msg_cls,
+            '/rmd_command',
             self._wheel_cmd_callback,
             10,
         )
@@ -33,7 +37,7 @@ class DummyTargetEchoNode(Node):
 
         self.get_logger().info(
             'Dummy node started: publishing /align/target_local and /rmd_state '
-            'at 10 Hz, echoing /cmd_vel.'
+            'at 10 Hz, echoing /rmd_command as MotorCommandArray.'
         )
 
     def _publish_dummy_target(self) -> None:
@@ -61,19 +65,27 @@ class DummyTargetEchoNode(Node):
         motor_msg.states = [left_state, right_state]
         self.motor_pub.publish(motor_msg)
 
-    def _wheel_cmd_callback(self, msg: Twist) -> None:
+    def _wheel_cmd_callback(self, msg) -> None:
         self._wheel_log_count += 1
         if self._wheel_log_count % 10 != 0:
             return
 
+        left_target = None
+        right_target = None
+        for cmd in msg.commands:
+            if cmd.id == 1:
+                left_target = cmd.target
+            elif cmd.id == 2:
+                right_target = cmd.target
+
         self.get_logger().info(
             (
-                'wheel_cmd(Twist): angular.x(cmd_vel_r)=%.3f rad/s, '
-                'angular.y(cmd_vel_l)=%.3f rad/s'
+                'wheel_cmd(MotorCommandArray): id1(left)=%.3f rad/s, '
+                'id2(right)=%.3f rad/s'
             )
             % (
-                msg.angular.x,
-                msg.angular.y,
+                left_target if left_target is not None else float('nan'),
+                right_target if right_target is not None else float('nan'),
             )
         )
 

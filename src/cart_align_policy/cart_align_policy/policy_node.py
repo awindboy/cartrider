@@ -7,7 +7,7 @@ import numpy as np
 import onnxruntime as ort
 import rclpy
 from ament_index_python.packages import get_package_share_directory
-from geometry_msgs.msg import PoseStamped, Twist
+from geometry_msgs.msg import PoseStamped
 from rclpy.executors import ExternalShutdownException
 from rclpy.node import Node
 from rosidl_runtime_py.utilities import get_message
@@ -24,25 +24,41 @@ class CartAlignPolicyNode(Node):
             'motor_state_type',
             'cartrider_rmd_sdk/msg/MotorStateArray',
         )
-        self.declare_parameter('wheel_cmd_topic', '/cmd_vel')
+        self.declare_parameter('wheel_cmd_topic', '/rmd_command')
+        self.declare_parameter(
+            'wheel_cmd_type',
+            'cartrider_rmd_sdk/msg/MotorCommandArray',
+        )
+        self.declare_parameter(
+            'wheel_cmd_item_type',
+            'cartrider_rmd_sdk/msg/MotorCommand',
+        )
         self.declare_parameter('action_scale', 4.0055306333)
         self.declare_parameter('control_rate_hz', 10.0)
-        self.declare_parameter('target_timeout_sec', 0.3)
-        self.declare_parameter('motor_timeout_sec', 0.3)
+        self.declare_parameter('target_timeout_sec', 1000.0)
+        self.declare_parameter('motor_timeout_sec', 1000.0)
         self.declare_parameter('invert_left', False)
         self.declare_parameter('invert_right', False)
+        self.declare_parameter('left_motor_id', 1)
+        self.declare_parameter('right_motor_id', 2)
 
         self.model_path = str(self.get_parameter('model_path').value)
         self.target_topic = str(self.get_parameter('target_topic').value)
         self.motor_state_topic = str(self.get_parameter('motor_state_topic').value)
         self.motor_state_type = str(self.get_parameter('motor_state_type').value)
         self.wheel_cmd_topic = str(self.get_parameter('wheel_cmd_topic').value)
+        self.wheel_cmd_type = str(self.get_parameter('wheel_cmd_type').value)
+        self.wheel_cmd_item_type = str(
+            self.get_parameter('wheel_cmd_item_type').value
+        )
         self.action_scale = float(self.get_parameter('action_scale').value)
         self.control_rate_hz = float(self.get_parameter('control_rate_hz').value)
         self.target_timeout_sec = float(self.get_parameter('target_timeout_sec').value)
         self.motor_timeout_sec = float(self.get_parameter('motor_timeout_sec').value)
         self.invert_left = bool(self.get_parameter('invert_left').value)
         self.invert_right = bool(self.get_parameter('invert_right').value)
+        self.left_motor_id = int(self.get_parameter('left_motor_id').value)
+        self.right_motor_id = int(self.get_parameter('right_motor_id').value)
 
         if self.control_rate_hz <= 0.0:
             self.get_logger().warn(
@@ -71,6 +87,7 @@ class CartAlignPolicyNode(Node):
 
         self._load_model()
         self._load_motor_state_type()
+        self._load_wheel_cmd_type()
 
         self.target_sub = self.create_subscription(
             PoseStamped,
@@ -85,7 +102,7 @@ class CartAlignPolicyNode(Node):
             10,
         )
         self.wheel_cmd_pub = self.create_publisher(
-            Twist,
+            self.wheel_cmd_msg_cls,
             self.wheel_cmd_topic,
             10,
         )
@@ -98,6 +115,8 @@ class CartAlignPolicyNode(Node):
         self.get_logger().info(
             'Policy node started: model_path=%s, target_topic=%s, '
             'motor_state_topic=%s, motor_state_type=%s, wheel_cmd_topic=%s, '
+            'wheel_cmd_type=%s, wheel_cmd_item_type=%s, '
+            'left_motor_id=%d, right_motor_id=%d, '
             'rate=%.2fHz, '
             'target_timeout=%.3fs, motor_timeout=%.3fs, action_scale=%.6f'
             % (
@@ -106,6 +125,10 @@ class CartAlignPolicyNode(Node):
                 self.motor_state_topic,
                 self.motor_state_type,
                 self.wheel_cmd_topic,
+                self.wheel_cmd_type,
+                self.wheel_cmd_item_type,
+                self.left_motor_id,
+                self.right_motor_id,
                 self.control_rate_hz,
                 self.target_timeout_sec,
                 self.motor_timeout_sec,
@@ -168,6 +191,21 @@ class CartAlignPolicyNode(Node):
         except Exception as exc:
             raise RuntimeError(
                 f'Failed to load motor_state_type={self.motor_state_type}: {exc}'
+            ) from exc
+
+    def _load_wheel_cmd_type(self) -> None:
+        try:
+            self.wheel_cmd_msg_cls = get_message(self.wheel_cmd_type)
+        except Exception as exc:
+            raise RuntimeError(
+                f'Failed to load wheel_cmd_type={self.wheel_cmd_type}: {exc}'
+            ) from exc
+
+        try:
+            self.wheel_cmd_item_msg_cls = get_message(self.wheel_cmd_item_type)
+        except Exception as exc:
+            raise RuntimeError(
+                f'Failed to load wheel_cmd_item_type={self.wheel_cmd_item_type}: {exc}'
             ) from exc
 
     def _target_callback(self, msg: PoseStamped) -> None:
@@ -302,13 +340,17 @@ class CartAlignPolicyNode(Node):
         cmd_vel_r: float,
         cmd_vel_l: float,
     ) -> None:
-        msg = Twist()
-        msg.linear.x = 0.0
-        msg.linear.y = 0.0
-        msg.linear.z = 0.0
-        msg.angular.x = float(cmd_vel_r)
-        msg.angular.y = float(cmd_vel_l)
-        msg.angular.z = 0.0
+        msg = self.wheel_cmd_msg_cls()
+
+        left_cmd = self.wheel_cmd_item_msg_cls()
+        left_cmd.id = int(self.left_motor_id)
+        left_cmd.target = float(cmd_vel_l)
+
+        right_cmd = self.wheel_cmd_item_msg_cls()
+        right_cmd.id = int(self.right_motor_id)
+        right_cmd.target = float(cmd_vel_r)
+
+        msg.commands = [left_cmd, right_cmd]
         self.wheel_cmd_pub.publish(msg)
 
     def _warn_throttle(self, key: str, text: str, period_sec: float) -> None:

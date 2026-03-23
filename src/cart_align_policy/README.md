@@ -85,6 +85,7 @@ source install/setup.bash
 ```bash
 # 권장(ROS 환경)
 sudo apt-get update && sudo apt-get install -y python3-onnxruntime
+sudo apt-get install -y ros-humble-tf-transformations
 
 # 또는
 sudo apt-get install -y python3-pip

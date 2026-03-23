@@ -11,6 +11,7 @@ from geometry_msgs.msg import PoseStamped
 from rclpy.executors import ExternalShutdownException
 from rclpy.node import Node
 from rosidl_runtime_py.utilities import get_message
+from tf_transformations import euler_from_quaternion
 
 
 class CartAlignPolicyNode(Node):
@@ -363,7 +364,7 @@ class CartAlignPolicyNode(Node):
 
         self._publish_wheel_cmd(
             cmd_vel_r=cmd_vel_r,
-            cmd_vel_l=cmd_vel_l,
+            cmd_vel_l=-cmd_vel_l,
         )
 
     def _publish_zero(self, reason_key: str) -> None:
@@ -405,9 +406,8 @@ class CartAlignPolicyNode(Node):
     @staticmethod
     def _yaw_from_quaternion(msg: PoseStamped) -> float:
         q = msg.pose.orientation
-        siny_cosp = 2.0 * (q.w * q.z + q.x * q.y)
-        cosy_cosp = 1.0 - 2.0 * (q.y * q.y + q.z * q.z)
-        return float(math.atan2(siny_cosp, cosy_cosp))
+        _, _, yaw = euler_from_quaternion([q.x, q.y, q.z, q.w])
+        return float(yaw)
 
 
 def main(args=None) -> None:

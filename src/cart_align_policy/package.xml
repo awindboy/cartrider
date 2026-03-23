@@ -12,6 +12,7 @@
   <depend>ament_index_python</depend>
   <depend>rosidl_runtime_py</depend>
   <depend>cart_align_msgs</depend>
+  <depend>tf_transformations</depend>
 
   <exec_depend>python3-numpy</exec_depend>
   <exec_depend>python3-onnxruntime</exec_depend>

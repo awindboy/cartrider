@@ -25,7 +25,7 @@ def generate_launch_description() -> LaunchDescription:
     right_motor_id = LaunchConfiguration('right_motor_id')
 
     default_model_path = PathJoinSubstitution(
-        [FindPackageShare('cart_align_policy'), 'models', 'policy.onnx']
+        [FindPackageShare('cart_align_policy'), 'models', 'policy_ensemble_hardswitch.onnx']
     )
 
     return LaunchDescription(

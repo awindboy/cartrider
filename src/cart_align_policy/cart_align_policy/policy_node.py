@@ -166,12 +166,16 @@ class CartAlignPolicyNode(Node):
     def _default_model_path(self) -> str:
         try:
             share_dir = get_package_share_directory('cart_align_policy')
-            candidate = os.path.join(share_dir, 'models', 'policy.onnx')
+            candidate = os.path.join(
+                share_dir,
+                'models',
+                'policy_ensemble_hardswitch.onnx',
+            )
             if os.path.isfile(candidate):
                 return candidate
         except Exception:
             pass
-        return '/home/kwon/Documents/policy.onnx'
+        return '/home/kwon/ros2_ws/src/cart_align_policy/models/policy_ensemble_hardswitch.onnx'
 
     def _load_model(self) -> None:
         if not os.path.isfile(self.model_path):

@@ -62,7 +62,7 @@ IsaacLab에서 export한 `policy_ensemble_hardswitch.onnx`를 ROS2 노드로 실
 - `wheel_cmd_item_type` (default: `cartrider_rmd_sdk/msg/MotorCommand`)
 - `left_motor_id` (default: `1`)
 - `right_motor_id` (default: `2`)
-- `action_scale` (default: `4.0055306333`)
+- `action_scale` (default: `3.0`)
 - `control_rate_hz` (default: `10.0`)
 - `target_timeout_sec` (default: `0.3`)
 - `motor_timeout_sec` (default: `0.3`)

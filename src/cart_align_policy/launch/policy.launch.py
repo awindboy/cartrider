@@ -46,7 +46,7 @@ def generate_launch_description() -> LaunchDescription:
                 'wheel_cmd_item_type',
                 default_value='cartrider_rmd_sdk/msg/MotorCommand',
             ),
-            DeclareLaunchArgument('action_scale', default_value='4.0055306333'),
+            DeclareLaunchArgument('action_scale', default_value='3.0'),
             DeclareLaunchArgument('control_rate_hz', default_value='10.0'),
             DeclareLaunchArgument('target_timeout_sec', default_value='0.3'),
             DeclareLaunchArgument('motor_timeout_sec', default_value='0.3'),

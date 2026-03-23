@@ -33,7 +33,7 @@ class CartAlignPolicyNode(Node):
             'wheel_cmd_item_type',
             'cartrider_rmd_sdk/msg/MotorCommand',
         )
-        self.declare_parameter('action_scale', 4.0055306333)
+        self.declare_parameter('action_scale', 3.0)
         self.declare_parameter('control_rate_hz', 10.0)
         self.declare_parameter('target_timeout_sec', 1000.0)
         self.declare_parameter('motor_timeout_sec', 1000.0)

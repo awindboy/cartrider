@@ -25,7 +25,7 @@ def generate_launch_description() -> LaunchDescription:
     right_motor_id = LaunchConfiguration('right_motor_id')
 
     default_model_path = PathJoinSubstitution(
-        [FindPackageShare('cart_align_policy'), 'models', 'policy_ensemble_hardswitch.onnx']
+        [FindPackageShare('cart_align_policy'), 'models', 'policy.onnx']
     )
 
     return LaunchDescription(
@@ -47,11 +47,11 @@ def generate_launch_description() -> LaunchDescription:
                 default_value='cartrider_rmd_sdk/msg/MotorCommand',
             ),
             DeclareLaunchArgument('action_scale', default_value='3.0'),
-            DeclareLaunchArgument('control_rate_hz', default_value='10.0'),
-            DeclareLaunchArgument('target_timeout_sec', default_value='0.3'),
-            DeclareLaunchArgument('motor_timeout_sec', default_value='0.3'),
-            DeclareLaunchArgument('target_xy_stop_tolerance_m', default_value='0.01'),
-            DeclareLaunchArgument('target_yaw_stop_tolerance_deg', default_value='5.0'),
+            DeclareLaunchArgument('control_rate_hz', default_value='40.0'),
+            DeclareLaunchArgument('target_timeout_sec', default_value='1000.0'),
+            DeclareLaunchArgument('motor_timeout_sec', default_value='1000.0'),
+            DeclareLaunchArgument('target_xy_stop_tolerance_m', default_value='0.1'),
+            DeclareLaunchArgument('target_yaw_stop_tolerance_deg', default_value='10.0'),
             DeclareLaunchArgument('invert_left', default_value='false'),
             DeclareLaunchArgument('invert_right', default_value='false'),
             DeclareLaunchArgument('left_motor_id', default_value='1'),

@@ -19,6 +19,8 @@ def generate_launch_description() -> LaunchDescription:
     motor_timeout_sec = LaunchConfiguration('motor_timeout_sec')
     target_xy_stop_tolerance_m = LaunchConfiguration('target_xy_stop_tolerance_m')
     target_yaw_stop_tolerance_deg = LaunchConfiguration('target_yaw_stop_tolerance_deg')
+    near_target_distance_m = LaunchConfiguration('near_target_distance_m')
+    near_target_speed_limit_rad_s = LaunchConfiguration('near_target_speed_limit_rad_s')
     invert_left = LaunchConfiguration('invert_left')
     invert_right = LaunchConfiguration('invert_right')
     left_motor_id = LaunchConfiguration('left_motor_id')
@@ -46,12 +48,14 @@ def generate_launch_description() -> LaunchDescription:
                 'wheel_cmd_item_type',
                 default_value='cartrider_rmd_sdk/msg/MotorCommand',
             ),
-            DeclareLaunchArgument('action_scale', default_value='3.0'),
+            DeclareLaunchArgument('action_scale', default_value='1.5'),
             DeclareLaunchArgument('control_rate_hz', default_value='40.0'),
             DeclareLaunchArgument('target_timeout_sec', default_value='1000.0'),
             DeclareLaunchArgument('motor_timeout_sec', default_value='1000.0'),
-            DeclareLaunchArgument('target_xy_stop_tolerance_m', default_value='0.1'),
-            DeclareLaunchArgument('target_yaw_stop_tolerance_deg', default_value='10.0'),
+            DeclareLaunchArgument('target_xy_stop_tolerance_m', default_value='0.03'),
+            DeclareLaunchArgument('target_yaw_stop_tolerance_deg', default_value='2.0'),
+            DeclareLaunchArgument('near_target_distance_m', default_value='0.5'),
+            DeclareLaunchArgument('near_target_speed_limit_rad_s', default_value='0.5'),
             DeclareLaunchArgument('invert_left', default_value='false'),
             DeclareLaunchArgument('invert_right', default_value='false'),
             DeclareLaunchArgument('left_motor_id', default_value='1'),
@@ -76,6 +80,8 @@ def generate_launch_description() -> LaunchDescription:
                         'motor_timeout_sec': motor_timeout_sec,
                         'target_xy_stop_tolerance_m': target_xy_stop_tolerance_m,
                         'target_yaw_stop_tolerance_deg': target_yaw_stop_tolerance_deg,
+                        'near_target_distance_m': near_target_distance_m,
+                        'near_target_speed_limit_rad_s': near_target_speed_limit_rad_s,
                         'invert_left': invert_left,
                         'invert_right': invert_right,
                         'left_motor_id': left_motor_id,

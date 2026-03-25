@@ -34,12 +34,14 @@ class CartAlignPolicyNode(Node):
             'wheel_cmd_item_type',
             'cartrider_rmd_sdk/msg/MotorCommand',
         )
-        self.declare_parameter('action_scale', 3.0)
-        self.declare_parameter('control_rate_hz', 10.0)
+        self.declare_parameter('action_scale', 1.5)
+        self.declare_parameter('control_rate_hz', 40.0)
         self.declare_parameter('target_timeout_sec', 1000.0)
         self.declare_parameter('motor_timeout_sec', 1000.0)
-        self.declare_parameter('target_xy_stop_tolerance_m', 0.01)
-        self.declare_parameter('target_yaw_stop_tolerance_deg', 5.0)
+        self.declare_parameter('target_xy_stop_tolerance_m', 0.03)
+        self.declare_parameter('target_yaw_stop_tolerance_deg', 2.0)
+        self.declare_parameter('near_target_distance_m', 0.5)
+        self.declare_parameter('near_target_speed_limit_rad_s', 0.5)
         self.declare_parameter('invert_left', False)
         self.declare_parameter('invert_right', False)
         self.declare_parameter('left_motor_id', 1)
@@ -63,6 +65,12 @@ class CartAlignPolicyNode(Node):
         )
         self.target_yaw_stop_tolerance_deg = float(
             self.get_parameter('target_yaw_stop_tolerance_deg').value
+        )
+        self.near_target_distance_m = float(
+            self.get_parameter('near_target_distance_m').value
+        )
+        self.near_target_speed_limit_rad_s = float(
+            self.get_parameter('near_target_speed_limit_rad_s').value
         )
         self.invert_left = bool(self.get_parameter('invert_left').value)
         self.invert_right = bool(self.get_parameter('invert_right').value)
@@ -98,6 +106,19 @@ class CartAlignPolicyNode(Node):
                 'target_yaw_stop_tolerance_deg must be >= 0. Falling back to 5.0 deg.'
             )
             self.target_yaw_stop_tolerance_deg = 5.0
+
+        if self.near_target_distance_m < 0.0:
+            self.get_logger().warn(
+                'near_target_distance_m must be >= 0. Falling back to 0.5 m.'
+            )
+            self.near_target_distance_m = 0.5
+
+        if self.near_target_speed_limit_rad_s <= 0.0:
+            self.get_logger().warn(
+                'near_target_speed_limit_rad_s must be > 0. Falling back to 0.5 rad/s.'
+            )
+            self.near_target_speed_limit_rad_s = 0.5
+
         self.target_yaw_stop_tolerance_rad = math.radians(
             self.target_yaw_stop_tolerance_deg
         )
@@ -144,7 +165,9 @@ class CartAlignPolicyNode(Node):
             'rate=%.2fHz, '
             'target_timeout=%.3fs, motor_timeout=%.3fs, '
             'target_xy_stop_tolerance=%.4fm, '
-            'target_yaw_stop_tolerance=%.2fdeg, action_scale=%.6f'
+            'target_yaw_stop_tolerance=%.2fdeg, '
+            'near_target_distance=%.3fm, near_target_speed_limit=%.3frad/s, '
+            'action_scale=%.6f'
             % (
                 self.model_path,
                 self.target_topic,
@@ -160,6 +183,8 @@ class CartAlignPolicyNode(Node):
                 self.motor_timeout_sec,
                 self.target_xy_stop_tolerance_m,
                 self.target_yaw_stop_tolerance_deg,
+                self.near_target_distance_m,
+                self.near_target_speed_limit_rad_s,
                 self.action_scale,
             )
         )
@@ -362,9 +387,15 @@ class CartAlignPolicyNode(Node):
         if self.invert_right:
             cmd_vel_r *= -1.0
 
+        target_dist_m = math.hypot(target_x_local, target_y_local)
+        if target_dist_m <= self.near_target_distance_m:
+            limit = self.near_target_speed_limit_rad_s
+            cmd_vel_l = float(np.clip(cmd_vel_l, -limit, limit))
+            cmd_vel_r = float(np.clip(cmd_vel_r, -limit, limit))
+
         self._publish_wheel_cmd(
             cmd_vel_r=cmd_vel_r,
-            cmd_vel_l=-cmd_vel_l,
+            cmd_vel_l=cmd_vel_l,
         )
 
     def _publish_zero(self, reason_key: str) -> None:

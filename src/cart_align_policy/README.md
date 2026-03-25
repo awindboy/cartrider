@@ -39,7 +39,7 @@ IsaacLab에서 export한 `policy.onnx`를 ROS2 노드로 실행하여,
 
 ## policy_node 동작
 
-- 제어 주기(`control_rate_hz`, default 10Hz)마다 최신 데이터로 obs(1x5) 구성
+- 제어 주기(`control_rate_hz`, default 40Hz)마다 최신 데이터로 obs(1x5) 구성
 - obs 순서(고정):
   1. `target.pose.position.x`
   2. `target.pose.position.y`
@@ -47,8 +47,9 @@ IsaacLab에서 export한 `policy.onnx`를 ROS2 노드로 실행하여,
   4. `motor_state(id=1).speed` (left motor vel)
   5. `motor_state(id=2).speed` (right motor vel)
 - ONNX 출력 action(2D) -> `[-1, 1]` clamp -> `action_scale` 곱하여 rad/s 명령 생성
+- `|heading_error| <= target_yaw_stop_tolerance_deg` 구간은 deadzone으로 처리하여 `heading_error=0`으로 사용
 - 타겟 거리 `sqrt(x^2+y^2)`가 `0.5m` 이하면 양쪽 모터 명령을 `±0.5 rad/s`로 제한
-- `|target_x_local| <= 0.01`m, `|target_y_local| <= 0.01`m, `|heading_error| <= 5deg`이면 양쪽 모터 0 명령 publish
+- `|target_x_local| <= 0.05`m, `|target_y_local| <= 0.05`m, `|heading_error| <= 5deg`이면 양쪽 모터 0 명령 publish
 - `target` 또는 `motor` 메시지가 stale(timeout)면 안전하게 0 명령 publish
 - ONNX Runtime은 CPU provider만 사용
 
@@ -63,12 +64,12 @@ IsaacLab에서 export한 `policy.onnx`를 ROS2 노드로 실행하여,
 - `wheel_cmd_item_type` (default: `cartrider_rmd_sdk/msg/MotorCommand`)
 - `left_motor_id` (default: `1`)
 - `right_motor_id` (default: `2`)
-- `action_scale` (default: `3.0`)
-- `control_rate_hz` (default: `10.0`)
-- `target_timeout_sec` (default: `0.3`)
-- `motor_timeout_sec` (default: `0.3`)
-- `target_xy_stop_tolerance_m` (default: `0.01`)
-- `target_yaw_stop_tolerance_deg` (default: `5.0`)
+- `action_scale` (default: `1.5`)
+- `control_rate_hz` (default: `40.0`)
+- `target_timeout_sec` (default: `1000.0`)
+- `motor_timeout_sec` (default: `1000.0`)
+- `target_xy_stop_tolerance_m` (default: `0.05`)
+- `target_yaw_stop_tolerance_deg` (default: `5.0`, yaw deadzone)
 - `near_target_distance_m` (default: `0.5`)
 - `near_target_speed_limit_rad_s` (default: `0.5`)
 - `invert_left` (default: `false`)
@@ -79,9 +80,12 @@ IsaacLab에서 export한 `policy.onnx`를 ROS2 노드로 실행하여,
 ```bash
 cd ~/ros2_ws
 source /opt/ros/humble/setup.bash
-colcon build --packages-select cart_align_msgs cart_align_policy
+colcon build --packages-select cart_align_policy
 source install/setup.bash
 ```
+
+`motor_state_type`, `wheel_cmd_type` 기본값을 사용할 경우
+`cartrider_rmd_sdk` 패키지가 같은 ROS 환경에 설치되어 있어야 합니다.
 
 `onnxruntime`가 설치되지 않은 환경이라면 아래 중 하나로 설치하세요.
 

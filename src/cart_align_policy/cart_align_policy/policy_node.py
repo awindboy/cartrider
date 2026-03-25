@@ -38,8 +38,8 @@ class CartAlignPolicyNode(Node):
         self.declare_parameter('control_rate_hz', 40.0)
         self.declare_parameter('target_timeout_sec', 1000.0)
         self.declare_parameter('motor_timeout_sec', 1000.0)
-        self.declare_parameter('target_xy_stop_tolerance_m', 0.03)
-        self.declare_parameter('target_yaw_stop_tolerance_deg', 2.0)
+        self.declare_parameter('target_xy_stop_tolerance_m', 0.05)
+        self.declare_parameter('target_yaw_stop_tolerance_deg', 5.0)
         self.declare_parameter('near_target_distance_m', 0.5)
         self.declare_parameter('near_target_speed_limit_rad_s', 0.5)
         self.declare_parameter('invert_left', False)
@@ -165,7 +165,7 @@ class CartAlignPolicyNode(Node):
             'rate=%.2fHz, '
             'target_timeout=%.3fs, motor_timeout=%.3fs, '
             'target_xy_stop_tolerance=%.4fm, '
-            'target_yaw_stop_tolerance=%.2fdeg, '
+            'yaw_deadzone=%.2fdeg, '
             'near_target_distance=%.3fm, near_target_speed_limit=%.3frad/s, '
             'action_scale=%.6f'
             % (
@@ -314,11 +314,15 @@ class CartAlignPolicyNode(Node):
 
         target_x_local = float(self.latest_target.pose.position.x)
         target_y_local = float(self.latest_target.pose.position.y)
-        heading_error = self._yaw_from_quaternion(self.latest_target)
+        heading_error_raw = self._yaw_from_quaternion(self.latest_target)
+        heading_error = self._apply_deadzone(
+            heading_error_raw,
+            self.target_yaw_stop_tolerance_rad,
+        )
         if (
             abs(target_x_local) <= self.target_xy_stop_tolerance_m
             and abs(target_y_local) <= self.target_xy_stop_tolerance_m
-            and abs(heading_error) <= self.target_yaw_stop_tolerance_rad
+            and heading_error == 0.0
         ):
             self._publish_wheel_cmd(cmd_vel_r=0.0, cmd_vel_l=0.0)
             return
@@ -439,6 +443,12 @@ class CartAlignPolicyNode(Node):
         q = msg.pose.orientation
         _, _, yaw = euler_from_quaternion([q.x, q.y, q.z, q.w])
         return float(yaw)
+
+    @staticmethod
+    def _apply_deadzone(value: float, deadzone: float) -> float:
+        if abs(value) <= deadzone:
+            return 0.0
+        return float(value)
 
 
 def main(args=None) -> None:

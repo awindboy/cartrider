@@ -1,4 +1,0 @@
-std_msgs/Header header
-float32 target_x_local
-float32 target_y_local
-float32 heading_error

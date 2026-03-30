@@ -27,7 +27,11 @@ def generate_launch_description() -> LaunchDescription:
     right_motor_id = LaunchConfiguration('right_motor_id')
 
     default_model_path = PathJoinSubstitution(
-        [FindPackageShare('cart_align_policy'), 'models', 'policy.onnx']
+        [
+            FindPackageShare('cart_align_policy'),
+            'models',
+            'policy_ensemble_p0p1.onnx',
+        ]
     )
 
     return LaunchDescription(
@@ -48,14 +52,14 @@ def generate_launch_description() -> LaunchDescription:
                 'wheel_cmd_item_type',
                 default_value='cartrider_rmd_sdk/msg/MotorCommand',
             ),
-            DeclareLaunchArgument('action_scale', default_value='1.5'),
+            DeclareLaunchArgument('action_scale', default_value='3.0'),
             DeclareLaunchArgument('control_rate_hz', default_value='40.0'),
             DeclareLaunchArgument('target_timeout_sec', default_value='1000.0'),
             DeclareLaunchArgument('motor_timeout_sec', default_value='1000.0'),
             DeclareLaunchArgument('target_xy_stop_tolerance_m', default_value='0.05'),
             DeclareLaunchArgument('target_yaw_stop_tolerance_deg', default_value='5.0'),
             DeclareLaunchArgument('near_target_distance_m', default_value='0.5'),
-            DeclareLaunchArgument('near_target_speed_limit_rad_s', default_value='0.5'),
+            DeclareLaunchArgument('near_target_speed_limit_rad_s', default_value='3.0'),
             DeclareLaunchArgument('invert_left', default_value='false'),
             DeclareLaunchArgument('invert_right', default_value='false'),
             DeclareLaunchArgument('left_motor_id', default_value='1'),

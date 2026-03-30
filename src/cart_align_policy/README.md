@@ -1,6 +1,6 @@
 # cart_align_policy
 
-IsaacLab에서 export한 `policy_ensemble_p0p1.onnx`를 ROS2 노드로 실행하여,
+IsaacLab에서 export한 `policy.onnx`를 ROS2 노드로 실행하여,
 메시지(`geometry_msgs/msg/PoseStamped`, `cartrider_rmd_sdk/msg/MotorStateArray`)를 입력으로 받아
 바퀴 속도 명령을 출력합니다.
 
@@ -56,7 +56,7 @@ IsaacLab에서 export한 `policy_ensemble_p0p1.onnx`를 ROS2 노드로 실행하
 
 ## 파라미터
 
-- `model_path` (default: 패키지 설치 경로의 `models/policy_ensemble_p0p1.onnx`)
+- `model_path` (default: 패키지 설치 경로의 `models/policy.onnx`)
 - `target_topic` (default: `/align/target_local`)
 - `motor_state_topic` (default: `/rmd_state`)
 - `motor_state_type` (default: `cartrider_rmd_sdk/msg/MotorStateArray`)

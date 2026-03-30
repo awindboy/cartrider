@@ -195,13 +195,13 @@ class CartAlignPolicyNode(Node):
             candidate = os.path.join(
                 share_dir,
                 'models',
-                'policy_ensemble_p0p1.onnx',
+                'policy.onnx',
             )
             if os.path.isfile(candidate):
                 return candidate
         except Exception:
             pass
-        return '/home/kwon/ros2_ws/src/cart_align_policy/models/policy_ensemble_p0p1.onnx'
+        return '/home/kwon/ros2_ws/src/cart_align_policy/models/policy.onnx'
 
     def _load_model(self) -> None:
         if not os.path.isfile(self.model_path):

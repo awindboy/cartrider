@@ -30,7 +30,7 @@ def generate_launch_description() -> LaunchDescription:
         [
             FindPackageShare('cart_align_policy'),
             'models',
-            'policy_ensemble_p0p1.onnx',
+            'policy.onnx',
         ]
     )
 

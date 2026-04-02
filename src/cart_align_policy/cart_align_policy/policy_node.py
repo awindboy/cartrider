@@ -34,14 +34,14 @@ class CartAlignPolicyNode(Node):
             'wheel_cmd_item_type',
             'cartrider_rmd_sdk/msg/MotorCommand',
         )
-        self.declare_parameter('action_scale', 3.0)
+        self.declare_parameter('action_scale', 2.0)
         self.declare_parameter('control_rate_hz', 40.0)
         self.declare_parameter('target_timeout_sec', 1000.0)
         self.declare_parameter('motor_timeout_sec', 1000.0)
         self.declare_parameter('target_xy_stop_tolerance_m', 0.05)
         self.declare_parameter('target_yaw_stop_tolerance_deg', 5.0)
         self.declare_parameter('near_target_distance_m', 0.5)
-        self.declare_parameter('near_target_speed_limit_rad_s', 3.0)
+        self.declare_parameter('near_target_speed_limit_rad_s', 2.0)
         self.declare_parameter('invert_left', False)
         self.declare_parameter('invert_right', False)
         self.declare_parameter('left_motor_id', 1)

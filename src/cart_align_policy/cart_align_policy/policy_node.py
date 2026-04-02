@@ -382,16 +382,21 @@ class CartAlignPolicyNode(Node):
         cmd_vel_l = left_action * self.action_scale
         cmd_vel_r = right_action * self.action_scale
 
-        if self.invert_left:
-            cmd_vel_l *= -1.0
-        if self.invert_right:
-            cmd_vel_r *= -1.0
+        if (cmd_vel_l < 0 and cmd_vel_r > 0) or (cmd_vel_l > 0 and cmd_vel_r < 0):
+            cmd_vel_l = float(np.clip(cmd_vel_l, -0.4, 0.4))
+            cmd_vel_r = float(np.clip(cmd_vel_r, -0.4, 0.4))
 
         target_dist_m = math.hypot(target_x_local, target_y_local)
         if target_dist_m <= self.near_target_distance_m:
             limit = self.near_target_speed_limit_rad_s
             cmd_vel_l = float(np.clip(cmd_vel_l, -limit, limit))
             cmd_vel_r = float(np.clip(cmd_vel_r, -limit, limit))
+
+        if self.invert_left:
+            cmd_vel_l *= -1.0
+        if self.invert_right:
+            cmd_vel_r *= -1.0
+
 
         self._publish_wheel_cmd(
             cmd_vel_r=cmd_vel_r,

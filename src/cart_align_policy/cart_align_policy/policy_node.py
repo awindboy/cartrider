@@ -41,7 +41,7 @@ class CartAlignPolicyNode(Node):
         self.declare_parameter('target_xy_stop_tolerance_m', 0.05)
         self.declare_parameter('target_yaw_stop_tolerance_deg', 5.0)
         self.declare_parameter('near_target_distance_m', 0.5)
-        self.declare_parameter('near_target_speed_limit_rad_s', 2.0)
+        self.declare_parameter('near_target_speed_limit_rad_s', 0.5)
         self.declare_parameter('invert_left', False)
         self.declare_parameter('invert_right', False)
         self.declare_parameter('left_motor_id', 1)

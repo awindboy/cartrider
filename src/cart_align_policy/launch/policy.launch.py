@@ -59,7 +59,7 @@ def generate_launch_description() -> LaunchDescription:
             DeclareLaunchArgument('target_xy_stop_tolerance_m', default_value='0.05'),
             DeclareLaunchArgument('target_yaw_stop_tolerance_deg', default_value='5.0'),
             DeclareLaunchArgument('near_target_distance_m', default_value='0.5'),
-            DeclareLaunchArgument('near_target_speed_limit_rad_s', default_value='2.0'),
+            DeclareLaunchArgument('near_target_speed_limit_rad_s', default_value='0.5'),
             DeclareLaunchArgument('invert_left', default_value='true'),
             DeclareLaunchArgument('invert_right', default_value='false'),
             DeclareLaunchArgument('left_motor_id', default_value='1'),

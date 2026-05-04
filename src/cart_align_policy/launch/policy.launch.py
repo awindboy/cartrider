@@ -18,11 +18,13 @@ def generate_launch_description() -> LaunchDescription:
     front_near_target_speed_limit_rad_s = LaunchConfiguration(
         'front_near_target_speed_limit_rad_s'
     )
+    rear_motor_state_topic = LaunchConfiguration('rear_motor_state_topic')
+    front_motor_state_topic = LaunchConfiguration('front_motor_state_topic')
+    rear_wheel_cmd_topic = LaunchConfiguration('rear_wheel_cmd_topic')
+    front_wheel_cmd_topic = LaunchConfiguration('front_wheel_cmd_topic')
 
     target_topic = LaunchConfiguration('target_topic')
-    motor_state_topic = LaunchConfiguration('motor_state_topic')
     motor_state_type = LaunchConfiguration('motor_state_type')
-    wheel_cmd_topic = LaunchConfiguration('wheel_cmd_topic')
     wheel_cmd_type = LaunchConfiguration('wheel_cmd_type')
     wheel_cmd_item_type = LaunchConfiguration('wheel_cmd_item_type')
     control_rate_hz = LaunchConfiguration('control_rate_hz')
@@ -53,9 +55,7 @@ def generate_launch_description() -> LaunchDescription:
 
     common_params = {
         'target_topic': target_topic,
-        'motor_state_topic': motor_state_topic,
         'motor_state_type': motor_state_type,
-        'wheel_cmd_topic': wheel_cmd_topic,
         'wheel_cmd_type': wheel_cmd_type,
         'wheel_cmd_item_type': wheel_cmd_item_type,
         'control_rate_hz': control_rate_hz,
@@ -74,7 +74,7 @@ def generate_launch_description() -> LaunchDescription:
         [
             DeclareLaunchArgument(
                 'robot_type',
-                default_value='rear',
+                default_value='front',
                 choices=['rear', 'front'],
                 description='Robot profile selector: rear or front',
             ),
@@ -87,22 +87,30 @@ def generate_launch_description() -> LaunchDescription:
                 default_value=default_front_model_path,
             ),
             DeclareLaunchArgument('rear_action_scale', default_value='2.0'),
-            DeclareLaunchArgument('front_action_scale', default_value='10.5'),
+            DeclareLaunchArgument('front_action_scale', default_value='3.5'),
             DeclareLaunchArgument(
                 'rear_near_target_speed_limit_rad_s',
                 default_value='0.5',
             ),
             DeclareLaunchArgument(
                 'front_near_target_speed_limit_rad_s',
-                default_value='2.7',
+                default_value='0.9',
             ),
             DeclareLaunchArgument('target_topic', default_value='/align/target_local'),
-            DeclareLaunchArgument('motor_state_topic', default_value='/rmd_state'),
+            DeclareLaunchArgument('rear_motor_state_topic', default_value='/rmd_state'),
+            DeclareLaunchArgument(
+                'front_motor_state_topic',
+                default_value='/front/rmd_state',
+            ),
             DeclareLaunchArgument(
                 'motor_state_type',
                 default_value='cartrider_rmd_sdk/msg/MotorStateArray',
             ),
-            DeclareLaunchArgument('wheel_cmd_topic', default_value='/rmd_command'),
+            DeclareLaunchArgument('rear_wheel_cmd_topic', default_value='/rmd_command'),
+            DeclareLaunchArgument(
+                'front_wheel_cmd_topic',
+                default_value='/front/rmd_command',
+            ),
             DeclareLaunchArgument(
                 'wheel_cmd_type',
                 default_value='cartrider_rmd_sdk/msg/MotorCommandArray',
@@ -132,6 +140,8 @@ def generate_launch_description() -> LaunchDescription:
                 parameters=[
                     {
                         **common_params,
+                        'motor_state_topic': rear_motor_state_topic,
+                        'wheel_cmd_topic': rear_wheel_cmd_topic,
                         'model_path': rear_model_path,
                         'action_scale': rear_action_scale,
                         'near_target_speed_limit_rad_s': rear_near_target_speed_limit_rad_s,
@@ -149,6 +159,8 @@ def generate_launch_description() -> LaunchDescription:
                 parameters=[
                     {
                         **common_params,
+                        'motor_state_topic': front_motor_state_topic,
+                        'wheel_cmd_topic': front_wheel_cmd_topic,
                         'model_path': front_model_path,
                         'action_scale': front_action_scale,
                         'near_target_speed_limit_rad_s': front_near_target_speed_limit_rad_s,

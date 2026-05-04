@@ -23,14 +23,18 @@ IsaacLab에서 export한 ONNX 정책을 ROS2 노드로 실행하여,
   - `pose.orientation`(quaternion)에서 yaw 추출 = `heading_error` (wrap_to_pi)
 
 ### 2) 현재 모터 속도 입력 -> Policy
-- Topic: `/rmd_state`
+- Topic:
+  - front(default): `/front/rmd_state`
+  - rear: `/rmd_state`
 - Type: `cartrider_rmd_sdk/msg/MotorStateArray` (기본값)
 - 매핑:
   - `states` 배열에서 `id=1`의 `speed` = `left_wheel_joint_vel` (rad/s)
   - `states` 배열에서 `id=2`의 `speed` = `right_wheel_joint_vel` (rad/s)
 
 ### 3) 바퀴 속도 출력 (Policy -> Nav)
-- Topic: `/rmd_command`
+- Topic:
+  - front(default): `/front/rmd_command`
+  - rear: `/rmd_command`
 - Type: `cartrider_rmd_sdk/msg/MotorCommandArray`
 - 매핑:
   - `commands` 배열에 2개 명령 publish
@@ -57,17 +61,19 @@ IsaacLab에서 export한 ONNX 정책을 ROS2 노드로 실행하여,
 
 ## 파라미터
 
-- `robot_type` (default: `rear`, choices: `rear`, `front`)
+- `robot_type` (default: `front`, choices: `rear`, `front`)
 - `rear_model_path` (default: 패키지 설치 경로의 `models/policy.onnx`)
 - `front_model_path` (default: 패키지 설치 경로의 `models/front_policy.onnx`)
 - `rear_action_scale` (default: `2.0`)
-- `front_action_scale` (default: `10.5`)
+- `front_action_scale` (default: `3.5`)
 - `rear_near_target_speed_limit_rad_s` (default: `0.5`)
-- `front_near_target_speed_limit_rad_s` (default: `2.7`)
+- `front_near_target_speed_limit_rad_s` (default: `0.9`)
 - `target_topic` (default: `/align/target_local`)
-- `motor_state_topic` (default: `/rmd_state`)
+- `rear_motor_state_topic` (default: `/rmd_state`)
+- `front_motor_state_topic` (default: `/front/rmd_state`)
 - `motor_state_type` (default: `cartrider_rmd_sdk/msg/MotorStateArray`)
-- `wheel_cmd_topic` (default: `/rmd_command`)
+- `rear_wheel_cmd_topic` (default: `/rmd_command`)
+- `front_wheel_cmd_topic` (default: `/front/rmd_command`)
 - `wheel_cmd_type` (default: `cartrider_rmd_sdk/msg/MotorCommandArray`)
 - `wheel_cmd_item_type` (default: `cartrider_rmd_sdk/msg/MotorCommand`)
 - `left_motor_id` (default: `1`)
@@ -113,10 +119,10 @@ python3 -m pip install --user onnxruntime
 ros2 launch cart_align_policy policy.launch.py
 ```
 
-프론트봇으로 실행:
+리어봇으로 실행:
 
 ```bash
-ros2 launch cart_align_policy policy.launch.py robot_type:=front
+ros2 launch cart_align_policy policy.launch.py robot_type:=rear
 ```
 
 외부 모터 노드의 타입이 기본값과 다를 때만 변경하세요.
@@ -160,5 +166,5 @@ ros2 run cart_align_policy fixed_input_test --ros-args \
 ### 출력 확인
 
 ```bash
-ros2 topic echo /rmd_command
+ros2 topic echo /front/rmd_command
 ```

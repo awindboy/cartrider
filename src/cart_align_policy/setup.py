@@ -44,8 +44,6 @@ setup(
     entry_points={
         'console_scripts': [
             'policy_node = cart_align_policy.policy_node:main',
-            'dummy_target_echo = cart_align_policy.dummy_target_echo:main',
-            'fixed_input_test = cart_align_policy.fixed_input_test:main',
         ],
     },
 )

@@ -8,14 +8,12 @@ IsaacLab에서 export한 ONNX 정책을 ROS2 노드로 실행하여,
 
 - `cart_align_policy`
   - `policy_node` (ONNX 추론 노드)
-  - `dummy_target_echo` (더미 target/motor publish + wheel_cmd echo)
-  - `fixed_input_test` (고정값 target/motor publish + wheel_cmd 로그)
   - `launch/policy.launch.py`
 
 ## 토픽 및 메시지
 
 ### 1) Target 입력 (Nav -> Policy)
-- Topic: `/align/target_local`
+- Topic: `/align/target_local` (front/rear 공통)
 - Type: `geometry_msgs/msg/PoseStamped`
 - 매핑:
   - `pose.position.x` = `target_x_local`
@@ -23,7 +21,7 @@ IsaacLab에서 export한 ONNX 정책을 ROS2 노드로 실행하여,
   - `pose.orientation`(quaternion)에서 yaw 추출 = `heading_error` (wrap_to_pi)
 
 ### 2) 현재 모터 속도 입력 -> Policy
-- Topic:
+- Topic (robot_type 기준):
   - front(default): `/front/rmd_state`
   - rear: `/rmd_state`
 - Type: `cartrider_rmd_sdk/msg/MotorStateArray` (기본값)
@@ -32,7 +30,7 @@ IsaacLab에서 export한 ONNX 정책을 ROS2 노드로 실행하여,
   - `states` 배열에서 `id=2`의 `speed` = `right_wheel_joint_vel` (rad/s)
 
 ### 3) 바퀴 속도 출력 (Policy -> Nav)
-- Topic:
+- Topic (robot_type 기준):
   - front(default): `/front/rmd_command`
   - rear: `/rmd_command`
 - Type: `cartrider_rmd_sdk/msg/MotorCommandArray`
@@ -62,18 +60,14 @@ IsaacLab에서 export한 ONNX 정책을 ROS2 노드로 실행하여,
 ## 파라미터
 
 - `robot_type` (default: `front`, choices: `rear`, `front`)
-- `rear_model_path` (default: 패키지 설치 경로의 `models/policy.onnx`)
-- `front_model_path` (default: 패키지 설치 경로의 `models/front_policy.onnx`)
-- `rear_action_scale` (default: `2.0`)
-- `front_action_scale` (default: `3.5`)
-- `rear_near_target_speed_limit_rad_s` (default: `0.5`)
-- `front_near_target_speed_limit_rad_s` (default: `0.9`)
+- `model_path` (default: `__auto__`)
+- `action_scale` (default: `__auto__`)
+- `near_target_speed_limit_rad_s` (default: `__auto__`)
+- `near_target_distance_m` (default: `__auto__`)
 - `target_topic` (default: `/align/target_local`)
-- `rear_motor_state_topic` (default: `/rmd_state`)
-- `front_motor_state_topic` (default: `/front/rmd_state`)
+- `motor_state_topic` (default: `__auto__`)
 - `motor_state_type` (default: `cartrider_rmd_sdk/msg/MotorStateArray`)
-- `rear_wheel_cmd_topic` (default: `/rmd_command`)
-- `front_wheel_cmd_topic` (default: `/front/rmd_command`)
+- `wheel_cmd_topic` (default: `__auto__`)
 - `wheel_cmd_type` (default: `cartrider_rmd_sdk/msg/MotorCommandArray`)
 - `wheel_cmd_item_type` (default: `cartrider_rmd_sdk/msg/MotorCommand`)
 - `left_motor_id` (default: `1`)
@@ -83,9 +77,16 @@ IsaacLab에서 export한 ONNX 정책을 ROS2 노드로 실행하여,
 - `motor_timeout_sec` (default: `1000.0`)
 - `target_xy_stop_tolerance_m` (default: `0.05`)
 - `target_yaw_stop_tolerance_deg` (default: `5.0`, 정렬 완료 판정 tolerance)
-- `near_target_distance_m` (default: `0.5`)
-- `invert_left` (default: `true`)
-- `invert_right` (default: `false`)
+- `invert_left` (default: `__auto__`)
+- `invert_right` (default: `__auto__`)
+
+`__auto__`일 때 robot_type별 기본값:
+- front: `model=front_policy.onnx`, `action_scale=3.5`, `near_target_speed_limit_rad_s=0.9`,
+  `near_target_distance_m=0.5`, `motor_state_topic=/front/rmd_state`,
+  `wheel_cmd_topic=/front/rmd_command`, `invert_left=false`, `invert_right=true`
+- rear: `model=policy.onnx`, `action_scale=2.0`, `near_target_speed_limit_rad_s=0.5`,
+  `near_target_distance_m=0.5`, `motor_state_topic=/rmd_state`,
+  `wheel_cmd_topic=/rmd_command`, `invert_left=true`, `invert_right=false`
 
 ## 빌드
 
@@ -104,7 +105,6 @@ source install/setup.bash
 ```bash
 # 권장(ROS 환경)
 sudo apt-get update && sudo apt-get install -y python3-onnxruntime
-sudo apt-get install -y ros-humble-tf-transformations
 
 # 또는
 sudo apt-get install -y python3-pip
@@ -125,42 +125,19 @@ ros2 launch cart_align_policy policy.launch.py
 ros2 launch cart_align_policy policy.launch.py robot_type:=rear
 ```
 
+예시: front 프로필에서 action_scale만 수동 override
+
+```bash
+ros2 launch cart_align_policy policy.launch.py \
+  robot_type:=front \
+  action_scale:=4.0
+```
+
 외부 모터 노드의 타입이 기본값과 다를 때만 변경하세요.
 
 ```bash
 ros2 launch cart_align_policy policy.launch.py \
   motor_state_type:=my_motor_msgs/msg/MotorStateArray
-```
-
-### 더미 테스트 노드 실행
-
-```bash
-ros2 run cart_align_policy dummy_target_echo
-```
-
-### 고정 입력 스모크 테스트
-
-터미널 1:
-
-```bash
-ros2 launch cart_align_policy policy.launch.py
-```
-
-터미널 2:
-
-```bash
-ros2 run cart_align_policy fixed_input_test
-```
-
-파라미터 예시:
-
-```bash
-ros2 run cart_align_policy fixed_input_test --ros-args \
-  -p target_x_local:=1.5 \
-  -p target_y_local:=0.2 \
-  -p heading_error:=0.15 \
-  -p left_motor_vel:=0.2 \
-  -p right_motor_vel:=-0.1
 ```
 
 ### 출력 확인

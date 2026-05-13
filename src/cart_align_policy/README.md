@@ -62,6 +62,7 @@ IsaacLab에서 export한 ONNX 정책을 ROS2 노드로 실행하여,
 - `robot_type` (default: `front`, choices: `rear`, `front`)
 - `model_path` (default: `__auto__`)
 - `action_scale` (default: `__auto__`)
+- `spin_in_place_limit_rad_s` (default: `__auto__`)
 - `near_target_speed_limit_rad_s` (default: `__auto__`)
 - `near_target_distance_m` (default: `__auto__`)
 - `target_topic` (default: `/align/target_local`)
@@ -82,10 +83,10 @@ IsaacLab에서 export한 ONNX 정책을 ROS2 노드로 실행하여,
 
 `__auto__`일 때 robot_type별 기본값:
 - front: `model=front_policy.onnx`, `action_scale=3.5`, `near_target_speed_limit_rad_s=0.9`,
-  `near_target_distance_m=0.5`, `motor_state_topic=/front/rmd_state`,
+  `spin_in_place_limit_rad_s=0.0`, `near_target_distance_m=0.5`, `motor_state_topic=/front/rmd_state`,
   `wheel_cmd_topic=/front/rmd_command`, `invert_left=false`, `invert_right=true`
 - rear: `model=policy.onnx`, `action_scale=2.0`, `near_target_speed_limit_rad_s=0.5`,
-  `near_target_distance_m=0.5`, `motor_state_topic=/rmd_state`,
+  `spin_in_place_limit_rad_s=0.4`, `near_target_distance_m=0.5`, `motor_state_topic=/rmd_state`,
   `wheel_cmd_topic=/rmd_command`, `invert_left=true`, `invert_right=false`
 
 ## 빌드

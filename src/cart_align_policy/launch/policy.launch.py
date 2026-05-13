@@ -11,6 +11,7 @@ PROFILE_DEFAULTS = {
     'rear': {
         'model_file': 'policy.onnx',
         'action_scale': 2.0,
+        'spin_in_place_limit_rad_s': 0.4,
         'near_target_speed_limit_rad_s': 0.5,
         'near_target_distance_m': 0.5,
         'motor_state_topic': '/rmd_state',
@@ -21,6 +22,7 @@ PROFILE_DEFAULTS = {
     'front': {
         'model_file': 'front_policy.onnx',
         'action_scale': 3.5,
+        'spin_in_place_limit_rad_s': 0.0,
         'near_target_speed_limit_rad_s': 0.9,
         'near_target_distance_m': 0.5,
         'motor_state_topic': '/front/rmd_state',
@@ -103,6 +105,14 @@ def _build_policy_node(context):
                 str(profile['action_scale']),
             ),
             'action_scale',
+        ),
+        'spin_in_place_limit_rad_s': _parse_float(
+            _resolve_arg(
+                context,
+                'spin_in_place_limit_rad_s',
+                str(profile['spin_in_place_limit_rad_s']),
+            ),
+            'spin_in_place_limit_rad_s',
         ),
         'control_rate_hz': _parse_float(
             LaunchConfiguration('control_rate_hz').perform(context),
@@ -195,6 +205,11 @@ def generate_launch_description() -> LaunchDescription:
                 'action_scale',
                 default_value='__auto__',
                 description='__auto__ uses profile default action scale.',
+            ),
+            DeclareLaunchArgument(
+                'spin_in_place_limit_rad_s',
+                default_value='__auto__',
+                description='__auto__ uses profile default in-place turn speed limit.',
             ),
             DeclareLaunchArgument(
                 'near_target_speed_limit_rad_s',

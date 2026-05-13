@@ -35,6 +35,7 @@ class CartAlignPolicyNode(Node):
             'cartrider_rmd_sdk/msg/MotorCommand',
         )
         self.declare_parameter('action_scale', 2.0)
+        self.declare_parameter('spin_in_place_limit_rad_s', 0.0)
         self.declare_parameter('control_rate_hz', 40.0)
         self.declare_parameter('target_timeout_sec', 1000.0)
         self.declare_parameter('motor_timeout_sec', 1000.0)
@@ -57,6 +58,9 @@ class CartAlignPolicyNode(Node):
             self.get_parameter('wheel_cmd_item_type').value
         )
         self.action_scale = float(self.get_parameter('action_scale').value)
+        self.spin_in_place_limit_rad_s = float(
+            self.get_parameter('spin_in_place_limit_rad_s').value
+        )
         self.control_rate_hz = float(self.get_parameter('control_rate_hz').value)
         self.target_timeout_sec = float(self.get_parameter('target_timeout_sec').value)
         self.motor_timeout_sec = float(self.get_parameter('motor_timeout_sec').value)
@@ -119,6 +123,12 @@ class CartAlignPolicyNode(Node):
             )
             self.near_target_speed_limit_rad_s = 3.0
 
+        if self.spin_in_place_limit_rad_s < 0.0:
+            self.get_logger().warn(
+                'spin_in_place_limit_rad_s must be >= 0. Falling back to 0.0 (disabled).'
+            )
+            self.spin_in_place_limit_rad_s = 0.0
+
         self.target_yaw_stop_tolerance_rad = math.radians(
             self.target_yaw_stop_tolerance_deg
         )
@@ -167,6 +177,7 @@ class CartAlignPolicyNode(Node):
             'target_xy_stop_tolerance=%.4fm, '
             'target_yaw_stop_tolerance=%.2fdeg, '
             'near_target_distance=%.3fm, near_target_speed_limit=%.3frad/s, '
+            'spin_in_place_limit=%.3frad/s, '
             'action_scale=%.6f'
             % (
                 self.model_path,
@@ -185,6 +196,7 @@ class CartAlignPolicyNode(Node):
                 self.target_yaw_stop_tolerance_deg,
                 self.near_target_distance_m,
                 self.near_target_speed_limit_rad_s,
+                self.spin_in_place_limit_rad_s,
                 self.action_scale,
             )
         )
@@ -381,6 +393,14 @@ class CartAlignPolicyNode(Node):
 
         cmd_vel_l = left_action * self.action_scale
         cmd_vel_r = right_action * self.action_scale
+
+        if (
+            self.spin_in_place_limit_rad_s > 0.0
+            and ((cmd_vel_l < 0.0 < cmd_vel_r) or (cmd_vel_r < 0.0 < cmd_vel_l))
+        ):
+            limit = self.spin_in_place_limit_rad_s
+            cmd_vel_l = float(np.clip(cmd_vel_l, -limit, limit))
+            cmd_vel_r = float(np.clip(cmd_vel_r, -limit, limit))
 
         target_dist_m = math.hypot(target_x_local, target_y_local)
         if target_dist_m <= self.near_target_distance_m:

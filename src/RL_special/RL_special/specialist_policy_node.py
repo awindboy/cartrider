@@ -31,12 +31,12 @@ class CartAlignSpecialistPolicyNode(Node):
         self.declare_parameter('gripper_toggle_topic', '/gripper_toggle')
         self.declare_parameter('linear_velocity_scale_m_s', 0.0)
         self.declare_parameter('angular_velocity_scale_rad_s', 0.0)
-        self.declare_parameter('spin_in_place_angular_limit_rad_s', 0.0)
         self.declare_parameter('control_rate_hz', 30.0)
         self.declare_parameter('target_timeout_sec', 1000.0)
         self.declare_parameter('motor_timeout_sec', 1000.0)
         self.declare_parameter('target_xy_stop_tolerance_m', 0.05)
         self.declare_parameter('target_yaw_stop_tolerance_deg', 5.0)
+        self.declare_parameter('base_link_to_axle_center_x_m', 0.0)
         self.declare_parameter('target_x_offset_m', 0.0)
         self.declare_parameter('final_forward_distance_m', 0.35)
         self.declare_parameter('near_target_distance_m', 0.5)
@@ -64,9 +64,6 @@ class CartAlignSpecialistPolicyNode(Node):
         self.angular_velocity_scale_rad_s = float(
             self.get_parameter('angular_velocity_scale_rad_s').value
         )
-        self.spin_in_place_angular_limit_rad_s = float(
-            self.get_parameter('spin_in_place_angular_limit_rad_s').value
-        )
         self.control_rate_hz = float(self.get_parameter('control_rate_hz').value)
         self.target_timeout_sec = float(self.get_parameter('target_timeout_sec').value)
         self.motor_timeout_sec = float(self.get_parameter('motor_timeout_sec').value)
@@ -75,6 +72,9 @@ class CartAlignSpecialistPolicyNode(Node):
         )
         self.target_yaw_stop_tolerance_deg = float(
             self.get_parameter('target_yaw_stop_tolerance_deg').value
+        )
+        self.base_link_to_axle_center_x_m = float(
+            self.get_parameter('base_link_to_axle_center_x_m').value
         )
         self.target_x_offset_m = float(
             self.get_parameter('target_x_offset_m').value
@@ -118,7 +118,7 @@ class CartAlignSpecialistPolicyNode(Node):
         self.final_forward_distance_traveled_m = 0.0
         self.final_forward_last_update_time = None
         self.shutdown_requested = False
-        self._warn_timestamps = {}
+        self.current_status = ''
 
         self._load_model()
         self._load_motor_state_type()
@@ -151,49 +151,7 @@ class CartAlignSpecialistPolicyNode(Node):
             self._control_callback,
         )
 
-        self.get_logger().info(
-            'Specialist policy node started: model_path=%s, target_topic=%s, '
-            'motor_state_topic=%s, motor_state_type=%s, cmd_vel_topic=%s, '
-            'gripper_toggle_topic=%s, '
-            'left_motor_id=%d, right_motor_id=%d, '
-            'wheel_radius=%.6fm, wheel_separation=%.6fm, external_reduction=%.6f, '
-            'state_invert_left=%s, state_invert_right=%s, '
-            'rate=%.2fHz, target_timeout=%.3fs, motor_timeout=%.3fs, '
-            'target_xy_stop_tolerance=%.4fm, target_yaw_stop_tolerance=%.2fdeg, '
-            'target_x_offset=%.3fm, '
-            'final_forward_distance=%.3fm, '
-            'near_target_distance=%.3fm, near_target_linear_limit=%.3fm/s, '
-            'near_target_angular_limit=%.3frad/s, spin_in_place_angular_limit=%.3frad/s, '
-            'linear_velocity_scale=%.6fm/s, angular_velocity_scale=%.6frad/s'
-            % (
-                self.model_path,
-                self.target_topic,
-                self.motor_state_topic,
-                self.motor_state_type,
-                self.cmd_vel_topic,
-                self.gripper_toggle_topic,
-                self.left_motor_id,
-                self.right_motor_id,
-                self.wheel_radius_m,
-                self.wheel_separation_m,
-                self.external_reduction,
-                self.state_invert_left,
-                self.state_invert_right,
-                self.control_rate_hz,
-                self.target_timeout_sec,
-                self.motor_timeout_sec,
-                self.target_xy_stop_tolerance_m,
-                self.target_yaw_stop_tolerance_deg,
-                self.target_x_offset_m,
-                self.final_forward_distance_m,
-                self.near_target_distance_m,
-                self.near_target_linear_speed_limit_m_s,
-                self.near_target_angular_speed_limit_rad_s,
-                self.spin_in_place_angular_limit_rad_s,
-                self.linear_velocity_scale_m_s,
-                self.angular_velocity_scale_rad_s,
-            )
-        )
+        self._set_status('starting')
 
     def _default_model_path(self) -> str:
         try:
@@ -220,6 +178,8 @@ class CartAlignSpecialistPolicyNode(Node):
             raise ValueError('target_xy_stop_tolerance_m must be >= 0.')
         if self.target_yaw_stop_tolerance_deg < 0.0:
             raise ValueError('target_yaw_stop_tolerance_deg must be >= 0.')
+        if self.base_link_to_axle_center_x_m < 0.0:
+            raise ValueError('base_link_to_axle_center_x_m must be >= 0.')
         if self.target_x_offset_m < 0.0:
             raise ValueError('target_x_offset_m must be >= 0.')
         if self.final_forward_distance_m < 0.0:
@@ -234,8 +194,6 @@ class CartAlignSpecialistPolicyNode(Node):
             raise ValueError('linear_velocity_scale_m_s must be > 0.')
         if self.angular_velocity_scale_rad_s <= 0.0:
             raise ValueError('angular_velocity_scale_rad_s must be > 0.')
-        if self.spin_in_place_angular_limit_rad_s < 0.0:
-            raise ValueError('spin_in_place_angular_limit_rad_s must be >= 0.')
         if self.wheel_radius_m <= 0.0:
             raise ValueError('wheel_radius_m must be > 0.')
         if self.wheel_separation_m <= 0.0:
@@ -268,13 +226,8 @@ class CartAlignSpecialistPolicyNode(Node):
         self.input_name = inputs[0].name
         self.output_name = outputs[0].name
 
-        in_shape = tuple(inputs[0].shape)
-        out_shape = tuple(outputs[0].shape)
-        self.get_logger().info(
-            f'Loaded ONNX model with input={self.input_name} shape={in_shape}, '
-            f'output={self.output_name} shape={out_shape}, '
-            f'providers={self.session.get_providers()}'
-        )
+        _ = tuple(inputs[0].shape)
+        _ = tuple(outputs[0].shape)
 
     def _load_motor_state_type(self) -> None:
         try:
@@ -290,11 +243,7 @@ class CartAlignSpecialistPolicyNode(Node):
 
     def _motor_state_callback(self, msg) -> None:
         if not hasattr(msg, 'states'):
-            self._warn_throttle(
-                'invalid_motor_state_msg',
-                f'{self.motor_state_type} has no "states" field.',
-                2.0,
-            )
+            self._set_status('invalid_motor_state_msg')
             return
 
         left_speed = None
@@ -308,11 +257,7 @@ class CartAlignSpecialistPolicyNode(Node):
                 right_speed = float(state.speed)
 
         if left_speed is None or right_speed is None:
-            self._warn_throttle(
-                'missing_motor_ids',
-                'MotorStateArray must include configured left/right motor ids.',
-                2.0,
-            )
+            self._set_status('missing_motor_ids')
             return
 
         if self.state_invert_left:
@@ -357,9 +302,13 @@ class CartAlignSpecialistPolicyNode(Node):
         raw_target_x_local = float(self.latest_target.x)
         raw_target_y_local = float(self.latest_target.y)
         heading_error = self._wrap_to_pi(float(self.latest_target.theta))
-        target_x_local, target_y_local = self._apply_target_offset(
+        axle_target_x_local, axle_target_y_local = self._shift_target_to_axle_center(
             raw_target_x_local,
             raw_target_y_local,
+        )
+        target_x_local, target_y_local = self._apply_target_offset(
+            axle_target_x_local,
+            axle_target_y_local,
             heading_error,
         )
         if (
@@ -384,6 +333,8 @@ class CartAlignSpecialistPolicyNode(Node):
             self._publish_zero('stale_motor_vel')
             return
 
+        self._set_status('align')
+
         obs = np.array(
             [
                 [
@@ -403,21 +354,13 @@ class CartAlignSpecialistPolicyNode(Node):
                 {self.input_name: obs},
             )[0]
         except Exception as exc:
-            self._warn_throttle(
-                'inference_failed',
-                f'ONNX inference failed: {exc}',
-                1.0,
-            )
+            self._set_status('inference_failed')
             self._publish_zero('inference_failed')
             return
 
         actions = np.asarray(inference_out, dtype=np.float32).reshape(-1)
         if actions.size < 2:
-            self._warn_throttle(
-                'invalid_output',
-                f'Expected at least 2 actions, got shape={inference_out.shape}',
-                1.0,
-            )
+            self._set_status('invalid_output')
             self._publish_zero('invalid_output')
             return
 
@@ -426,13 +369,6 @@ class CartAlignSpecialistPolicyNode(Node):
 
         cmd_linear = linear_action * self.linear_velocity_scale_m_s
         cmd_angular = angular_action * self.angular_velocity_scale_rad_s
-
-        if (
-            self.spin_in_place_angular_limit_rad_s > 0.0
-            and self._is_spin_in_place(cmd_linear, cmd_angular)
-        ):
-            limit = self.spin_in_place_angular_limit_rad_s
-            cmd_angular = float(np.clip(cmd_angular, -limit, limit))
 
         target_dist_m = math.hypot(target_x_local, target_y_local)
         if target_dist_m <= self.near_target_distance_m:
@@ -462,13 +398,7 @@ class CartAlignSpecialistPolicyNode(Node):
         self.control_phase = 'final_forward'
         self.final_forward_distance_traveled_m = 0.0
         self.final_forward_last_update_time = now
-        self.get_logger().info(
-            'Alignment complete. Starting final forward motion: distance=%.3fm speed=%.3fm/s'
-            % (
-                self.final_forward_distance_m,
-                self.near_target_linear_speed_limit_m_s,
-            )
-        )
+        self._set_status('final_forward')
 
     def _run_final_forward(self, now) -> None:
         if (
@@ -506,10 +436,7 @@ class CartAlignSpecialistPolicyNode(Node):
             self._publish_gripper_toggle(True)
             self.control_phase = 'done'
             self.shutdown_requested = True
-            self.get_logger().info(
-                'Final forward motion complete: traveled=%.3fm. Gripper toggled, shutting down node.'
-                % self.final_forward_distance_traveled_m
-            )
+            self._set_status('done')
             # Give DDS a brief chance to flush the gripper toggle before shutdown.
             time.sleep(0.1)
             try:
@@ -533,19 +460,8 @@ class CartAlignSpecialistPolicyNode(Node):
             angular_z_rad_s=0.0,
         )
 
-    def _is_spin_in_place(self, linear_x_m_s: float, angular_z_rad_s: float) -> bool:
-        left_linear_m_s = linear_x_m_s - 0.5 * angular_z_rad_s * self.wheel_separation_m
-        right_linear_m_s = linear_x_m_s + 0.5 * angular_z_rad_s * self.wheel_separation_m
-        if abs(angular_z_rad_s) <= 1.0e-9:
-            return False
-        return left_linear_m_s * right_linear_m_s <= 0.0
-
     def _publish_zero(self, reason_key: str) -> None:
-        self._warn_throttle(
-            reason_key,
-            f'Publishing zero command due to: {reason_key}',
-            2.0,
-        )
+        self._set_status(reason_key)
         self._publish_cmd_vel(
             linear_x_m_s=0.0,
             angular_z_rad_s=0.0,
@@ -568,23 +484,32 @@ class CartAlignSpecialistPolicyNode(Node):
 
     def _apply_target_offset(
         self,
-        raw_target_x_local: float,
-        raw_target_y_local: float,
+        axle_target_x_local: float,
+        axle_target_y_local: float,
         heading_error_rad: float,
     ) -> tuple[float, float]:
         offset_x_local = self.target_x_offset_m * math.cos(heading_error_rad)
         offset_y_local = self.target_x_offset_m * math.sin(heading_error_rad)
         return (
-            raw_target_x_local - offset_x_local,
-            raw_target_y_local - offset_y_local,
+            axle_target_x_local - offset_x_local,
+            axle_target_y_local - offset_y_local,
         )
 
-    def _warn_throttle(self, key: str, text: str, period_sec: float) -> None:
-        now_sec = self.get_clock().now().nanoseconds * 1e-9
-        last = self._warn_timestamps.get(key, -1.0e12)
-        if now_sec - last >= period_sec:
-            self.get_logger().warn(text)
-            self._warn_timestamps[key] = now_sec
+    def _shift_target_to_axle_center(
+        self,
+        raw_target_x_local: float,
+        raw_target_y_local: float,
+    ) -> tuple[float, float]:
+        return (
+            raw_target_x_local - self.base_link_to_axle_center_x_m,
+            raw_target_y_local,
+        )
+
+    def _set_status(self, status: str) -> None:
+        if self.current_status == status:
+            return
+        self.current_status = status
+        self.get_logger().info(f'mode={status}')
 
     @staticmethod
     def _wrap_to_pi(angle_rad: float) -> float:

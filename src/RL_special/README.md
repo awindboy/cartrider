@@ -16,10 +16,11 @@ IsaacLab에서 export한 specialist ONNX 정책을 ROS2 노드로 실행하여,
 - Topic: `/rs/cart_pose` (front/rear 공통, 기본값)
 - Type: `geometry_msgs/msg/Pose2D`
 - 매핑:
-  - `x` = `raw_target_x_local`
-  - `y` = `target_y_local`
+  - `x` = `raw_target_x_local` (`base_link` 중심 기준)
+  - `y` = `raw_target_y_local` (`base_link` 중심 기준)
   - `theta` = 비전 yaw error
-  - policy 입력에는 `target_x_offset_m`를 `theta` 방향으로 투영해 보정한 `target_x_local`, `target_y_local` 를 사용
+  - 먼저 `base_link_to_axle_center_x_m`만큼 x축으로 원점을 앞으로 옮겨 구동축 중심 기준 `axle_target_x_local`, `axle_target_y_local` 를 계산
+  - 그 다음 `target_x_offset_m`를 `theta` 방향으로 투영해 최종 `target_x_local`, `target_y_local` 를 계산
   - policy 입력에는 `heading_error = wrap_to_pi(theta)` 를 사용
 
 ### 2) 현재 로봇 속도 입력 -> Policy
@@ -62,15 +63,14 @@ IsaacLab에서 export한 specialist ONNX 정책을 ROS2 노드로 실행하여,
   - `linear_velocity_scale_m_s`
   - `angular_velocity_scale_rad_s`
 - `target_yaw_stop_tolerance_deg`는 정렬 완료(정지) 판정 조건에서만 사용
-- `target_x_offset_m`로 비전 기준점과 로봇 구동축 중심의 longitudinal 차이를 보정
+- `base_link_to_axle_center_x_m`로 비전 좌표의 기준점을 `base_link` 중심에서 로봇 구동축 중심으로 이동
+- `target_x_offset_m`로 비전 기준점과 실제 정렬 목표점 사이의 longitudinal 차이를 보정
 - 정렬 완료되면 이후에는 타겟 정보와 무관하게 `final_forward_distance_m`만큼 직진
 - 이 직진 속도는 `near_target_linear_speed_limit_m_s`, 회전 속도는 `0.0`을 사용
 - 직진 이동거리는 `/rmd_state`에서 변환한 현재 선속도를 적분해 계산
 - 직진 완료 후 0 `cmd_vel` publish, `/gripper_toggle=true` publish 후 노드 종료
 - 타겟 거리 `sqrt(x^2+y^2)`가 `near_target_distance_m` 이하면
   `near_target_linear_speed_limit_m_s`, `near_target_angular_speed_limit_rad_s`로 명령 제한
-- 출력 twist가 좌우 바퀴를 서로 반대 방향으로 돌리는 궤적일 때
-  `spin_in_place_angular_limit_rad_s`로 `angular.z` 제한
 - `|target_x_local| <= 0.05`m, `|target_y_local| <= 0.05`m, `|heading_error| <= 5deg`이면 0 `cmd_vel` publish
 - `target` 또는 `motor` 메시지가 stale(timeout)면 안전하게 0 `cmd_vel` publish
 - ONNX Runtime은 CPU provider만 사용
@@ -81,7 +81,6 @@ IsaacLab에서 export한 specialist ONNX 정책을 ROS2 노드로 실행하여,
 - `model_path` (default: `__auto__`)
 - `linear_velocity_scale_m_s` (default: `__auto__`)
 - `angular_velocity_scale_rad_s` (default: `__auto__`)
-- `spin_in_place_angular_limit_rad_s` (default: `__auto__`)
 - `near_target_linear_speed_limit_m_s` (default: `__auto__`)
 - `near_target_angular_speed_limit_rad_s` (default: `__auto__`)
 - `near_target_distance_m` (default: `__auto__`)
@@ -102,6 +101,7 @@ IsaacLab에서 export한 specialist ONNX 정책을 ROS2 노드로 실행하여,
 - `motor_timeout_sec` (default: `1000.0`)
 - `target_xy_stop_tolerance_m` (default: `0.05`)
 - `target_yaw_stop_tolerance_deg` (default: `5.0`)
+- `base_link_to_axle_center_x_m` (default: `__auto__`)
 - `target_x_offset_m` (default: `__auto__`)
 - `final_forward_distance_m` (default: `0.35`)
 
@@ -109,18 +109,17 @@ IsaacLab에서 export한 specialist ONNX 정책을 ROS2 노드로 실행하여,
 - front: `model=front_specialist_policy.onnx`, `motor_state_topic=/front/rmd_state`,
   `cmd_vel_topic=/cmd_vel`, `state_invert_left=false`, `state_invert_right=true`,
   `near_target_distance_m=0.5`, `wheel_radius_m=0.0635`, `wheel_separation_m=0.2460`,
-  `external_reduction=3.0`, `target_x_offset_m=0.0`,
+  `external_reduction=3.0`, `base_link_to_axle_center_x_m=0.095`, `target_x_offset_m=0.0`,
   `linear_velocity_scale_m_s=0.22`,
-  `angular_velocity_scale_rad_s=1.81`, `spin_in_place_angular_limit_rad_s=0.0`,
+  `angular_velocity_scale_rad_s=1.81`,
   `near_target_linear_speed_limit_m_s=0.06`,
   `near_target_angular_speed_limit_rad_s=0.46`
 - rear: `model=specialist_policy.onnx`, `motor_state_topic=/rmd_state`,
   `cmd_vel_topic=/cmd_vel`, `state_invert_left=true`, `state_invert_right=false`,
   `near_target_distance_m=0.5`, `wheel_radius_m=0.1100`, `wheel_separation_m=0.3000`,
-  `external_reduction=1.0`, `target_x_offset_m=0.0`,
+  `external_reduction=1.0`, `base_link_to_axle_center_x_m=0.120`, `target_x_offset_m=0.20`,
   `linear_velocity_scale_m_s=0.22`,
   `angular_velocity_scale_rad_s=1.47`,
-  `spin_in_place_angular_limit_rad_s=0.29`,
   `near_target_linear_speed_limit_m_s=0.06`,
   `near_target_angular_speed_limit_rad_s=0.37`
 
@@ -128,14 +127,17 @@ IsaacLab에서 export한 specialist ONNX 정책을 ROS2 노드로 실행하여,
 즉 아래 항목들은 더 이상 모터 각속도 제한이나 wheel geometry로 런타임 환산하지 않습니다.
 - `linear_velocity_scale_m_s`
 - `angular_velocity_scale_rad_s`
-- `spin_in_place_angular_limit_rad_s`
 - `near_target_linear_speed_limit_m_s`
 - `near_target_angular_speed_limit_rad_s`
 
 `wheel_radius_m`, `wheel_separation_m`, `external_reduction`는 출력 제한 계산용이 아니라
 `/rmd_state`의 순수 모터 속도를 현재 로봇의 선속도/각속도로 변환할 때만 사용합니다.
+`base_link_to_axle_center_x_m`는 비전이 만든 `base_link` 중심 기준 좌표를 로봇 구동축 중심 기준 좌표로 바꾸는 x축 이동량입니다.
+코드에서는 먼저 `x_axle = x_base - base_link_to_axle_center_x_m`, `y_axle = y_base`를 적용합니다.
+
 `target_x_offset_m`는 비전이 보는 카트 기준점과 실제 정렬 목표점 사이의 longitudinal 오프셋입니다.
-코드에서는 이를 `theta` 방향으로 투영해 `x/y`를 함께 보정하고, `theta` 자체는 그대로 사용합니다.
+코드에서는 그 다음 `x_target = x_axle - target_x_offset_m * cos(theta)`,
+`y_target = y_axle - target_x_offset_m * sin(theta)`를 적용하고, `theta` 자체는 그대로 사용합니다.
 
 ## 빌드
 

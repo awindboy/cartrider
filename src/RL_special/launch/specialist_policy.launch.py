@@ -9,6 +9,8 @@ from launch_ros.actions import Node
 
 FRONT_TARGET_X_OFFSET_M = 0.0
 REAR_TARGET_X_OFFSET_M = 0.20
+FRONT_BASE_LINK_TO_AXLE_CENTER_X_M = 0.095
+REAR_BASE_LINK_TO_AXLE_CENTER_X_M = 0.120
 
 
 PROFILE_DEFAULTS = {
@@ -16,10 +18,10 @@ PROFILE_DEFAULTS = {
         'model_file': 'specialist_policy.onnx',
         'linear_velocity_scale_m_s': 0.2,
         'angular_velocity_scale_rad_s': 0.3,
-        'spin_in_place_angular_limit_rad_s': 0.29,
         'near_target_linear_speed_limit_m_s': 0.06,
         'near_target_angular_speed_limit_rad_s': 0.1,
         'near_target_distance_m': 0.5,
+        'base_link_to_axle_center_x_m': REAR_BASE_LINK_TO_AXLE_CENTER_X_M,
         'target_x_offset_m': REAR_TARGET_X_OFFSET_M,
         'motor_state_topic': '/rmd_state',
         'cmd_vel_topic': '/cmd_vel',
@@ -33,10 +35,10 @@ PROFILE_DEFAULTS = {
         'model_file': 'front_specialist_policy.onnx',
         'linear_velocity_scale_m_s': 0.2,
         'angular_velocity_scale_rad_s': 0.3,
-        'spin_in_place_angular_limit_rad_s': 0.0,
         'near_target_linear_speed_limit_m_s': 0.06,
         'near_target_angular_speed_limit_rad_s': 0.1,
         'near_target_distance_m': 0.5,
+        'base_link_to_axle_center_x_m': FRONT_BASE_LINK_TO_AXLE_CENTER_X_M,
         'target_x_offset_m': FRONT_TARGET_X_OFFSET_M,
         'motor_state_topic': '/front/rmd_state',
         'cmd_vel_topic': '/cmd_vel',
@@ -152,14 +154,6 @@ def _build_policy_node(context):
             ),
             'angular_velocity_scale_rad_s',
         ),
-        'spin_in_place_angular_limit_rad_s': _parse_float(
-            _resolve_arg(
-                context,
-                'spin_in_place_angular_limit_rad_s',
-                profile['spin_in_place_angular_limit_rad_s'],
-            ),
-            'spin_in_place_angular_limit_rad_s',
-        ),
         'control_rate_hz': _parse_float(
             LaunchConfiguration('control_rate_hz').perform(context),
             'control_rate_hz',
@@ -179,6 +173,14 @@ def _build_policy_node(context):
         'target_yaw_stop_tolerance_deg': _parse_float(
             LaunchConfiguration('target_yaw_stop_tolerance_deg').perform(context),
             'target_yaw_stop_tolerance_deg',
+        ),
+        'base_link_to_axle_center_x_m': _parse_float(
+            _resolve_arg(
+                context,
+                'base_link_to_axle_center_x_m',
+                profile['base_link_to_axle_center_x_m'],
+            ),
+            'base_link_to_axle_center_x_m',
         ),
         'target_x_offset_m': _parse_float(
             _resolve_arg(
@@ -281,11 +283,6 @@ def generate_launch_description() -> LaunchDescription:
                 description='__auto__ derives the angular action scale from wheel geometry and legacy limits.',
             ),
             DeclareLaunchArgument(
-                'spin_in_place_angular_limit_rad_s',
-                default_value='__auto__',
-                description='__auto__ derives the in-place angular limit from wheel geometry and legacy limits.',
-            ),
-            DeclareLaunchArgument(
                 'near_target_linear_speed_limit_m_s',
                 default_value='__auto__',
                 description='__auto__ derives the near-target linear limit from wheel geometry and legacy limits.',
@@ -354,9 +351,14 @@ def generate_launch_description() -> LaunchDescription:
             DeclareLaunchArgument('target_xy_stop_tolerance_m', default_value='0.1'),
             DeclareLaunchArgument('target_yaw_stop_tolerance_deg', default_value='2.0'),
             DeclareLaunchArgument(
+                'base_link_to_axle_center_x_m',
+                default_value='__auto__',
+                description='Forward x offset from base_link center to drive axle center. __auto__ uses profile default.',
+            ),
+            DeclareLaunchArgument(
                 'target_x_offset_m',
                 default_value='__auto__',
-                description='Offset subtracted from target x to align the robot drive axle center to the cart.',
+                description='Longitudinal cart-surface offset applied after shifting the frame origin from base_link center to drive axle center.',
             ),
             DeclareLaunchArgument('final_forward_distance_m', default_value='0.33'),
             DeclareLaunchArgument('left_motor_id', default_value='1'),

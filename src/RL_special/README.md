@@ -35,9 +35,7 @@ IsaacLab에서 export한 specialist ONNX 정책을 ROS2 노드로 실행하여,
   - `angular_velocity_rad_s = (v_right - v_left) / wheel_separation_m`
 
 ### 3) 로봇 속도 출력 (Policy -> Nav)
-- Topic (robot_type 기준):
-  - front(default): `/front/cmd_vel`
-  - rear: `/cmd_vel`
+- Topic: `/cmd_vel` (front/rear 공통 기본값)
 - Type: `geometry_msgs/msg/Twist`
 - 매핑:
   - `linear.x` = `cmd_linear_velocity_m_s`
@@ -93,28 +91,31 @@ IsaacLab에서 export한 specialist ONNX 정책을 ROS2 노드로 실행하여,
 
 `__auto__`일 때 robot_type별 기본값:
 - front: `model=front_specialist_policy.onnx`, `motor_state_topic=/front/rmd_state`,
-  `cmd_vel_topic=/front/cmd_vel`, `state_invert_left=false`, `state_invert_right=true`,
+  `cmd_vel_topic=/cmd_vel`, `state_invert_left=false`, `state_invert_right=true`,
   `near_target_distance_m=0.5`, `wheel_radius_m=0.0635`, `wheel_separation_m=0.2460`,
-  `external_reduction=3.0`
+  `external_reduction=3.0`, `linear_velocity_scale_m_s=0.22`,
+  `angular_velocity_scale_rad_s=1.81`, `spin_in_place_angular_limit_rad_s=0.0`,
+  `near_target_linear_speed_limit_m_s=0.06`,
+  `near_target_angular_speed_limit_rad_s=0.46`
 - rear: `model=specialist_policy.onnx`, `motor_state_topic=/rmd_state`,
   `cmd_vel_topic=/cmd_vel`, `state_invert_left=true`, `state_invert_right=false`,
   `near_target_distance_m=0.5`, `wheel_radius_m=0.1100`, `wheel_separation_m=0.3000`,
-  `external_reduction=1.0`
+  `external_reduction=1.0`, `linear_velocity_scale_m_s=0.22`,
+  `angular_velocity_scale_rad_s=1.47`,
+  `spin_in_place_angular_limit_rad_s=0.29`,
+  `near_target_linear_speed_limit_m_s=0.06`,
+  `near_target_angular_speed_limit_rad_s=0.37`
 
-아래 항목은 기존 wheel-space 기본값을 wheel geometry로 twist-space에 자동 환산합니다.
+출력 스케일과 제한값은 위 숫자를 그대로 기본값으로 사용합니다.
+즉 아래 항목들은 더 이상 모터 각속도 제한이나 wheel geometry로 런타임 환산하지 않습니다.
 - `linear_velocity_scale_m_s`
 - `angular_velocity_scale_rad_s`
 - `spin_in_place_angular_limit_rad_s`
 - `near_target_linear_speed_limit_m_s`
 - `near_target_angular_speed_limit_rad_s`
 
-여기서 감속비(`external_reduction`)는 출력 쪽 자동 환산에는 사용하지 않습니다.
-모터 노드가 `cmd_vel`을 만족하도록 감속비를 내부에서 처리한다고 가정하고,
-감속비는 `/rmd_state`의 순수 모터 속도를 실제 바퀴 속도로 바꿀 때만 사용합니다.
-
-자동 환산 기준이 되는 legacy 값:
-- front: `action_scale=3.5`, `spin_in_place_limit_rad_s=0.0`, `near_target_speed_limit_rad_s=0.9`
-- rear: `action_scale=2.0`, `spin_in_place_limit_rad_s=0.4`, `near_target_speed_limit_rad_s=0.5`
+`wheel_radius_m`, `wheel_separation_m`, `external_reduction`는 출력 제한 계산용이 아니라
+`/rmd_state`의 순수 모터 속도를 현재 로봇의 선속도/각속도로 변환할 때만 사용합니다.
 
 ## 빌드
 

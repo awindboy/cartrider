@@ -10,9 +10,11 @@ from launch_ros.actions import Node
 PROFILE_DEFAULTS = {
     'rear': {
         'model_file': 'specialist_policy.onnx',
-        'wheel_action_scale_rad_s': 2.0,
-        'spin_in_place_limit_rad_s': 0.4,
-        'near_target_speed_limit_rad_s': 0.5,
+        'linear_velocity_scale_m_s': 0.22,
+        'angular_velocity_scale_rad_s': 1.47,
+        'spin_in_place_angular_limit_rad_s': 0.29,
+        'near_target_linear_speed_limit_m_s': 0.06,
+        'near_target_angular_speed_limit_rad_s': 0.37,
         'near_target_distance_m': 0.5,
         'motor_state_topic': '/rmd_state',
         'cmd_vel_topic': '/cmd_vel',
@@ -24,12 +26,14 @@ PROFILE_DEFAULTS = {
     },
     'front': {
         'model_file': 'front_specialist_policy.onnx',
-        'wheel_action_scale_rad_s': 3.5,
-        'spin_in_place_limit_rad_s': 0.0,
-        'near_target_speed_limit_rad_s': 0.9,
+        'linear_velocity_scale_m_s': 0.22,
+        'angular_velocity_scale_rad_s': 1.81,
+        'spin_in_place_angular_limit_rad_s': 0.0,
+        'near_target_linear_speed_limit_m_s': 0.06,
+        'near_target_angular_speed_limit_rad_s': 0.46,
         'near_target_distance_m': 0.5,
         'motor_state_topic': '/front/rmd_state',
-        'cmd_vel_topic': '/front/cmd_vel',
+        'cmd_vel_topic': '/cmd_vel',
         'state_invert_left': False,
         'state_invert_right': True,
         'wheel_radius_m': 0.0635,
@@ -73,21 +77,6 @@ def _parse_int(value: str, name: str) -> int:
         return int(value)
     except ValueError as exc:
         raise RuntimeError(f'Invalid int for {name}: "{value}".') from exc
-
-
-def _derive_linear_speed_limit_m_s(
-    wheel_angular_limit_rad_s: float,
-    wheel_radius_m: float,
-) -> float:
-    return wheel_angular_limit_rad_s * wheel_radius_m
-
-
-def _derive_angular_speed_limit_rad_s(
-    wheel_angular_limit_rad_s: float,
-    wheel_radius_m: float,
-    wheel_separation_m: float,
-) -> float:
-    return (2.0 * wheel_angular_limit_rad_s * wheel_radius_m) / wheel_separation_m
 
 
 def _build_policy_node(context):
@@ -142,10 +131,7 @@ def _build_policy_node(context):
             _resolve_arg(
                 context,
                 'linear_velocity_scale_m_s',
-                _derive_linear_speed_limit_m_s(
-                    profile['wheel_action_scale_rad_s'],
-                    wheel_radius_m,
-                ),
+                profile['linear_velocity_scale_m_s'],
             ),
             'linear_velocity_scale_m_s',
         ),
@@ -153,11 +139,7 @@ def _build_policy_node(context):
             _resolve_arg(
                 context,
                 'angular_velocity_scale_rad_s',
-                _derive_angular_speed_limit_rad_s(
-                    profile['wheel_action_scale_rad_s'],
-                    wheel_radius_m,
-                    wheel_separation_m,
-                ),
+                profile['angular_velocity_scale_rad_s'],
             ),
             'angular_velocity_scale_rad_s',
         ),
@@ -165,11 +147,7 @@ def _build_policy_node(context):
             _resolve_arg(
                 context,
                 'spin_in_place_angular_limit_rad_s',
-                _derive_angular_speed_limit_rad_s(
-                    profile['spin_in_place_limit_rad_s'],
-                    wheel_radius_m,
-                    wheel_separation_m,
-                ),
+                profile['spin_in_place_angular_limit_rad_s'],
             ),
             'spin_in_place_angular_limit_rad_s',
         ),
@@ -205,10 +183,7 @@ def _build_policy_node(context):
             _resolve_arg(
                 context,
                 'near_target_linear_speed_limit_m_s',
-                _derive_linear_speed_limit_m_s(
-                    profile['near_target_speed_limit_rad_s'],
-                    wheel_radius_m,
-                ),
+                profile['near_target_linear_speed_limit_m_s'],
             ),
             'near_target_linear_speed_limit_m_s',
         ),
@@ -216,11 +191,7 @@ def _build_policy_node(context):
             _resolve_arg(
                 context,
                 'near_target_angular_speed_limit_rad_s',
-                _derive_angular_speed_limit_rad_s(
-                    profile['near_target_speed_limit_rad_s'],
-                    wheel_radius_m,
-                    wheel_separation_m,
-                ),
+                profile['near_target_angular_speed_limit_rad_s'],
             ),
             'near_target_angular_speed_limit_rad_s',
         ),

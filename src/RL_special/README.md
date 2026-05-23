@@ -54,6 +54,10 @@ IsaacLab에서 export한 specialist ONNX 정책을 ROS2 노드로 실행하여,
   - `linear_velocity_scale_m_s`
   - `angular_velocity_scale_rad_s`
 - `target_yaw_stop_tolerance_deg`는 정렬 완료(정지) 판정 조건에서만 사용
+- 정렬 완료되면 이후에는 타겟 정보와 무관하게 `final_forward_distance_m`만큼 직진
+- 이 직진 속도는 `near_target_linear_speed_limit_m_s`, 회전 속도는 `0.0`을 사용
+- 직진 이동거리는 `/rmd_state`에서 변환한 현재 선속도를 적분해 계산
+- 직진 완료 후 0 `cmd_vel` publish 후 노드 종료
 - 타겟 거리 `sqrt(x^2+y^2)`가 `near_target_distance_m` 이하면
   `near_target_linear_speed_limit_m_s`, `near_target_angular_speed_limit_rad_s`로 명령 제한
 - 출력 twist가 좌우 바퀴를 서로 반대 방향으로 돌리는 궤적일 때
@@ -88,6 +92,7 @@ IsaacLab에서 export한 specialist ONNX 정책을 ROS2 노드로 실행하여,
 - `motor_timeout_sec` (default: `1000.0`)
 - `target_xy_stop_tolerance_m` (default: `0.05`)
 - `target_yaw_stop_tolerance_deg` (default: `5.0`)
+- `final_forward_distance_m` (default: `0.35`)
 
 `__auto__`일 때 robot_type별 기본값:
 - front: `model=front_specialist_policy.onnx`, `motor_state_topic=/front/rmd_state`,

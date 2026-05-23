@@ -34,6 +34,7 @@ class CartAlignSpecialistPolicyNode(Node):
         self.declare_parameter('motor_timeout_sec', 1000.0)
         self.declare_parameter('target_xy_stop_tolerance_m', 0.05)
         self.declare_parameter('target_yaw_stop_tolerance_deg', 5.0)
+        self.declare_parameter('final_forward_distance_m', 0.35)
         self.declare_parameter('near_target_distance_m', 0.5)
         self.declare_parameter('near_target_linear_speed_limit_m_s', 0.0)
         self.declare_parameter('near_target_angular_speed_limit_rad_s', 0.0)
@@ -68,6 +69,9 @@ class CartAlignSpecialistPolicyNode(Node):
         self.target_yaw_stop_tolerance_deg = float(
             self.get_parameter('target_yaw_stop_tolerance_deg').value
         )
+        self.final_forward_distance_m = float(
+            self.get_parameter('final_forward_distance_m').value
+        )
         self.near_target_distance_m = float(
             self.get_parameter('near_target_distance_m').value
         )
@@ -100,6 +104,10 @@ class CartAlignSpecialistPolicyNode(Node):
         self.current_linear_velocity_m_s: Optional[float] = None
         self.current_angular_velocity_rad_s: Optional[float] = None
         self.last_motor_rx_time = None
+        self.control_phase = 'align'
+        self.final_forward_distance_traveled_m = 0.0
+        self.final_forward_last_update_time = None
+        self.shutdown_requested = False
         self._warn_timestamps = {}
 
         self._load_model()
@@ -136,6 +144,7 @@ class CartAlignSpecialistPolicyNode(Node):
             'state_invert_left=%s, state_invert_right=%s, '
             'rate=%.2fHz, target_timeout=%.3fs, motor_timeout=%.3fs, '
             'target_xy_stop_tolerance=%.4fm, target_yaw_stop_tolerance=%.2fdeg, '
+            'final_forward_distance=%.3fm, '
             'near_target_distance=%.3fm, near_target_linear_limit=%.3fm/s, '
             'near_target_angular_limit=%.3frad/s, spin_in_place_angular_limit=%.3frad/s, '
             'linear_velocity_scale=%.6fm/s, angular_velocity_scale=%.6frad/s'
@@ -157,6 +166,7 @@ class CartAlignSpecialistPolicyNode(Node):
                 self.motor_timeout_sec,
                 self.target_xy_stop_tolerance_m,
                 self.target_yaw_stop_tolerance_deg,
+                self.final_forward_distance_m,
                 self.near_target_distance_m,
                 self.near_target_linear_speed_limit_m_s,
                 self.near_target_angular_speed_limit_rad_s,
@@ -191,6 +201,8 @@ class CartAlignSpecialistPolicyNode(Node):
             raise ValueError('target_xy_stop_tolerance_m must be >= 0.')
         if self.target_yaw_stop_tolerance_deg < 0.0:
             raise ValueError('target_yaw_stop_tolerance_deg must be >= 0.')
+        if self.final_forward_distance_m < 0.0:
+            raise ValueError('final_forward_distance_m must be >= 0.')
         if self.near_target_distance_m < 0.0:
             raise ValueError('near_target_distance_m must be >= 0.')
         if self.near_target_linear_speed_limit_m_s <= 0.0:
@@ -302,6 +314,16 @@ class CartAlignSpecialistPolicyNode(Node):
     def _control_callback(self) -> None:
         now = self.get_clock().now()
 
+        if self.shutdown_requested:
+            return
+
+        if self.control_phase == 'final_forward':
+            self._run_final_forward(now)
+            return
+
+        if self.control_phase == 'done':
+            return
+
         if self.latest_target is None or self.last_target_rx_time is None:
             self._publish_zero('waiting_target')
             return
@@ -319,7 +341,8 @@ class CartAlignSpecialistPolicyNode(Node):
             and abs(target_y_local) <= self.target_xy_stop_tolerance_m
             and abs(heading_error) <= self.target_yaw_stop_tolerance_rad
         ):
-            self._publish_cmd_vel(linear_x_m_s=0.0, angular_z_rad_s=0.0)
+            self._start_final_forward(now)
+            self._run_final_forward(now)
             return
 
         if (
@@ -405,6 +428,80 @@ class CartAlignSpecialistPolicyNode(Node):
         self._publish_cmd_vel(
             linear_x_m_s=cmd_linear,
             angular_z_rad_s=cmd_angular,
+        )
+
+    def _start_final_forward(self, now) -> None:
+        if self.control_phase != 'align':
+            return
+        self.control_phase = 'final_forward'
+        self.final_forward_distance_traveled_m = 0.0
+        self.final_forward_last_update_time = now
+        self.get_logger().info(
+            'Alignment complete. Starting final forward motion: distance=%.3fm speed=%.3fm/s'
+            % (
+                self.final_forward_distance_m,
+                self.near_target_linear_speed_limit_m_s,
+            )
+        )
+
+    def _run_final_forward(self, now) -> None:
+        if (
+            self.current_linear_velocity_m_s is None
+            or self.current_angular_velocity_rad_s is None
+            or self.last_motor_rx_time is None
+        ):
+            self._publish_zero('waiting_motor_vel')
+            return
+
+        dt_motor = (now - self.last_motor_rx_time).nanoseconds * 1e-9
+        if dt_motor > self.motor_timeout_sec:
+            self._publish_zero('stale_motor_vel')
+            return
+
+        if self.final_forward_last_update_time is None:
+            self.final_forward_last_update_time = now
+
+        dt_forward = (
+            now - self.final_forward_last_update_time
+        ).nanoseconds * 1e-9
+        if dt_forward < 0.0:
+            dt_forward = 0.0
+        self.final_forward_last_update_time = now
+
+        self.final_forward_distance_traveled_m += (
+            max(0.0, self.current_linear_velocity_m_s) * dt_forward
+        )
+
+        if self.final_forward_distance_traveled_m >= self.final_forward_distance_m:
+            self._publish_cmd_vel(
+                linear_x_m_s=0.0,
+                angular_z_rad_s=0.0,
+            )
+            self.control_phase = 'done'
+            self.shutdown_requested = True
+            self.get_logger().info(
+                'Final forward motion complete: traveled=%.3fm. Shutting down node.'
+                % self.final_forward_distance_traveled_m
+            )
+            try:
+                self.control_timer.cancel()
+            except Exception:
+                pass
+            try:
+                if self.context.ok():
+                    self.destroy_node()
+            except Exception:
+                pass
+            try:
+                if rclpy.ok():
+                    rclpy.shutdown()
+            except Exception:
+                pass
+            return
+
+        self._publish_cmd_vel(
+            linear_x_m_s=self.near_target_linear_speed_limit_m_s,
+            angular_z_rad_s=0.0,
         )
 
     def _is_spin_in_place(self, linear_x_m_s: float, angular_z_rad_s: float) -> bool:

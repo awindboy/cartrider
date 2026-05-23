@@ -171,6 +171,10 @@ def _build_policy_node(context):
             LaunchConfiguration('target_yaw_stop_tolerance_deg').perform(context),
             'target_yaw_stop_tolerance_deg',
         ),
+        'final_forward_distance_m': _parse_float(
+            LaunchConfiguration('final_forward_distance_m').perform(context),
+            'final_forward_distance_m',
+        ),
         'near_target_distance_m': _parse_float(
             _resolve_arg(
                 context,
@@ -325,8 +329,9 @@ def generate_launch_description() -> LaunchDescription:
             DeclareLaunchArgument('control_rate_hz', default_value='30.0'),
             DeclareLaunchArgument('target_timeout_sec', default_value='1000.0'),
             DeclareLaunchArgument('motor_timeout_sec', default_value='1000.0'),
-            DeclareLaunchArgument('target_xy_stop_tolerance_m', default_value='0.05'),
-            DeclareLaunchArgument('target_yaw_stop_tolerance_deg', default_value='5.0'),
+            DeclareLaunchArgument('target_xy_stop_tolerance_m', default_value='0.02'),
+            DeclareLaunchArgument('target_yaw_stop_tolerance_deg', default_value='2.0'),
+            DeclareLaunchArgument('final_forward_distance_m', default_value='0.35'),
             DeclareLaunchArgument('left_motor_id', default_value='1'),
             DeclareLaunchArgument('right_motor_id', default_value='2'),
             OpaqueFunction(function=_build_policy_node),

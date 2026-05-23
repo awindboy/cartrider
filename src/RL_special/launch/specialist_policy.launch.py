@@ -8,18 +8,18 @@ from launch_ros.actions import Node
 
 
 FRONT_TARGET_X_OFFSET_M = 0.0
-REAR_TARGET_X_OFFSET_M = 0.0
+REAR_TARGET_X_OFFSET_M = 0.55
 
 
 PROFILE_DEFAULTS = {
     'rear': {
         'model_file': 'specialist_policy.onnx',
-        'linear_velocity_scale_m_s': 0.22,
-        'angular_velocity_scale_rad_s': 1.47,
+        'linear_velocity_scale_m_s': 0.2,
+        'angular_velocity_scale_rad_s': 0.5,
         'spin_in_place_angular_limit_rad_s': 0.29,
         'near_target_linear_speed_limit_m_s': 0.06,
-        'near_target_angular_speed_limit_rad_s': 0.37,
-        'near_target_distance_m': 0.5,
+        'near_target_angular_speed_limit_rad_s': 0.1,
+        'near_target_distance_m': 0.3,
         'target_x_offset_m': REAR_TARGET_X_OFFSET_M,
         'motor_state_topic': '/rmd_state',
         'cmd_vel_topic': '/cmd_vel',
@@ -31,12 +31,12 @@ PROFILE_DEFAULTS = {
     },
     'front': {
         'model_file': 'front_specialist_policy.onnx',
-        'linear_velocity_scale_m_s': 0.22,
-        'angular_velocity_scale_rad_s': 1.81,
+        'linear_velocity_scale_m_s': 0.2,
+        'angular_velocity_scale_rad_s': 0.5,
         'spin_in_place_angular_limit_rad_s': 0.0,
         'near_target_linear_speed_limit_m_s': 0.06,
-        'near_target_angular_speed_limit_rad_s': 0.46,
-        'near_target_distance_m': 0.5,
+        'near_target_angular_speed_limit_rad_s': 0.1,
+        'near_target_distance_m': 0.3,
         'target_x_offset_m': FRONT_TARGET_X_OFFSET_M,
         'motor_state_topic': '/front/rmd_state',
         'cmd_vel_topic': '/cmd_vel',

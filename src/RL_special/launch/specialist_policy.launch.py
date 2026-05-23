@@ -16,6 +16,7 @@ PROFILE_DEFAULTS = {
         'near_target_linear_speed_limit_m_s': 0.06,
         'near_target_angular_speed_limit_rad_s': 0.37,
         'near_target_distance_m': 0.5,
+        'target_x_offset_m': 0.0,
         'motor_state_topic': '/rmd_state',
         'cmd_vel_topic': '/cmd_vel',
         'state_invert_left': True,
@@ -32,6 +33,7 @@ PROFILE_DEFAULTS = {
         'near_target_linear_speed_limit_m_s': 0.06,
         'near_target_angular_speed_limit_rad_s': 0.46,
         'near_target_distance_m': 0.5,
+        'target_x_offset_m': 0.0,
         'motor_state_topic': '/front/rmd_state',
         'cmd_vel_topic': '/cmd_vel',
         'state_invert_left': False,
@@ -170,6 +172,14 @@ def _build_policy_node(context):
         'target_yaw_stop_tolerance_deg': _parse_float(
             LaunchConfiguration('target_yaw_stop_tolerance_deg').perform(context),
             'target_yaw_stop_tolerance_deg',
+        ),
+        'target_x_offset_m': _parse_float(
+            _resolve_arg(
+                context,
+                'target_x_offset_m',
+                profile['target_x_offset_m'],
+            ),
+            'target_x_offset_m',
         ),
         'final_forward_distance_m': _parse_float(
             LaunchConfiguration('final_forward_distance_m').perform(context),
@@ -331,6 +341,11 @@ def generate_launch_description() -> LaunchDescription:
             DeclareLaunchArgument('motor_timeout_sec', default_value='1000.0'),
             DeclareLaunchArgument('target_xy_stop_tolerance_m', default_value='0.02'),
             DeclareLaunchArgument('target_yaw_stop_tolerance_deg', default_value='2.0'),
+            DeclareLaunchArgument(
+                'target_x_offset_m',
+                default_value='__auto__',
+                description='Offset subtracted from target x to align the robot drive axle center to the cart.',
+            ),
             DeclareLaunchArgument('final_forward_distance_m', default_value='0.35'),
             DeclareLaunchArgument('left_motor_id', default_value='1'),
             DeclareLaunchArgument('right_motor_id', default_value='2'),

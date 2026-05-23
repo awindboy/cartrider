@@ -16,9 +16,10 @@ IsaacLab에서 export한 specialist ONNX 정책을 ROS2 노드로 실행하여,
 - Topic: `/rs/cart_pose` (front/rear 공통, 기본값)
 - Type: `geometry_msgs/msg/Pose2D`
 - 매핑:
-  - `x` = `target_x_local`
+  - `x` = `raw_target_x_local`
   - `y` = `target_y_local`
   - `theta` = 비전 yaw error
+  - policy 입력에는 `target_x_local = raw_target_x_local - target_x_offset_m` 를 사용
   - policy 입력에는 `heading_error = wrap_to_pi(-theta)` 를 사용
 
 ### 2) 현재 로봇 속도 입력 -> Policy
@@ -54,6 +55,7 @@ IsaacLab에서 export한 specialist ONNX 정책을 ROS2 노드로 실행하여,
   - `linear_velocity_scale_m_s`
   - `angular_velocity_scale_rad_s`
 - `target_yaw_stop_tolerance_deg`는 정렬 완료(정지) 판정 조건에서만 사용
+- `target_x_offset_m`로 비전 기준점과 로봇 구동축 중심의 x축 차이를 보정
 - 정렬 완료되면 이후에는 타겟 정보와 무관하게 `final_forward_distance_m`만큼 직진
 - 이 직진 속도는 `near_target_linear_speed_limit_m_s`, 회전 속도는 `0.0`을 사용
 - 직진 이동거리는 `/rmd_state`에서 변환한 현재 선속도를 적분해 계산
@@ -92,20 +94,23 @@ IsaacLab에서 export한 specialist ONNX 정책을 ROS2 노드로 실행하여,
 - `motor_timeout_sec` (default: `1000.0`)
 - `target_xy_stop_tolerance_m` (default: `0.05`)
 - `target_yaw_stop_tolerance_deg` (default: `5.0`)
+- `target_x_offset_m` (default: `__auto__`)
 - `final_forward_distance_m` (default: `0.35`)
 
 `__auto__`일 때 robot_type별 기본값:
 - front: `model=front_specialist_policy.onnx`, `motor_state_topic=/front/rmd_state`,
   `cmd_vel_topic=/cmd_vel`, `state_invert_left=false`, `state_invert_right=true`,
   `near_target_distance_m=0.5`, `wheel_radius_m=0.0635`, `wheel_separation_m=0.2460`,
-  `external_reduction=3.0`, `linear_velocity_scale_m_s=0.22`,
+  `external_reduction=3.0`, `target_x_offset_m=0.0`,
+  `linear_velocity_scale_m_s=0.22`,
   `angular_velocity_scale_rad_s=1.81`, `spin_in_place_angular_limit_rad_s=0.0`,
   `near_target_linear_speed_limit_m_s=0.06`,
   `near_target_angular_speed_limit_rad_s=0.46`
 - rear: `model=specialist_policy.onnx`, `motor_state_topic=/rmd_state`,
   `cmd_vel_topic=/cmd_vel`, `state_invert_left=true`, `state_invert_right=false`,
   `near_target_distance_m=0.5`, `wheel_radius_m=0.1100`, `wheel_separation_m=0.3000`,
-  `external_reduction=1.0`, `linear_velocity_scale_m_s=0.22`,
+  `external_reduction=1.0`, `target_x_offset_m=0.0`,
+  `linear_velocity_scale_m_s=0.22`,
   `angular_velocity_scale_rad_s=1.47`,
   `spin_in_place_angular_limit_rad_s=0.29`,
   `near_target_linear_speed_limit_m_s=0.06`,
@@ -121,6 +126,7 @@ IsaacLab에서 export한 specialist ONNX 정책을 ROS2 노드로 실행하여,
 
 `wheel_radius_m`, `wheel_separation_m`, `external_reduction`는 출력 제한 계산용이 아니라
 `/rmd_state`의 순수 모터 속도를 현재 로봇의 선속도/각속도로 변환할 때만 사용합니다.
+`target_x_offset_m`는 비전이 보는 카트 기준점과 로봇 구동축 중심의 거리 차이를 보정할 때 사용합니다.
 
 ## 빌드
 

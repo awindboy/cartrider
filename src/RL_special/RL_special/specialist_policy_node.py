@@ -34,6 +34,7 @@ class CartAlignSpecialistPolicyNode(Node):
         self.declare_parameter('motor_timeout_sec', 1000.0)
         self.declare_parameter('target_xy_stop_tolerance_m', 0.05)
         self.declare_parameter('target_yaw_stop_tolerance_deg', 5.0)
+        self.declare_parameter('target_x_offset_m', 0.0)
         self.declare_parameter('final_forward_distance_m', 0.35)
         self.declare_parameter('near_target_distance_m', 0.5)
         self.declare_parameter('near_target_linear_speed_limit_m_s', 0.0)
@@ -68,6 +69,9 @@ class CartAlignSpecialistPolicyNode(Node):
         )
         self.target_yaw_stop_tolerance_deg = float(
             self.get_parameter('target_yaw_stop_tolerance_deg').value
+        )
+        self.target_x_offset_m = float(
+            self.get_parameter('target_x_offset_m').value
         )
         self.final_forward_distance_m = float(
             self.get_parameter('final_forward_distance_m').value
@@ -144,6 +148,7 @@ class CartAlignSpecialistPolicyNode(Node):
             'state_invert_left=%s, state_invert_right=%s, '
             'rate=%.2fHz, target_timeout=%.3fs, motor_timeout=%.3fs, '
             'target_xy_stop_tolerance=%.4fm, target_yaw_stop_tolerance=%.2fdeg, '
+            'target_x_offset=%.3fm, '
             'final_forward_distance=%.3fm, '
             'near_target_distance=%.3fm, near_target_linear_limit=%.3fm/s, '
             'near_target_angular_limit=%.3frad/s, spin_in_place_angular_limit=%.3frad/s, '
@@ -166,6 +171,7 @@ class CartAlignSpecialistPolicyNode(Node):
                 self.motor_timeout_sec,
                 self.target_xy_stop_tolerance_m,
                 self.target_yaw_stop_tolerance_deg,
+                self.target_x_offset_m,
                 self.final_forward_distance_m,
                 self.near_target_distance_m,
                 self.near_target_linear_speed_limit_m_s,
@@ -201,6 +207,8 @@ class CartAlignSpecialistPolicyNode(Node):
             raise ValueError('target_xy_stop_tolerance_m must be >= 0.')
         if self.target_yaw_stop_tolerance_deg < 0.0:
             raise ValueError('target_yaw_stop_tolerance_deg must be >= 0.')
+        if self.target_x_offset_m < 0.0:
+            raise ValueError('target_x_offset_m must be >= 0.')
         if self.final_forward_distance_m < 0.0:
             raise ValueError('final_forward_distance_m must be >= 0.')
         if self.near_target_distance_m < 0.0:
@@ -333,7 +341,7 @@ class CartAlignSpecialistPolicyNode(Node):
             self._publish_zero('stale_target')
             return
 
-        target_x_local = float(self.latest_target.x)
+        target_x_local = float(self.latest_target.x) - self.target_x_offset_m
         target_y_local = float(self.latest_target.y)
         heading_error = self._wrap_to_pi(-float(self.latest_target.theta))
         if (

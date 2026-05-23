@@ -2,7 +2,7 @@ from glob import glob
 
 from setuptools import find_packages, setup
 
-package_name = 'cart_align_policy'
+package_name = 'RL'
 
 
 data_files = [
@@ -43,7 +43,7 @@ setup(
     tests_require=['pytest'],
     entry_points={
         'console_scripts': [
-            'policy_node = cart_align_policy.policy_node:main',
+            'policy_node = RL.policy_node:main',
         ],
     },
 )

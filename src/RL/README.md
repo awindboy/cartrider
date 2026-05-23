@@ -1,4 +1,4 @@
-# cart_align_policy
+# RL
 
 IsaacLab에서 export한 ONNX 정책을 ROS2 노드로 실행하여,
 메시지(`geometry_msgs/msg/PoseStamped`, `cartrider_rmd_sdk/msg/MotorStateArray`)를 입력으로 받아
@@ -6,7 +6,7 @@ IsaacLab에서 export한 ONNX 정책을 ROS2 노드로 실행하여,
 
 ## 패키지 구성
 
-- `cart_align_policy`
+- `RL`
   - `policy_node` (ONNX 추론 노드)
   - `launch/policy.launch.py`
 
@@ -94,7 +94,7 @@ IsaacLab에서 export한 ONNX 정책을 ROS2 노드로 실행하여,
 ```bash
 cd ~/ros2_ws
 source /opt/ros/humble/setup.bash
-colcon build --packages-select cart_align_policy
+colcon build --packages-select RL
 source install/setup.bash
 ```
 
@@ -118,19 +118,19 @@ python3 -m pip install --user onnxruntime
 ### policy 노드 실행
 
 ```bash
-ros2 launch cart_align_policy policy.launch.py
+ros2 launch RL policy.launch.py
 ```
 
 리어봇으로 실행:
 
 ```bash
-ros2 launch cart_align_policy policy.launch.py robot_type:=rear
+ros2 launch RL policy.launch.py robot_type:=rear
 ```
 
 예시: front 프로필에서 action_scale만 수동 override
 
 ```bash
-ros2 launch cart_align_policy policy.launch.py \
+ros2 launch RL policy.launch.py \
   robot_type:=front \
   action_scale:=4.0
 ```
@@ -138,7 +138,7 @@ ros2 launch cart_align_policy policy.launch.py \
 외부 모터 노드의 타입이 기본값과 다를 때만 변경하세요.
 
 ```bash
-ros2 launch cart_align_policy policy.launch.py \
+ros2 launch RL policy.launch.py \
   motor_state_type:=my_motor_msgs/msg/MotorStateArray
 ```
 

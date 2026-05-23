@@ -2,7 +2,7 @@ from glob import glob
 
 from setuptools import find_packages, setup
 
-package_name = 'cart_align_specialist_policy'
+package_name = 'RL_special'
 
 
 data_files = [
@@ -43,7 +43,7 @@ setup(
     tests_require=['pytest'],
     entry_points={
         'console_scripts': [
-            'specialist_policy_node = cart_align_specialist_policy.specialist_policy_node:main',
+            'specialist_policy_node = RL_special.specialist_policy_node:main',
         ],
     },
 )

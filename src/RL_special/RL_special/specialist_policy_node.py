@@ -15,7 +15,7 @@ from rosidl_runtime_py.utilities import get_message
 
 class CartAlignSpecialistPolicyNode(Node):
     def __init__(self) -> None:
-        super().__init__('cart_align_specialist_policy_node')
+        super().__init__('RL_special_node')
 
         self.declare_parameter('model_path', self._default_model_path())
         self.declare_parameter('target_topic', '/rs/cart_pose')
@@ -167,7 +167,7 @@ class CartAlignSpecialistPolicyNode(Node):
 
     def _default_model_path(self) -> str:
         try:
-            share_dir = get_package_share_directory('cart_align_specialist_policy')
+            share_dir = get_package_share_directory('RL_special')
             candidate = os.path.join(
                 share_dir,
                 'models',
@@ -177,7 +177,7 @@ class CartAlignSpecialistPolicyNode(Node):
                 return candidate
         except Exception:
             pass
-        return '/home/kwon/ros2_ws/src/cart_align_specialist_policy/models/specialist_policy.onnx'
+        return '/home/kwon/ros2_ws/src/RL_special/models/specialist_policy.onnx'
 
     def _validate_parameters(self) -> None:
         if self.control_rate_hz <= 0.0:

@@ -98,7 +98,7 @@ def _build_policy_node(context):
         )
 
     profile = PROFILE_DEFAULTS[robot_type]
-    share_dir = get_package_share_directory('cart_align_specialist_policy')
+    share_dir = get_package_share_directory('RL_special')
     default_model_path = os.path.join(share_dir, 'models', profile['model_file'])
 
     wheel_radius_m = _parse_float(
@@ -255,9 +255,9 @@ def _build_policy_node(context):
 
     return [
         Node(
-            package='cart_align_specialist_policy',
+            package='RL_special',
             executable='specialist_policy_node',
-            name='cart_align_specialist_policy_node',
+            name='RL_special_node',
             output='screen',
             parameters=[params],
         )

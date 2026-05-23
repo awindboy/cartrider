@@ -16,7 +16,7 @@ from tf_transformations import euler_from_quaternion
 
 class CartAlignPolicyNode(Node):
     def __init__(self) -> None:
-        super().__init__('cart_align_policy_node')
+        super().__init__('RL_node')
 
         self.declare_parameter('model_path', self._default_model_path())
         self.declare_parameter('target_topic', '/align/target_local')
@@ -203,7 +203,7 @@ class CartAlignPolicyNode(Node):
 
     def _default_model_path(self) -> str:
         try:
-            share_dir = get_package_share_directory('cart_align_policy')
+            share_dir = get_package_share_directory('RL')
             candidate = os.path.join(
                 share_dir,
                 'models',
@@ -213,7 +213,7 @@ class CartAlignPolicyNode(Node):
                 return candidate
         except Exception:
             pass
-        return '/home/kwon/ros2_ws/src/cart_align_policy/models/policy.onnx'
+        return '/home/kwon/ros2_ws/src/RL/models/policy.onnx'
 
     def _load_model(self) -> None:
         if not os.path.isfile(self.model_path):

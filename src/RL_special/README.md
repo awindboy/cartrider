@@ -1,4 +1,4 @@
-# cart_align_specialist_policy
+# RL_special
 
 IsaacLab에서 export한 specialist ONNX 정책을 ROS2 노드로 실행하여,
 비전 기반 타겟 정보(`geometry_msgs/msg/Pose2D`)와 현재 로봇 속도 정보를 입력으로 받아
@@ -6,7 +6,7 @@ IsaacLab에서 export한 specialist ONNX 정책을 ROS2 노드로 실행하여,
 
 ## 패키지 구성
 
-- `cart_align_specialist_policy`
+- `RL_special`
   - `specialist_policy_node` (ONNX 추론 노드)
   - `launch/specialist_policy.launch.py`
 
@@ -121,7 +121,7 @@ IsaacLab에서 export한 specialist ONNX 정책을 ROS2 노드로 실행하여,
 ```bash
 cd ~/ros2_ws
 source /opt/ros/humble/setup.bash
-colcon build --packages-select cart_align_specialist_policy
+colcon build --packages-select RL_special
 source install/setup.bash
 ```
 
@@ -150,21 +150,21 @@ python3 -m pip install --user onnxruntime
 ## 실행
 
 ```bash
-ros2 launch cart_align_specialist_policy specialist_policy.launch.py \
+ros2 launch RL_special specialist_policy.launch.py \
   robot_type:=front
 ```
 
 리어봇으로 실행:
 
 ```bash
-ros2 launch cart_align_specialist_policy specialist_policy.launch.py \
+ros2 launch RL_special specialist_policy.launch.py \
   robot_type:=rear
 ```
 
 예시: 모델 경로와 output topic만 override
 
 ```bash
-ros2 launch cart_align_specialist_policy specialist_policy.launch.py \
+ros2 launch RL_special specialist_policy.launch.py \
   robot_type:=front \
   model_path:=/path/to/front_specialist_policy.onnx \
   cmd_vel_topic:=/front/cmd_vel

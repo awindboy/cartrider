@@ -10,6 +10,7 @@ from ament_index_python.packages import get_package_share_directory
 from geometry_msgs.msg import Pose2D, Twist
 from rclpy.executors import ExternalShutdownException
 from rclpy.node import Node
+from rclpy.qos import qos_profile_sensor_data
 from rosidl_runtime_py.utilities import get_message
 
 
@@ -108,7 +109,7 @@ class CartAlignSpecialistPolicyNode(Node):
             Pose2D,
             self.target_topic,
             self._target_callback,
-            10,
+            qos_profile_sensor_data,
         )
         self.motor_state_sub = self.create_subscription(
             self.motor_state_msg_cls,

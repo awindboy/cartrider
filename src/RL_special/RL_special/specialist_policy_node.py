@@ -343,7 +343,7 @@ class CartAlignSpecialistPolicyNode(Node):
 
         target_x_local = float(self.latest_target.x) - self.target_x_offset_m
         target_y_local = float(self.latest_target.y)
-        heading_error = self._wrap_to_pi(-float(self.latest_target.theta))
+        heading_error = self._wrap_to_pi(float(self.latest_target.theta))
         if (
             abs(target_x_local) <= self.target_xy_stop_tolerance_m
             and abs(target_y_local) <= self.target_xy_stop_tolerance_m

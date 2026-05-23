@@ -20,7 +20,7 @@ IsaacLab에서 export한 specialist ONNX 정책을 ROS2 노드로 실행하여,
   - `y` = `target_y_local`
   - `theta` = 비전 yaw error
   - policy 입력에는 `target_x_local = raw_target_x_local - target_x_offset_m` 를 사용
-  - policy 입력에는 `heading_error = wrap_to_pi(-theta)` 를 사용
+  - policy 입력에는 `heading_error = wrap_to_pi(theta)` 를 사용
 
 ### 2) 현재 로봇 속도 입력 -> Policy
 - Topic (robot_type 기준):
@@ -48,7 +48,7 @@ IsaacLab에서 export한 specialist ONNX 정책을 ROS2 노드로 실행하여,
 - obs 순서(고정):
   1. `target.x`
   2. `target.y`
-  3. `wrap_to_pi(-target.theta)`
+  3. `wrap_to_pi(target.theta)`
   4. 현재 로봇 선속도 `linear_velocity_m_s`
   5. 현재 로봇 각속도 `angular_velocity_rad_s`
 - ONNX 출력 action(2D) -> `[-1, 1]` clamp -> 아래 scale로 실제 `cmd_vel` 생성

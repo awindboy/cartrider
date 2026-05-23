@@ -351,7 +351,7 @@ def generate_launch_description() -> LaunchDescription:
                 default_value='__auto__',
                 description='__auto__ uses profile default right motor-state sign correction.',
             ),
-            DeclareLaunchArgument('control_rate_hz', default_value='40.0'),
+            DeclareLaunchArgument('control_rate_hz', default_value='30.0'),
             DeclareLaunchArgument('target_timeout_sec', default_value='1000.0'),
             DeclareLaunchArgument('motor_timeout_sec', default_value='1000.0'),
             DeclareLaunchArgument('target_xy_stop_tolerance_m', default_value='0.05'),

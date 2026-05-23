@@ -45,7 +45,7 @@ IsaacLab에서 export한 specialist ONNX 정책을 ROS2 노드로 실행하여,
 
 ## specialist_policy_node 동작
 
-- 제어 주기(`control_rate_hz`, default 40Hz)마다 최신 데이터로 obs(1x5) 구성
+- 제어 주기(`control_rate_hz`, default 30Hz)마다 최신 데이터로 obs(1x5) 구성
 - obs 순서(고정):
   1. `target.x`
   2. `target.y`
@@ -85,7 +85,7 @@ IsaacLab에서 export한 specialist ONNX 정책을 ROS2 노드로 실행하여,
 - `state_invert_right` (default: `__auto__`)
 - `left_motor_id` (default: `1`)
 - `right_motor_id` (default: `2`)
-- `control_rate_hz` (default: `40.0`)
+- `control_rate_hz` (default: `30.0`)
 - `target_timeout_sec` (default: `1000.0`)
 - `motor_timeout_sec` (default: `1000.0`)
 - `target_xy_stop_tolerance_m` (default: `0.05`)

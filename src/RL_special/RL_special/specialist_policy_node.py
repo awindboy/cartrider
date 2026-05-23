@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 import math
 import os
+import time
 from typing import Optional
 
 import numpy as np
@@ -12,6 +13,7 @@ from rclpy.executors import ExternalShutdownException
 from rclpy.node import Node
 from rclpy.qos import qos_profile_sensor_data
 from rosidl_runtime_py.utilities import get_message
+from std_msgs.msg import Bool
 
 
 class CartAlignSpecialistPolicyNode(Node):
@@ -26,6 +28,7 @@ class CartAlignSpecialistPolicyNode(Node):
             'cartrider_rmd_sdk/msg/MotorStateArray',
         )
         self.declare_parameter('cmd_vel_topic', '/cmd_vel')
+        self.declare_parameter('gripper_toggle_topic', '/gripper_toggle')
         self.declare_parameter('linear_velocity_scale_m_s', 0.0)
         self.declare_parameter('angular_velocity_scale_rad_s', 0.0)
         self.declare_parameter('spin_in_place_angular_limit_rad_s', 0.0)
@@ -52,6 +55,9 @@ class CartAlignSpecialistPolicyNode(Node):
         self.motor_state_topic = str(self.get_parameter('motor_state_topic').value)
         self.motor_state_type = str(self.get_parameter('motor_state_type').value)
         self.cmd_vel_topic = str(self.get_parameter('cmd_vel_topic').value)
+        self.gripper_toggle_topic = str(
+            self.get_parameter('gripper_toggle_topic').value
+        )
         self.linear_velocity_scale_m_s = float(
             self.get_parameter('linear_velocity_scale_m_s').value
         )
@@ -134,6 +140,11 @@ class CartAlignSpecialistPolicyNode(Node):
             self.cmd_vel_topic,
             10,
         )
+        self.gripper_toggle_pub = self.create_publisher(
+            Bool,
+            self.gripper_toggle_topic,
+            10,
+        )
 
         self.control_timer = self.create_timer(
             1.0 / self.control_rate_hz,
@@ -143,6 +154,7 @@ class CartAlignSpecialistPolicyNode(Node):
         self.get_logger().info(
             'Specialist policy node started: model_path=%s, target_topic=%s, '
             'motor_state_topic=%s, motor_state_type=%s, cmd_vel_topic=%s, '
+            'gripper_toggle_topic=%s, '
             'left_motor_id=%d, right_motor_id=%d, '
             'wheel_radius=%.6fm, wheel_separation=%.6fm, external_reduction=%.6f, '
             'state_invert_left=%s, state_invert_right=%s, '
@@ -159,6 +171,7 @@ class CartAlignSpecialistPolicyNode(Node):
                 self.motor_state_topic,
                 self.motor_state_type,
                 self.cmd_vel_topic,
+                self.gripper_toggle_topic,
                 self.left_motor_id,
                 self.right_motor_id,
                 self.wheel_radius_m,
@@ -341,9 +354,14 @@ class CartAlignSpecialistPolicyNode(Node):
             self._publish_zero('stale_target')
             return
 
-        target_x_local = float(self.latest_target.x) - self.target_x_offset_m
-        target_y_local = float(self.latest_target.y)
+        raw_target_x_local = float(self.latest_target.x)
+        raw_target_y_local = float(self.latest_target.y)
         heading_error = self._wrap_to_pi(float(self.latest_target.theta))
+        target_x_local, target_y_local = self._apply_target_offset(
+            raw_target_x_local,
+            raw_target_y_local,
+            heading_error,
+        )
         if (
             abs(target_x_local) <= self.target_xy_stop_tolerance_m
             and abs(target_y_local) <= self.target_xy_stop_tolerance_m
@@ -485,12 +503,15 @@ class CartAlignSpecialistPolicyNode(Node):
                 linear_x_m_s=0.0,
                 angular_z_rad_s=0.0,
             )
+            self._publish_gripper_toggle(True)
             self.control_phase = 'done'
             self.shutdown_requested = True
             self.get_logger().info(
-                'Final forward motion complete: traveled=%.3fm. Shutting down node.'
+                'Final forward motion complete: traveled=%.3fm. Gripper toggled, shutting down node.'
                 % self.final_forward_distance_traveled_m
             )
+            # Give DDS a brief chance to flush the gripper toggle before shutdown.
+            time.sleep(0.1)
             try:
                 self.control_timer.cancel()
             except Exception:
@@ -539,6 +560,24 @@ class CartAlignSpecialistPolicyNode(Node):
         msg.linear.x = float(linear_x_m_s)
         msg.angular.z = float(angular_z_rad_s)
         self.cmd_vel_pub.publish(msg)
+
+    def _publish_gripper_toggle(self, enabled: bool) -> None:
+        msg = Bool()
+        msg.data = bool(enabled)
+        self.gripper_toggle_pub.publish(msg)
+
+    def _apply_target_offset(
+        self,
+        raw_target_x_local: float,
+        raw_target_y_local: float,
+        heading_error_rad: float,
+    ) -> tuple[float, float]:
+        offset_x_local = self.target_x_offset_m * math.cos(heading_error_rad)
+        offset_y_local = self.target_x_offset_m * math.sin(heading_error_rad)
+        return (
+            raw_target_x_local - offset_x_local,
+            raw_target_y_local - offset_y_local,
+        )
 
     def _warn_throttle(self, key: str, text: str, period_sec: float) -> None:
         now_sec = self.get_clock().now().nanoseconds * 1e-9

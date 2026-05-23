@@ -8,18 +8,18 @@ from launch_ros.actions import Node
 
 
 FRONT_TARGET_X_OFFSET_M = 0.0
-REAR_TARGET_X_OFFSET_M = 0.55
+REAR_TARGET_X_OFFSET_M = 0.20
 
 
 PROFILE_DEFAULTS = {
     'rear': {
         'model_file': 'specialist_policy.onnx',
         'linear_velocity_scale_m_s': 0.2,
-        'angular_velocity_scale_rad_s': 0.5,
+        'angular_velocity_scale_rad_s': 0.3,
         'spin_in_place_angular_limit_rad_s': 0.29,
         'near_target_linear_speed_limit_m_s': 0.06,
         'near_target_angular_speed_limit_rad_s': 0.1,
-        'near_target_distance_m': 0.3,
+        'near_target_distance_m': 0.5,
         'target_x_offset_m': REAR_TARGET_X_OFFSET_M,
         'motor_state_topic': '/rmd_state',
         'cmd_vel_topic': '/cmd_vel',
@@ -32,11 +32,11 @@ PROFILE_DEFAULTS = {
     'front': {
         'model_file': 'front_specialist_policy.onnx',
         'linear_velocity_scale_m_s': 0.2,
-        'angular_velocity_scale_rad_s': 0.5,
+        'angular_velocity_scale_rad_s': 0.3,
         'spin_in_place_angular_limit_rad_s': 0.0,
         'near_target_linear_speed_limit_m_s': 0.06,
         'near_target_angular_speed_limit_rad_s': 0.1,
-        'near_target_distance_m': 0.3,
+        'near_target_distance_m': 0.5,
         'target_x_offset_m': FRONT_TARGET_X_OFFSET_M,
         'motor_state_topic': '/front/rmd_state',
         'cmd_vel_topic': '/cmd_vel',
@@ -132,6 +132,9 @@ def _build_policy_node(context):
             context,
             'cmd_vel_topic',
             profile['cmd_vel_topic'],
+        ),
+        'gripper_toggle_topic': LaunchConfiguration('gripper_toggle_topic').perform(
+            context
         ),
         'linear_velocity_scale_m_s': _parse_float(
             _resolve_arg(
@@ -316,6 +319,11 @@ def generate_launch_description() -> LaunchDescription:
                 description='__auto__ uses profile default cmd_vel_topic.',
             ),
             DeclareLaunchArgument(
+                'gripper_toggle_topic',
+                default_value='/gripper_toggle',
+                description='Topic used to toggle the rear gripper when alignment succeeds.',
+            ),
+            DeclareLaunchArgument(
                 'wheel_radius_m',
                 default_value='__auto__',
                 description='Drive wheel radius in meters. __auto__ uses profile default.',
@@ -343,14 +351,14 @@ def generate_launch_description() -> LaunchDescription:
             DeclareLaunchArgument('control_rate_hz', default_value='30.0'),
             DeclareLaunchArgument('target_timeout_sec', default_value='1000.0'),
             DeclareLaunchArgument('motor_timeout_sec', default_value='1000.0'),
-            DeclareLaunchArgument('target_xy_stop_tolerance_m', default_value='0.02'),
+            DeclareLaunchArgument('target_xy_stop_tolerance_m', default_value='0.1'),
             DeclareLaunchArgument('target_yaw_stop_tolerance_deg', default_value='2.0'),
             DeclareLaunchArgument(
                 'target_x_offset_m',
                 default_value='__auto__',
                 description='Offset subtracted from target x to align the robot drive axle center to the cart.',
             ),
-            DeclareLaunchArgument('final_forward_distance_m', default_value='0.35'),
+            DeclareLaunchArgument('final_forward_distance_m', default_value='0.33'),
             DeclareLaunchArgument('left_motor_id', default_value='1'),
             DeclareLaunchArgument('right_motor_id', default_value='2'),
             OpaqueFunction(function=_build_policy_node),

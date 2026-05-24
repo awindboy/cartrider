@@ -105,7 +105,7 @@ IsaacLab에서 export한 specialist ONNX 정책을 ROS2 노드로 실행하여,
 - `left_motor_id` (default: `1`)
 - `right_motor_id` (default: `2`)
 - `control_rate_hz` (default: `30.0`)
-- `target_timeout_sec` (default: `1000.0`)
+- `target_timeout_sec` (default: `0.3`)
 - `motor_timeout_sec` (default: `1000.0`)
 - `target_xy_stop_tolerance_m` (default: `0.05`)
 - `target_yaw_stop_tolerance_deg` (default: `5.0`)

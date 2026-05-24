@@ -32,7 +32,7 @@ class CartAlignSpecialistPolicyNode(Node):
         self.declare_parameter('linear_velocity_scale_m_s', 0.0)
         self.declare_parameter('angular_velocity_scale_rad_s', 0.0)
         self.declare_parameter('control_rate_hz', 30.0)
-        self.declare_parameter('target_timeout_sec', 1000.0)
+        self.declare_parameter('target_timeout_sec', 0.3)
         self.declare_parameter('motor_timeout_sec', 1000.0)
         self.declare_parameter('target_xy_stop_tolerance_m', 0.05)
         self.declare_parameter('target_yaw_stop_tolerance_deg', 5.0)

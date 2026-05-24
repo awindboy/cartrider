@@ -133,6 +133,7 @@ IsaacLab에서 export한 specialist ONNX 정책을 ROS2 노드로 실행하여,
 - `calibration_escape_distance_m` (default: `0.30`)
 - `calibration_escape_turn_deg` (default: `30.0`)
 - `calibration_escape_motion_sign` (default: `__auto__`)
+- `calibration_target_y_sign` (default: `__auto__`)
 
 `__auto__`일 때 robot_type별 기본값:
 - front: `model=front_specialist_policy.onnx`, `target_topic=/front/rs/cart_pose`, `motor_state_topic=/front/rmd_state`,
@@ -140,7 +141,7 @@ IsaacLab에서 export한 specialist ONNX 정책을 ROS2 노드로 실행하여,
   `cmd_vel_topic=/front/cmd_vel`, `state_invert_left=false`, `state_invert_right=true`,
   `near_target_distance_m=0.5`, `wheel_radius_m=0.0635`, `wheel_separation_m=0.2460`,
   `external_reduction=1.0`, `base_link_to_axle_center_x_m=0.095`, `base_link_to_axle_center_x_sign=1.0`, `target_x_offset_m=0.0`,
-  `invert_target_xy_for_policy=true`, `final_forward_motion_sign=-1.0`, `calibration_escape_motion_sign=1.0`,
+  `invert_target_xy_for_policy=true`, `final_forward_motion_sign=-1.0`, `calibration_escape_motion_sign=1.0`, `calibration_target_y_sign=-1.0`,
   `linear_velocity_scale_m_s=0.22`,
   `angular_velocity_scale_rad_s=1.81`,
   `near_target_linear_speed_limit_m_s=0.06`,
@@ -150,7 +151,7 @@ IsaacLab에서 export한 specialist ONNX 정책을 ROS2 노드로 실행하여,
   `cmd_vel_topic=/cmd_vel`, `state_invert_left=true`, `state_invert_right=false`,
   `near_target_distance_m=0.5`, `wheel_radius_m=0.1100`, `wheel_separation_m=0.3000`,
   `external_reduction=1.0`, `base_link_to_axle_center_x_m=0.120`, `base_link_to_axle_center_x_sign=-1.0`, `target_x_offset_m=0.20`,
-  `invert_target_xy_for_policy=false`, `final_forward_motion_sign=1.0`, `calibration_escape_motion_sign=-1.0`,
+  `invert_target_xy_for_policy=false`, `final_forward_motion_sign=1.0`, `calibration_escape_motion_sign=-1.0`, `calibration_target_y_sign=1.0`,
   `linear_velocity_scale_m_s=0.22`,
   `angular_velocity_scale_rad_s=1.47`,
   `near_target_linear_speed_limit_m_s=0.06`,

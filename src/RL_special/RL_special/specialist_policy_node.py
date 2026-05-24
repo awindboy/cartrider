@@ -45,6 +45,7 @@ class CartAlignSpecialistPolicyNode(Node):
         self.declare_parameter('calibration_escape_distance_m', 0.30)
         self.declare_parameter('calibration_escape_turn_deg', 30.0)
         self.declare_parameter('calibration_escape_motion_sign', -1.0)
+        self.declare_parameter('calibration_target_y_sign', 1.0)
         self.declare_parameter('near_target_distance_m', 0.5)
         self.declare_parameter('near_target_linear_speed_limit_m_s', 0.0)
         self.declare_parameter('near_target_angular_speed_limit_rad_s', 0.0)
@@ -105,6 +106,9 @@ class CartAlignSpecialistPolicyNode(Node):
         )
         self.calibration_escape_motion_sign = float(
             self.get_parameter('calibration_escape_motion_sign').value
+        )
+        self.calibration_target_y_sign = float(
+            self.get_parameter('calibration_target_y_sign').value
         )
         self.near_target_distance_m = float(
             self.get_parameter('near_target_distance_m').value
@@ -231,6 +235,8 @@ class CartAlignSpecialistPolicyNode(Node):
             raise ValueError('calibration_escape_turn_deg must be >= 0.')
         if self.calibration_escape_motion_sign not in (-1.0, 1.0):
             raise ValueError('calibration_escape_motion_sign must be -1.0 or 1.0.')
+        if self.calibration_target_y_sign not in (-1.0, 1.0):
+            raise ValueError('calibration_target_y_sign must be -1.0 or 1.0.')
         if self.near_target_distance_m < 0.0:
             raise ValueError('near_target_distance_m must be >= 0.')
         if self.near_target_linear_speed_limit_m_s <= 0.0:
@@ -482,7 +488,10 @@ class CartAlignSpecialistPolicyNode(Node):
         if self.control_phase == 'calibration':
             return
         self.control_phase = 'calibration'
-        target_y_local = self.target_y_local_m if self.target_y_local_m is not None else 0.0
+        target_y_local = (
+            self.target_y_local_m if self.target_y_local_m is not None else 0.0
+        )
+        target_y_local *= self.calibration_target_y_sign
         if target_y_local < 0.0:
             self.calibration_turn_direction_sign = -self.calibration_escape_motion_sign
         elif target_y_local > 0.0:

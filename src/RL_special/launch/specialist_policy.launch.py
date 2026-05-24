@@ -29,6 +29,7 @@ PROFILE_DEFAULTS = {
         'invert_target_xy_for_policy': False,
         'final_forward_motion_sign': 1.0,
         'calibration_escape_motion_sign': -1.0,
+        'calibration_target_y_sign': 1.0,
         'motor_state_topic': '/rmd_state',
         'cmd_vel_topic': '/cmd_vel',
         'state_invert_left': True,
@@ -52,6 +53,7 @@ PROFILE_DEFAULTS = {
         'invert_target_xy_for_policy': True,
         'final_forward_motion_sign': -1.0,
         'calibration_escape_motion_sign': 1.0,
+        'calibration_target_y_sign': -1.0,
         'motor_state_topic': '/front/rmd_state',
         'cmd_vel_topic': '/front/cmd_vel',
         'state_invert_left': False,
@@ -252,6 +254,14 @@ def _build_policy_node(context):
             ),
             'calibration_escape_motion_sign',
         ),
+        'calibration_target_y_sign': _parse_float(
+            _resolve_arg(
+                context,
+                'calibration_target_y_sign',
+                profile['calibration_target_y_sign'],
+            ),
+            'calibration_target_y_sign',
+        ),
         'near_target_distance_m': _parse_float(
             _resolve_arg(
                 context,
@@ -441,6 +451,11 @@ def generate_launch_description() -> LaunchDescription:
                 'calibration_escape_motion_sign',
                 default_value='__auto__',
                 description='__auto__ uses profile default calibration travel direction: -1 reverse, +1 forward.',
+            ),
+            DeclareLaunchArgument(
+                'calibration_target_y_sign',
+                default_value='__auto__',
+                description='__auto__ uses profile default y-sign interpretation for calibration lateral direction.',
             ),
             DeclareLaunchArgument('left_motor_id', default_value='1'),
             DeclareLaunchArgument('right_motor_id', default_value='2'),

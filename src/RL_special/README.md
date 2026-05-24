@@ -13,7 +13,9 @@ IsaacLab에서 export한 specialist ONNX 정책을 ROS2 노드로 실행하여,
 ## 토픽 및 메시지
 
 ### 1) Target 입력 (Vision -> Policy)
-- Topic: `/rs/cart_pose` (front/rear 공통, 기본값)
+- Topic (robot_type 기준):
+  - front(default): `/front/rs/cart_pose`
+  - rear: `/rear/rs/cart_pose`
 - Type: `geometry_msgs/msg/Pose2D`
 - 매핑:
   - `x` = `raw_target_x_local` (`base_link` 중심 기준)
@@ -21,7 +23,7 @@ IsaacLab에서 export한 specialist ONNX 정책을 ROS2 노드로 실행하여,
   - `theta` = 비전 yaw error
   - 먼저 `base_link_to_axle_center_x_m`만큼 x축으로 원점을 앞으로 옮겨 구동축 중심 기준 `axle_target_x_local`, `axle_target_y_local` 를 계산
   - 그 다음 `target_x_offset_m`를 `theta` 방향으로 투영해 최종 `target_x_local`, `target_y_local` 를 계산
-  - policy 입력에는 `heading_error = wrap_to_pi(theta)` 를 사용
+  - policy 입력에는 `heading_error = wrap_to_pi(-theta)` 를 사용
 
 ### 2) 현재 로봇 속도 입력 -> Policy
 - Topic (robot_type 기준):
@@ -56,7 +58,7 @@ IsaacLab에서 export한 specialist ONNX 정책을 ROS2 노드로 실행하여,
 - obs 순서(고정):
   1. `target.x`
   2. `target.y`
-  3. `wrap_to_pi(target.theta)`
+  3. `wrap_to_pi(-target.theta)`
   4. 현재 로봇 선속도 `linear_velocity_m_s`
   5. 현재 로봇 각속도 `angular_velocity_rad_s`
 - ONNX 출력 action(2D) -> `[-1, 1]` clamp -> 아래 scale로 실제 `cmd_vel` 생성
@@ -84,7 +86,7 @@ IsaacLab에서 export한 specialist ONNX 정책을 ROS2 노드로 실행하여,
 - `near_target_linear_speed_limit_m_s` (default: `__auto__`)
 - `near_target_angular_speed_limit_rad_s` (default: `__auto__`)
 - `near_target_distance_m` (default: `__auto__`)
-- `target_topic` (default: `/rs/cart_pose`)
+- `target_topic` (default: `__auto__`)
 - `motor_state_topic` (default: `__auto__`)
 - `motor_state_type` (default: `cartrider_rmd_sdk/msg/MotorStateArray`)
 - `cmd_vel_topic` (default: `__auto__`)
@@ -106,7 +108,7 @@ IsaacLab에서 export한 specialist ONNX 정책을 ROS2 노드로 실행하여,
 - `final_forward_distance_m` (default: `0.35`)
 
 `__auto__`일 때 robot_type별 기본값:
-- front: `model=front_specialist_policy.onnx`, `motor_state_topic=/front/rmd_state`,
+- front: `model=front_specialist_policy.onnx`, `target_topic=/front/rs/cart_pose`, `motor_state_topic=/front/rmd_state`,
   `cmd_vel_topic=/cmd_vel`, `state_invert_left=false`, `state_invert_right=true`,
   `near_target_distance_m=0.5`, `wheel_radius_m=0.0635`, `wheel_separation_m=0.2460`,
   `external_reduction=3.0`, `base_link_to_axle_center_x_m=0.095`, `target_x_offset_m=0.0`,
@@ -114,7 +116,7 @@ IsaacLab에서 export한 specialist ONNX 정책을 ROS2 노드로 실행하여,
   `angular_velocity_scale_rad_s=1.81`,
   `near_target_linear_speed_limit_m_s=0.06`,
   `near_target_angular_speed_limit_rad_s=0.46`
-- rear: `model=specialist_policy.onnx`, `motor_state_topic=/rmd_state`,
+- rear: `model=specialist_policy.onnx`, `target_topic=/rear/rs/cart_pose`, `motor_state_topic=/rmd_state`,
   `cmd_vel_topic=/cmd_vel`, `state_invert_left=true`, `state_invert_right=false`,
   `near_target_distance_m=0.5`, `wheel_radius_m=0.1100`, `wheel_separation_m=0.3000`,
   `external_reduction=1.0`, `base_link_to_axle_center_x_m=0.120`, `target_x_offset_m=0.20`,
@@ -137,7 +139,8 @@ IsaacLab에서 export한 specialist ONNX 정책을 ROS2 노드로 실행하여,
 
 `target_x_offset_m`는 비전이 보는 카트 기준점과 실제 정렬 목표점 사이의 longitudinal 오프셋입니다.
 코드에서는 그 다음 `x_target = x_axle - target_x_offset_m * cos(theta)`,
-`y_target = y_axle - target_x_offset_m * sin(theta)`를 적용하고, `theta` 자체는 그대로 사용합니다.
+`y_target = y_axle - target_x_offset_m * sin(theta)`를 적용합니다.
+비전의 yaw error 부호가 정책 기대값과 반대이므로, policy 입력에는 `heading_error = wrap_to_pi(-theta_vision)`를 사용합니다.
 
 ## 빌드
 

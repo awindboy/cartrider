@@ -301,7 +301,7 @@ class CartAlignSpecialistPolicyNode(Node):
 
         raw_target_x_local = float(self.latest_target.x)
         raw_target_y_local = float(self.latest_target.y)
-        heading_error = self._wrap_to_pi(float(self.latest_target.theta))
+        heading_error = self._wrap_to_pi(-float(self.latest_target.theta))
         axle_target_x_local, axle_target_y_local = self._shift_target_to_axle_center(
             raw_target_x_local,
             raw_target_y_local,

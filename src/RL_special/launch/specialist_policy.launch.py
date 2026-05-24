@@ -16,6 +16,7 @@ REAR_BASE_LINK_TO_AXLE_CENTER_X_M = 0.120
 PROFILE_DEFAULTS = {
     'rear': {
         'model_file': 'specialist_policy.onnx',
+        'target_topic': '/rear/rs/cart_pose',
         'linear_velocity_scale_m_s': 0.2,
         'angular_velocity_scale_rad_s': 0.3,
         'near_target_linear_speed_limit_m_s': 0.06,
@@ -33,6 +34,7 @@ PROFILE_DEFAULTS = {
     },
     'front': {
         'model_file': 'front_specialist_policy.onnx',
+        'target_topic': '/front/rs/cart_pose',
         'linear_velocity_scale_m_s': 0.2,
         'angular_velocity_scale_rad_s': 0.3,
         'near_target_linear_speed_limit_m_s': 0.06,
@@ -123,7 +125,11 @@ def _build_policy_node(context):
 
     params = {
         'model_path': _resolve_arg(context, 'model_path', default_model_path),
-        'target_topic': LaunchConfiguration('target_topic').perform(context),
+        'target_topic': _resolve_arg(
+            context,
+            'target_topic',
+            profile['target_topic'],
+        ),
         'motor_state_topic': _resolve_arg(
             context,
             'motor_state_topic',
@@ -299,7 +305,8 @@ def generate_launch_description() -> LaunchDescription:
             ),
             DeclareLaunchArgument(
                 'target_topic',
-                default_value='/rs/cart_pose',
+                default_value='__auto__',
+                description='__auto__ uses profile default target_topic.',
             ),
             DeclareLaunchArgument(
                 'motor_state_topic',

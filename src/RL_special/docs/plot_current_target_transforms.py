@@ -124,7 +124,7 @@ def target_with_heading(panel_left: float, panel_top: float, x_m: float, y_m: fl
         circle(px, py, 7, color),
         text(px + 10, py - 10, label, size=12, fill=color),
         line(px, py, hx, hy, stroke=color, width=2.5, marker_end="arrow"),
-        text(hx + 10, hy + 4, f"theta={math.degrees(theta_rad):.0f} deg", size=12, fill=color),
+        text(hx + 10, hy + 4, f"theta_vision={math.degrees(theta_rad):.0f} deg", size=12, fill=color),
     ]
 
 
@@ -170,7 +170,7 @@ def profile_row(row_idx: int, name: str, cfg: dict) -> str:
                 "Input from vision",
                 f"x_base = {raw_x:.3f} m",
                 f"y_base = {raw_y:.3f} m",
-                f"theta = {cfg['theta_deg']:.1f} deg",
+                f"theta_vision = {cfg['theta_deg']:.1f} deg",
             ],
             size=12,
             family="Courier New",
@@ -254,8 +254,9 @@ def profile_row(row_idx: int, name: str, cfg: dict) -> str:
             panel_top + PANEL_H - 96,
             [
                 "Final transform",
-                "x_target = x_axle - d cos(theta)",
-                "y_target = y_axle - d sin(theta)",
+                "x_target = x_axle - d cos(theta_vision)",
+                "y_target = y_axle - d sin(theta_vision)",
+                "heading_error = wrap_to_pi(-theta_vision)",
                 f"d = {cart_offset:.3f} m",
                 f"x_target = {final_x:.3f} m",
                 f"y_target = {final_y:.3f} m",

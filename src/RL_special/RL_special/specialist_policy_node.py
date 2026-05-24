@@ -470,7 +470,7 @@ class CartAlignSpecialistPolicyNode(Node):
         target_bearing = math.atan2(target_y_local, target_x_local)
         target_distance = math.hypot(target_x_local, target_y_local)
 
-        angular_limit = self.near_target_angular_speed_limit_rad_s
+        angular_limit = max(self.near_target_angular_speed_limit_rad_s, 0.3)
         linear_limit = self.near_target_linear_speed_limit_m_s
 
         if self.calibration_stage == 'turn_to_point':
@@ -480,7 +480,10 @@ class CartAlignSpecialistPolicyNode(Node):
                 self._set_status('calibration_drive_to_point')
                 return
             angular_cmd = math.copysign(angular_limit, target_bearing)
-            self._publish_cmd_vel(linear_x_m_s=0.0, angular_z_rad_s=angular_cmd)
+            self._publish_cmd_vel(
+                linear_x_m_s=0.0,
+                angular_z_rad_s=angular_cmd,
+            )
             return
 
         if self.calibration_stage == 'drive_to_point':
@@ -499,7 +502,10 @@ class CartAlignSpecialistPolicyNode(Node):
                 self._finish_calibration()
                 return
             angular_cmd = math.copysign(angular_limit, heading_error)
-            self._publish_cmd_vel(linear_x_m_s=0.0, angular_z_rad_s=angular_cmd)
+            self._publish_cmd_vel(
+                linear_x_m_s=0.0,
+                angular_z_rad_s=angular_cmd,
+            )
             return
 
         self._publish_zero('invalid_calibration_state')

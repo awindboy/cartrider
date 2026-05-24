@@ -71,8 +71,8 @@ IsaacLab에서 export한 specialist ONNX 정책을 ROS2 노드로 실행하여,
 - `target_x_offset_m`로 비전 기준점과 실제 정렬 목표점 사이의 longitudinal 차이를 보정
 - 비전이 잠시 끊기면 정책을 계속 돌리지 않고 calibration mode로 진입
 - calibration mode는 마지막으로 기억된 최종 target state의 `y` 부호를 보고
-  `y < 0`이면 좌회전 `calibration_escape_turn_deg` -> 20cm 후진 -> 우회전 복귀,
-  `y > 0`이면 우회전 `calibration_escape_turn_deg` -> 20cm 후진 -> 좌회전 복귀,
+  `y < 0`이면 좌회전 `calibration_escape_turn_deg` -> 30cm 후진 -> 우회전 복귀,
+  `y > 0`이면 우회전 `calibration_escape_turn_deg` -> 30cm 후진 -> 좌회전 복귀,
   `y ~= 0`이면 회전 없이 바로 후진
 - calibration 회전 각도는 `/rmd_state`에서 계산한 현재 각속도를 적분해 측정
 - calibration 이동 거리는 `/rmd_state`에서 계산한 현재 선속도를 적분해 측정
@@ -116,8 +116,8 @@ IsaacLab에서 export한 specialist ONNX 정책을 ROS2 노드로 실행하여,
 - `base_link_to_axle_center_x_m` (default: `__auto__`)
 - `target_x_offset_m` (default: `__auto__`)
 - `final_forward_distance_m` (default: `0.35`)
-- `calibration_escape_distance_m` (default: `0.20`)
-- `calibration_escape_turn_deg` (default: `45.0`)
+- `calibration_escape_distance_m` (default: `0.30`)
+- `calibration_escape_turn_deg` (default: `30.0`)
 
 `__auto__`일 때 robot_type별 기본값:
 - front: `model=front_specialist_policy.onnx`, `target_topic=/front/rs/cart_pose`, `motor_state_topic=/front/rmd_state`,

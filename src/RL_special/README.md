@@ -22,7 +22,7 @@ IsaacLab에서 export한 specialist ONNX 정책을 ROS2 노드로 실행하여,
   - `y` = `raw_target_y_local` (`base_link` 중심 기준)
   - `theta` = 비전 yaw error
   - 먼저 `base_link_to_axle_center_x_m`만큼 x축으로 원점을 앞으로 옮겨 구동축 중심 기준 `axle_target_x_local`, `axle_target_y_local` 를 계산
-  - 그 다음 `target_x_offset_m`를 `theta` 방향으로 투영해 최종 `target_x_local`, `target_y_local` 를 계산
+  - 그 다음 `target_x_offset_m`를 비전 `theta` 방향으로 투영해 최종 `target_x_local`, `target_y_local` 를 계산
   - policy 입력에는 `heading_error = wrap_to_pi(-theta)` 를 사용
   - 비전 업데이트가 끊기면 마지막 타겟 상태를 시작점으로, 현재 로봇 `v/omega`를 적분해 타겟 pose를 계속 예측
 
@@ -140,15 +140,17 @@ IsaacLab에서 export한 specialist ONNX 정책을 ROS2 노드로 실행하여,
 코드에서는 먼저 `x_axle = x_base - base_link_to_axle_center_x_m`, `y_axle = y_base`를 적용합니다.
 
 `target_x_offset_m`는 비전이 보는 카트 기준점과 실제 정렬 목표점 사이의 longitudinal 오프셋입니다.
-코드에서는 그 다음 `x_target = x_axle - target_x_offset_m * cos(theta)`,
-`y_target = y_axle - target_x_offset_m * sin(theta)`를 적용합니다.
+코드에서는 그 다음 `x_target = x_axle - target_x_offset_m * cos(theta_vision)`,
+`y_target = y_axle - target_x_offset_m * sin(theta_vision)`를 적용합니다.
 비전의 yaw error 부호가 정책 기대값과 반대이므로, policy 입력에는 `heading_error = wrap_to_pi(-theta_vision)`를 사용합니다.
 
 비전 업데이트가 멈추면 노드는 마지막으로 받은 `x_axle`, `y_axle`, `heading_error`를 시작점으로
 현재 로봇 속도 `v`, `omega`를 적분해 내부 target state를 계속 갱신합니다.
 적분은 구동축 중심 기준에서
-- `p_new = R(-omega * dt) * (p_old - [v * dt, 0])`
-- `heading_error_new = wrap_to_pi(heading_error_old - omega * dt)`
+- `p_new = R(-omega * dt) * (p_old - [dx, dy])`
+- `dx = (v / omega) * sin(omega * dt)`, `dy = (v / omega) * (1 - cos(omega * dt))`
+- `theta_vision_new = wrap_to_pi(theta_vision_old + omega * dt)`
+- `heading_error_new = wrap_to_pi(-theta_vision_new)`
 를 사용합니다.
 
 ## 빌드

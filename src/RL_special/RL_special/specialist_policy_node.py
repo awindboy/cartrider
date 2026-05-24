@@ -112,7 +112,7 @@ class CartAlignSpecialistPolicyNode(Node):
         self.last_target_rx_time = None
         self.target_x_axle_m: Optional[float] = None
         self.target_y_axle_m: Optional[float] = None
-        self.target_heading_error_rad: Optional[float] = None
+        self.target_theta_vision_rad: Optional[float] = None
         self.last_target_state_update_time = None
         self.current_linear_velocity_m_s: Optional[float] = None
         self.current_angular_velocity_rad_s: Optional[float] = None
@@ -242,14 +242,14 @@ class CartAlignSpecialistPolicyNode(Node):
 
     def _target_callback(self, msg: Pose2D) -> None:
         now = self.get_clock().now()
-        heading_error = self._wrap_to_pi(-float(msg.theta))
+        target_theta_vision_rad = self._wrap_to_pi(float(msg.theta))
         target_x_axle_m, target_y_axle_m = self._shift_target_to_axle_center(
             float(msg.x),
             float(msg.y),
         )
         self.target_x_axle_m = target_x_axle_m
         self.target_y_axle_m = target_y_axle_m
-        self.target_heading_error_rad = heading_error
+        self.target_theta_vision_rad = target_theta_vision_rad
         self.last_target_rx_time = now
         self.last_target_state_update_time = now
 
@@ -305,7 +305,7 @@ class CartAlignSpecialistPolicyNode(Node):
         if (
             self.target_x_axle_m is None
             or self.target_y_axle_m is None
-            or self.target_heading_error_rad is None
+            or self.target_theta_vision_rad is None
             or self.last_target_rx_time is None
             or self.last_target_state_update_time is None
         ):
@@ -332,11 +332,11 @@ class CartAlignSpecialistPolicyNode(Node):
 
         self._update_target_state_from_odometry(now)
 
-        heading_error = self.target_heading_error_rad
+        heading_error = self._wrap_to_pi(-self.target_theta_vision_rad)
         target_x_local, target_y_local = self._apply_target_offset(
             self.target_x_axle_m,
             self.target_y_axle_m,
-            heading_error,
+            self.target_theta_vision_rad,
         )
         if (
             abs(target_x_local) <= self.target_xy_stop_tolerance_m
@@ -500,10 +500,10 @@ class CartAlignSpecialistPolicyNode(Node):
         self,
         axle_target_x_local: float,
         axle_target_y_local: float,
-        heading_error_rad: float,
+        target_theta_vision_rad: float,
     ) -> tuple[float, float]:
-        offset_x_local = self.target_x_offset_m * math.cos(heading_error_rad)
-        offset_y_local = self.target_x_offset_m * math.sin(heading_error_rad)
+        offset_x_local = self.target_x_offset_m * math.cos(target_theta_vision_rad)
+        offset_y_local = self.target_x_offset_m * math.sin(target_theta_vision_rad)
         return (
             axle_target_x_local - offset_x_local,
             axle_target_y_local - offset_y_local,
@@ -513,7 +513,7 @@ class CartAlignSpecialistPolicyNode(Node):
         if (
             self.target_x_axle_m is None
             or self.target_y_axle_m is None
-            or self.target_heading_error_rad is None
+            or self.target_theta_vision_rad is None
             or self.last_target_state_update_time is None
             or self.current_linear_velocity_m_s is None
             or self.current_angular_velocity_rad_s is None
@@ -525,18 +525,26 @@ class CartAlignSpecialistPolicyNode(Node):
             self.last_target_state_update_time = now
             return
 
-        delta_x = self.current_linear_velocity_m_s * dt
         delta_yaw = self.current_angular_velocity_rad_s * dt
+        if abs(self.current_angular_velocity_rad_s) <= 1.0e-9:
+            delta_x = self.current_linear_velocity_m_s * dt
+            delta_y = 0.0
+        else:
+            turn_radius_m = (
+                self.current_linear_velocity_m_s / self.current_angular_velocity_rad_s
+            )
+            delta_x = turn_radius_m * math.sin(delta_yaw)
+            delta_y = turn_radius_m * (1.0 - math.cos(delta_yaw))
 
         cos_yaw = math.cos(delta_yaw)
         sin_yaw = math.sin(delta_yaw)
         shifted_x = self.target_x_axle_m - delta_x
-        shifted_y = self.target_y_axle_m
+        shifted_y = self.target_y_axle_m - delta_y
 
         self.target_x_axle_m = cos_yaw * shifted_x + sin_yaw * shifted_y
         self.target_y_axle_m = -sin_yaw * shifted_x + cos_yaw * shifted_y
-        self.target_heading_error_rad = self._wrap_to_pi(
-            self.target_heading_error_rad - delta_yaw
+        self.target_theta_vision_rad = self._wrap_to_pi(
+            self.target_theta_vision_rad + delta_yaw
         )
         self.last_target_state_update_time = now
 

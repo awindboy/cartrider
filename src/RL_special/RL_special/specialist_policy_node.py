@@ -109,8 +109,11 @@ class CartAlignSpecialistPolicyNode(Node):
             self.target_yaw_stop_tolerance_deg
         )
 
-        self.latest_target: Optional[Pose2D] = None
         self.last_target_rx_time = None
+        self.target_x_axle_m: Optional[float] = None
+        self.target_y_axle_m: Optional[float] = None
+        self.target_heading_error_rad: Optional[float] = None
+        self.last_target_state_update_time = None
         self.current_linear_velocity_m_s: Optional[float] = None
         self.current_angular_velocity_rad_s: Optional[float] = None
         self.last_motor_rx_time = None
@@ -238,8 +241,17 @@ class CartAlignSpecialistPolicyNode(Node):
             ) from exc
 
     def _target_callback(self, msg: Pose2D) -> None:
-        self.latest_target = msg
-        self.last_target_rx_time = self.get_clock().now()
+        now = self.get_clock().now()
+        heading_error = self._wrap_to_pi(-float(msg.theta))
+        target_x_axle_m, target_y_axle_m = self._shift_target_to_axle_center(
+            float(msg.x),
+            float(msg.y),
+        )
+        self.target_x_axle_m = target_x_axle_m
+        self.target_y_axle_m = target_y_axle_m
+        self.target_heading_error_rad = heading_error
+        self.last_target_rx_time = now
+        self.last_target_state_update_time = now
 
     def _motor_state_callback(self, msg) -> None:
         if not hasattr(msg, 'states'):
@@ -290,34 +302,19 @@ class CartAlignSpecialistPolicyNode(Node):
         if self.control_phase == 'done':
             return
 
-        if self.latest_target is None or self.last_target_rx_time is None:
+        if (
+            self.target_x_axle_m is None
+            or self.target_y_axle_m is None
+            or self.target_heading_error_rad is None
+            or self.last_target_rx_time is None
+            or self.last_target_state_update_time is None
+        ):
             self._publish_zero('waiting_target')
             return
 
         dt_target = (now - self.last_target_rx_time).nanoseconds * 1e-9
         if dt_target > self.target_timeout_sec:
             self._publish_zero('stale_target')
-            return
-
-        raw_target_x_local = float(self.latest_target.x)
-        raw_target_y_local = float(self.latest_target.y)
-        heading_error = self._wrap_to_pi(-float(self.latest_target.theta))
-        axle_target_x_local, axle_target_y_local = self._shift_target_to_axle_center(
-            raw_target_x_local,
-            raw_target_y_local,
-        )
-        target_x_local, target_y_local = self._apply_target_offset(
-            axle_target_x_local,
-            axle_target_y_local,
-            heading_error,
-        )
-        if (
-            abs(target_x_local) <= self.target_xy_stop_tolerance_m
-            and abs(target_y_local) <= self.target_xy_stop_tolerance_m
-            and abs(heading_error) <= self.target_yaw_stop_tolerance_rad
-        ):
-            self._start_final_forward(now)
-            self._run_final_forward(now)
             return
 
         if (
@@ -331,6 +328,23 @@ class CartAlignSpecialistPolicyNode(Node):
         dt_motor = (now - self.last_motor_rx_time).nanoseconds * 1e-9
         if dt_motor > self.motor_timeout_sec:
             self._publish_zero('stale_motor_vel')
+            return
+
+        self._update_target_state_from_odometry(now)
+
+        heading_error = self.target_heading_error_rad
+        target_x_local, target_y_local = self._apply_target_offset(
+            self.target_x_axle_m,
+            self.target_y_axle_m,
+            heading_error,
+        )
+        if (
+            abs(target_x_local) <= self.target_xy_stop_tolerance_m
+            and abs(target_y_local) <= self.target_xy_stop_tolerance_m
+            and abs(heading_error) <= self.target_yaw_stop_tolerance_rad
+        ):
+            self._start_final_forward(now)
+            self._run_final_forward(now)
             return
 
         self._set_status('align')
@@ -494,6 +508,37 @@ class CartAlignSpecialistPolicyNode(Node):
             axle_target_x_local - offset_x_local,
             axle_target_y_local - offset_y_local,
         )
+
+    def _update_target_state_from_odometry(self, now) -> None:
+        if (
+            self.target_x_axle_m is None
+            or self.target_y_axle_m is None
+            or self.target_heading_error_rad is None
+            or self.last_target_state_update_time is None
+            or self.current_linear_velocity_m_s is None
+            or self.current_angular_velocity_rad_s is None
+        ):
+            return
+
+        dt = (now - self.last_target_state_update_time).nanoseconds * 1e-9
+        if dt <= 0.0:
+            self.last_target_state_update_time = now
+            return
+
+        delta_x = self.current_linear_velocity_m_s * dt
+        delta_yaw = self.current_angular_velocity_rad_s * dt
+
+        cos_yaw = math.cos(delta_yaw)
+        sin_yaw = math.sin(delta_yaw)
+        shifted_x = self.target_x_axle_m - delta_x
+        shifted_y = self.target_y_axle_m
+
+        self.target_x_axle_m = cos_yaw * shifted_x + sin_yaw * shifted_y
+        self.target_y_axle_m = -sin_yaw * shifted_x + cos_yaw * shifted_y
+        self.target_heading_error_rad = self._wrap_to_pi(
+            self.target_heading_error_rad - delta_yaw
+        )
+        self.last_target_state_update_time = now
 
     def _shift_target_to_axle_center(
         self,

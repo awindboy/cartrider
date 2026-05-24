@@ -24,6 +24,7 @@ IsaacLab에서 export한 specialist ONNX 정책을 ROS2 노드로 실행하여,
   - 먼저 `base_link_to_axle_center_x_m`만큼 x축으로 원점을 앞으로 옮겨 구동축 중심 기준 `axle_target_x_local`, `axle_target_y_local` 를 계산
   - 그 다음 `target_x_offset_m`를 `theta` 방향으로 투영해 최종 `target_x_local`, `target_y_local` 를 계산
   - policy 입력에는 `heading_error = wrap_to_pi(-theta)` 를 사용
+  - 비전 업데이트가 끊기면 마지막 타겟 상태를 시작점으로, 현재 로봇 `v/omega`를 적분해 타겟 pose를 계속 예측
 
 ### 2) 현재 로봇 속도 입력 -> Policy
 - Topic (robot_type 기준):
@@ -67,6 +68,7 @@ IsaacLab에서 export한 specialist ONNX 정책을 ROS2 노드로 실행하여,
 - `target_yaw_stop_tolerance_deg`는 정렬 완료(정지) 판정 조건에서만 사용
 - `base_link_to_axle_center_x_m`로 비전 좌표의 기준점을 `base_link` 중심에서 로봇 구동축 중심으로 이동
 - `target_x_offset_m`로 비전 기준점과 실제 정렬 목표점 사이의 longitudinal 차이를 보정
+- 비전이 잠시 끊겨도 마지막 target state를 `/rmd_state` 기반 로봇 오도메트리로 계속 업데이트
 - 정렬 완료되면 이후에는 타겟 정보와 무관하게 `final_forward_distance_m`만큼 직진
 - 이 직진 속도는 `near_target_linear_speed_limit_m_s`, 회전 속도는 `0.0`을 사용
 - 직진 이동거리는 `/rmd_state`에서 변환한 현재 선속도를 적분해 계산
@@ -141,6 +143,13 @@ IsaacLab에서 export한 specialist ONNX 정책을 ROS2 노드로 실행하여,
 코드에서는 그 다음 `x_target = x_axle - target_x_offset_m * cos(theta)`,
 `y_target = y_axle - target_x_offset_m * sin(theta)`를 적용합니다.
 비전의 yaw error 부호가 정책 기대값과 반대이므로, policy 입력에는 `heading_error = wrap_to_pi(-theta_vision)`를 사용합니다.
+
+비전 업데이트가 멈추면 노드는 마지막으로 받은 `x_axle`, `y_axle`, `heading_error`를 시작점으로
+현재 로봇 속도 `v`, `omega`를 적분해 내부 target state를 계속 갱신합니다.
+적분은 구동축 중심 기준에서
+- `p_new = R(-omega * dt) * (p_old - [v * dt, 0])`
+- `heading_error_new = wrap_to_pi(heading_error_old - omega * dt)`
+를 사용합니다.
 
 ## 빌드
 

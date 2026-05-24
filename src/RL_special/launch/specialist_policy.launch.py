@@ -7,8 +7,8 @@ from launch.substitutions import LaunchConfiguration
 from launch_ros.actions import Node
 
 
-FRONT_TARGET_X_OFFSET_M = 0.0
-REAR_TARGET_X_OFFSET_M = 0.20
+FRONT_TARGET_X_OFFSET_M = 0.50
+REAR_TARGET_X_OFFSET_M = 0.50
 FRONT_BASE_LINK_TO_AXLE_CENTER_X_M = 0.095
 REAR_BASE_LINK_TO_AXLE_CENTER_X_M = 0.120
 
@@ -18,10 +18,10 @@ PROFILE_DEFAULTS = {
         'model_file': 'specialist_policy.onnx',
         'target_topic': '/rear/rs/cart_pose',
         'linear_velocity_scale_m_s': 0.2,
-        'angular_velocity_scale_rad_s': 0.3,
+        'angular_velocity_scale_rad_s': 0.1,
         'near_target_linear_speed_limit_m_s': 0.06,
         'near_target_angular_speed_limit_rad_s': 0.1,
-        'near_target_distance_m': 0.5,
+        'near_target_distance_m': 0.3,
         'base_link_to_axle_center_x_m': REAR_BASE_LINK_TO_AXLE_CENTER_X_M,
         'target_x_offset_m': REAR_TARGET_X_OFFSET_M,
         'motor_state_topic': '/rmd_state',
@@ -36,10 +36,10 @@ PROFILE_DEFAULTS = {
         'model_file': 'front_specialist_policy.onnx',
         'target_topic': '/front/rs/cart_pose',
         'linear_velocity_scale_m_s': 0.2,
-        'angular_velocity_scale_rad_s': 0.3,
+        'angular_velocity_scale_rad_s': 0.1,
         'near_target_linear_speed_limit_m_s': 0.06,
         'near_target_angular_speed_limit_rad_s': 0.1,
-        'near_target_distance_m': 0.5,
+        'near_target_distance_m': 0.3,
         'base_link_to_axle_center_x_m': FRONT_BASE_LINK_TO_AXLE_CENTER_X_M,
         'target_x_offset_m': FRONT_TARGET_X_OFFSET_M,
         'motor_state_topic': '/front/rmd_state',
@@ -367,7 +367,7 @@ def generate_launch_description() -> LaunchDescription:
                 default_value='__auto__',
                 description='Longitudinal cart-surface offset applied after shifting the frame origin from base_link center to drive axle center.',
             ),
-            DeclareLaunchArgument('final_forward_distance_m', default_value='0.33'),
+            DeclareLaunchArgument('final_forward_distance_m', default_value='0.31'),
             DeclareLaunchArgument('left_motor_id', default_value='1'),
             DeclareLaunchArgument('right_motor_id', default_value='2'),
             OpaqueFunction(function=_build_policy_node),

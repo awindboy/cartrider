@@ -40,6 +40,7 @@ class CartAlignSpecialistPolicyNode(Node):
         self.declare_parameter('target_x_offset_m', 0.0)
         self.declare_parameter('invert_target_xy_for_policy', False)
         self.declare_parameter('final_forward_distance_m', 0.35)
+        self.declare_parameter('final_forward_motion_sign', 1.0)
         self.declare_parameter('calibration_escape_distance_m', 0.30)
         self.declare_parameter('calibration_escape_turn_deg', 30.0)
         self.declare_parameter('calibration_escape_motion_sign', -1.0)
@@ -88,6 +89,9 @@ class CartAlignSpecialistPolicyNode(Node):
         )
         self.final_forward_distance_m = float(
             self.get_parameter('final_forward_distance_m').value
+        )
+        self.final_forward_motion_sign = float(
+            self.get_parameter('final_forward_motion_sign').value
         )
         self.calibration_escape_distance_m = float(
             self.get_parameter('calibration_escape_distance_m').value
@@ -213,6 +217,8 @@ class CartAlignSpecialistPolicyNode(Node):
             raise ValueError('target_x_offset_m must be >= 0.')
         if self.final_forward_distance_m < 0.0:
             raise ValueError('final_forward_distance_m must be >= 0.')
+        if self.final_forward_motion_sign not in (-1.0, 1.0):
+            raise ValueError('final_forward_motion_sign must be -1.0 or 1.0.')
         if self.calibration_escape_distance_m < 0.0:
             raise ValueError('calibration_escape_distance_m must be >= 0.')
         if self.calibration_escape_turn_deg < 0.0:
@@ -615,9 +621,14 @@ class CartAlignSpecialistPolicyNode(Node):
             dt_forward = 0.0
         self.final_forward_last_update_time = now
 
-        self.final_forward_distance_traveled_m += (
-            max(0.0, self.current_linear_velocity_m_s) * dt_forward
-        )
+        if self.final_forward_motion_sign > 0.0:
+            self.final_forward_distance_traveled_m += (
+                max(0.0, self.current_linear_velocity_m_s) * dt_forward
+            )
+        else:
+            self.final_forward_distance_traveled_m += (
+                max(0.0, -self.current_linear_velocity_m_s) * dt_forward
+            )
 
         if self.final_forward_distance_traveled_m >= self.final_forward_distance_m:
             self._publish_cmd_vel(
@@ -647,7 +658,10 @@ class CartAlignSpecialistPolicyNode(Node):
             return
 
         self._publish_cmd_vel(
-            linear_x_m_s=self.near_target_linear_speed_limit_m_s,
+            linear_x_m_s=(
+                self.final_forward_motion_sign
+                * self.near_target_linear_speed_limit_m_s
+            ),
             angular_z_rad_s=0.0,
         )
 

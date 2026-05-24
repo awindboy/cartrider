@@ -25,6 +25,7 @@ PROFILE_DEFAULTS = {
         'base_link_to_axle_center_x_m': REAR_BASE_LINK_TO_AXLE_CENTER_X_M,
         'target_x_offset_m': REAR_TARGET_X_OFFSET_M,
         'invert_target_xy_for_policy': False,
+        'final_forward_motion_sign': 1.0,
         'calibration_escape_motion_sign': -1.0,
         'motor_state_topic': '/rmd_state',
         'cmd_vel_topic': '/cmd_vel',
@@ -45,6 +46,7 @@ PROFILE_DEFAULTS = {
         'base_link_to_axle_center_x_m': FRONT_BASE_LINK_TO_AXLE_CENTER_X_M,
         'target_x_offset_m': FRONT_TARGET_X_OFFSET_M,
         'invert_target_xy_for_policy': True,
+        'final_forward_motion_sign': -1.0,
         'calibration_escape_motion_sign': 1.0,
         'motor_state_topic': '/front/rmd_state',
         'cmd_vel_topic': '/front/cmd_vel',
@@ -211,6 +213,14 @@ def _build_policy_node(context):
         'final_forward_distance_m': _parse_float(
             LaunchConfiguration('final_forward_distance_m').perform(context),
             'final_forward_distance_m',
+        ),
+        'final_forward_motion_sign': _parse_float(
+            _resolve_arg(
+                context,
+                'final_forward_motion_sign',
+                profile['final_forward_motion_sign'],
+            ),
+            'final_forward_motion_sign',
         ),
         'calibration_escape_distance_m': _parse_float(
             LaunchConfiguration('calibration_escape_distance_m').perform(context),
@@ -401,6 +411,11 @@ def generate_launch_description() -> LaunchDescription:
                 description='__auto__ uses profile default target x/y sign for policy input.',
             ),
             DeclareLaunchArgument('final_forward_distance_m', default_value='0.31'),
+            DeclareLaunchArgument(
+                'final_forward_motion_sign',
+                default_value='__auto__',
+                description='__auto__ uses profile default final motion direction: +1 forward, -1 reverse.',
+            ),
             DeclareLaunchArgument('calibration_escape_distance_m', default_value='0.30'),
             DeclareLaunchArgument('calibration_escape_turn_deg', default_value='30.0'),
             DeclareLaunchArgument(

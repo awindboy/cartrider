@@ -85,7 +85,8 @@ IsaacLab에서 export한 specialist ONNX 정책을 ROS2 노드로 실행하여,
 - calibration 이동 거리는 `/rmd_state`에서 계산한 현재 선속도를 적분해 측정
 - calibration mode 중에는 비전이 다시 들어와도 바로 정책을 재개하지 않고, 새 측정은 보류했다가 calibration 종료 후에만 다시 정책 입력으로 사용
 - 정렬 완료되면 이후에는 타겟 정보와 무관하게 `final_forward_distance_m`만큼 직진
-- 이 직진 속도는 `near_target_linear_speed_limit_m_s`, 회전 속도는 `0.0`을 사용
+- rear는 이 직진을 전진으로, front는 후진으로 수행
+- 이 직진/후진 속도는 `near_target_linear_speed_limit_m_s`, 회전 속도는 `0.0`을 사용
 - 직진 이동거리는 `/rmd_state`에서 변환한 현재 선속도를 적분해 계산
 - 직진 완료 후 0 `cmd_vel` publish, `/gripper_toggle=true` publish 후 노드 종료
 - 타겟 거리 `sqrt(x^2+y^2)`가 `near_target_distance_m` 이하면
@@ -124,6 +125,7 @@ IsaacLab에서 export한 specialist ONNX 정책을 ROS2 노드로 실행하여,
 - `target_x_offset_m` (default: `__auto__`)
 - `invert_target_xy_for_policy` (default: `__auto__`)
 - `final_forward_distance_m` (default: `0.35`)
+- `final_forward_motion_sign` (default: `__auto__`)
 - `calibration_escape_distance_m` (default: `0.30`)
 - `calibration_escape_turn_deg` (default: `30.0`)
 - `calibration_escape_motion_sign` (default: `__auto__`)
@@ -133,7 +135,7 @@ IsaacLab에서 export한 specialist ONNX 정책을 ROS2 노드로 실행하여,
   `cmd_vel_topic=/front/cmd_vel`, `state_invert_left=false`, `state_invert_right=true`,
   `near_target_distance_m=0.5`, `wheel_radius_m=0.0635`, `wheel_separation_m=0.2460`,
   `external_reduction=3.0`, `base_link_to_axle_center_x_m=0.095`, `target_x_offset_m=0.0`,
-  `invert_target_xy_for_policy=true`, `calibration_escape_motion_sign=1.0`,
+  `invert_target_xy_for_policy=true`, `final_forward_motion_sign=-1.0`, `calibration_escape_motion_sign=1.0`,
   `linear_velocity_scale_m_s=0.22`,
   `angular_velocity_scale_rad_s=1.81`,
   `near_target_linear_speed_limit_m_s=0.06`,
@@ -142,7 +144,7 @@ IsaacLab에서 export한 specialist ONNX 정책을 ROS2 노드로 실행하여,
   `cmd_vel_topic=/cmd_vel`, `state_invert_left=true`, `state_invert_right=false`,
   `near_target_distance_m=0.5`, `wheel_radius_m=0.1100`, `wheel_separation_m=0.3000`,
   `external_reduction=1.0`, `base_link_to_axle_center_x_m=0.120`, `target_x_offset_m=0.20`,
-  `invert_target_xy_for_policy=false`, `calibration_escape_motion_sign=-1.0`,
+  `invert_target_xy_for_policy=false`, `final_forward_motion_sign=1.0`, `calibration_escape_motion_sign=-1.0`,
   `linear_velocity_scale_m_s=0.22`,
   `angular_velocity_scale_rad_s=1.47`,
   `near_target_linear_speed_limit_m_s=0.06`,

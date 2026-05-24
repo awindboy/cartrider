@@ -24,6 +24,7 @@ PROFILE_DEFAULTS = {
         'near_target_angular_speed_limit_rad_s': 0.3,
         'near_target_distance_m': 0.3,
         'base_link_to_axle_center_x_m': REAR_BASE_LINK_TO_AXLE_CENTER_X_M,
+        'base_link_to_axle_center_x_sign': -1.0,
         'target_x_offset_m': REAR_TARGET_X_OFFSET_M,
         'invert_target_xy_for_policy': False,
         'final_forward_motion_sign': 1.0,
@@ -46,6 +47,7 @@ PROFILE_DEFAULTS = {
         'near_target_angular_speed_limit_rad_s': 0.3,
         'near_target_distance_m': 0.3,
         'base_link_to_axle_center_x_m': FRONT_BASE_LINK_TO_AXLE_CENTER_X_M,
+        'base_link_to_axle_center_x_sign': 1.0,
         'target_x_offset_m': FRONT_TARGET_X_OFFSET_M,
         'invert_target_xy_for_policy': True,
         'final_forward_motion_sign': -1.0,
@@ -197,6 +199,14 @@ def _build_policy_node(context):
                 profile['base_link_to_axle_center_x_m'],
             ),
             'base_link_to_axle_center_x_m',
+        ),
+        'base_link_to_axle_center_x_sign': _parse_float(
+            _resolve_arg(
+                context,
+                'base_link_to_axle_center_x_sign',
+                profile['base_link_to_axle_center_x_sign'],
+            ),
+            'base_link_to_axle_center_x_sign',
         ),
         'target_x_offset_m': _parse_float(
             _resolve_arg(
@@ -403,6 +413,11 @@ def generate_launch_description() -> LaunchDescription:
                 'base_link_to_axle_center_x_m',
                 default_value='__auto__',
                 description='Forward x offset from base_link center to drive axle center. __auto__ uses profile default.',
+            ),
+            DeclareLaunchArgument(
+                'base_link_to_axle_center_x_sign',
+                default_value='__auto__',
+                description='__auto__ uses profile default axle shift sign: rear -1, front +1.',
             ),
             DeclareLaunchArgument(
                 'target_x_offset_m',

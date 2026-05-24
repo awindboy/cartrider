@@ -37,6 +37,7 @@ class CartAlignSpecialistPolicyNode(Node):
         self.declare_parameter('target_xy_stop_tolerance_m', 0.05)
         self.declare_parameter('target_yaw_stop_tolerance_deg', 5.0)
         self.declare_parameter('base_link_to_axle_center_x_m', 0.0)
+        self.declare_parameter('base_link_to_axle_center_x_sign', -1.0)
         self.declare_parameter('target_x_offset_m', 0.0)
         self.declare_parameter('invert_target_xy_for_policy', False)
         self.declare_parameter('final_forward_distance_m', 0.35)
@@ -80,6 +81,9 @@ class CartAlignSpecialistPolicyNode(Node):
         )
         self.base_link_to_axle_center_x_m = float(
             self.get_parameter('base_link_to_axle_center_x_m').value
+        )
+        self.base_link_to_axle_center_x_sign = float(
+            self.get_parameter('base_link_to_axle_center_x_sign').value
         )
         self.target_x_offset_m = float(
             self.get_parameter('target_x_offset_m').value
@@ -213,6 +217,8 @@ class CartAlignSpecialistPolicyNode(Node):
             raise ValueError('target_yaw_stop_tolerance_deg must be >= 0.')
         if self.base_link_to_axle_center_x_m < 0.0:
             raise ValueError('base_link_to_axle_center_x_m must be >= 0.')
+        if self.base_link_to_axle_center_x_sign not in (-1.0, 1.0):
+            raise ValueError('base_link_to_axle_center_x_sign must be -1.0 or 1.0.')
         if self.target_x_offset_m < 0.0:
             raise ValueError('target_x_offset_m must be >= 0.')
         if self.final_forward_distance_m < 0.0:
@@ -745,7 +751,9 @@ class CartAlignSpecialistPolicyNode(Node):
         raw_target_y_local: float,
     ) -> tuple[float, float]:
         return (
-            raw_target_x_local - self.base_link_to_axle_center_x_m,
+            raw_target_x_local
+            + self.base_link_to_axle_center_x_sign
+            * self.base_link_to_axle_center_x_m,
             raw_target_y_local,
         )
 

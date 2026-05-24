@@ -21,7 +21,7 @@ IsaacLab에서 export한 specialist ONNX 정책을 ROS2 노드로 실행하여,
   - `x` = `raw_target_x_local` (`base_link` 중심 기준)
   - `y` = `raw_target_y_local` (`base_link` 중심 기준)
   - `theta` = 비전 yaw error
-  - 먼저 `base_link_to_axle_center_x_m`만큼 x축으로 원점을 앞으로 옮겨 구동축 중심 기준 `axle_target_x_local`, `axle_target_y_local` 를 계산
+  - 먼저 `base_link_to_axle_center_x_m`와 robot별 부호를 적용해 구동축 중심 기준 `axle_target_x_local`, `axle_target_y_local` 를 계산
   - 그 다음 `target_x_offset_m`를 비전 `theta` 방향으로 투영해 최종 `target_x_local`, `target_y_local` 를 계산
   - 내부 상태와 오도메트리 fallback은 이 최종 `target_x_local`, `target_y_local` 기준으로 유지
   - policy 입력에는 `heading_error = wrap_to_pi(-theta)` 를 사용
@@ -73,6 +73,7 @@ IsaacLab에서 export한 specialist ONNX 정책을 ROS2 노드로 실행하여,
   - `angular_velocity_scale_rad_s`
 - `target_yaw_stop_tolerance_deg`는 정렬 완료(정지) 판정 조건에서만 사용
 - `base_link_to_axle_center_x_m`로 비전 좌표의 기준점을 `base_link` 중심에서 로봇 구동축 중심으로 이동
+- 이때 rear는 `x_axle = x_base - base_link_to_axle_center_x_m`, front는 `x_axle = x_base + base_link_to_axle_center_x_m`
 - `target_x_offset_m`로 비전 기준점과 실제 정렬 목표점 사이의 longitudinal 차이를 보정
 - 비전이 잠시 끊기면 정책을 계속 돌리지 않고 calibration mode로 진입
 - calibration mode는 마지막으로 기억된 최종 target state의 `y` 부호를 보고
@@ -124,6 +125,7 @@ IsaacLab에서 export한 specialist ONNX 정책을 ROS2 노드로 실행하여,
 - `target_xy_stop_tolerance_m` (default: `0.05`)
 - `target_yaw_stop_tolerance_deg` (default: `5.0`)
 - `base_link_to_axle_center_x_m` (default: `__auto__`)
+- `base_link_to_axle_center_x_sign` (default: `__auto__`)
 - `target_x_offset_m` (default: `__auto__`)
 - `invert_target_xy_for_policy` (default: `__auto__`)
 - `final_forward_distance_m` (default: `0.35`)
@@ -137,7 +139,7 @@ IsaacLab에서 export한 specialist ONNX 정책을 ROS2 노드로 실행하여,
   `gripper_toggle_topic=/front/cart_docking`,
   `cmd_vel_topic=/front/cmd_vel`, `state_invert_left=false`, `state_invert_right=true`,
   `near_target_distance_m=0.5`, `wheel_radius_m=0.0635`, `wheel_separation_m=0.2460`,
-  `external_reduction=1.0`, `base_link_to_axle_center_x_m=0.095`, `target_x_offset_m=0.0`,
+  `external_reduction=1.0`, `base_link_to_axle_center_x_m=0.095`, `base_link_to_axle_center_x_sign=1.0`, `target_x_offset_m=0.0`,
   `invert_target_xy_for_policy=true`, `final_forward_motion_sign=-1.0`, `calibration_escape_motion_sign=1.0`,
   `linear_velocity_scale_m_s=0.22`,
   `angular_velocity_scale_rad_s=1.81`,
@@ -147,7 +149,7 @@ IsaacLab에서 export한 specialist ONNX 정책을 ROS2 노드로 실행하여,
   `gripper_toggle_topic=/gripper_toggle`,
   `cmd_vel_topic=/cmd_vel`, `state_invert_left=true`, `state_invert_right=false`,
   `near_target_distance_m=0.5`, `wheel_radius_m=0.1100`, `wheel_separation_m=0.3000`,
-  `external_reduction=1.0`, `base_link_to_axle_center_x_m=0.120`, `target_x_offset_m=0.20`,
+  `external_reduction=1.0`, `base_link_to_axle_center_x_m=0.120`, `base_link_to_axle_center_x_sign=-1.0`, `target_x_offset_m=0.20`,
   `invert_target_xy_for_policy=false`, `final_forward_motion_sign=1.0`, `calibration_escape_motion_sign=-1.0`,
   `linear_velocity_scale_m_s=0.22`,
   `angular_velocity_scale_rad_s=1.47`,
@@ -164,7 +166,7 @@ IsaacLab에서 export한 specialist ONNX 정책을 ROS2 노드로 실행하여,
 `wheel_radius_m`, `wheel_separation_m`, `external_reduction`는 출력 제한 계산용이 아니라
 `/rmd_state`의 순수 모터 속도를 현재 로봇의 선속도/각속도로 변환할 때만 사용합니다.
 `base_link_to_axle_center_x_m`는 비전이 만든 `base_link` 중심 기준 좌표를 로봇 구동축 중심 기준 좌표로 바꾸는 x축 이동량입니다.
-코드에서는 먼저 `x_axle = x_base - base_link_to_axle_center_x_m`, `y_axle = y_base`를 적용합니다.
+코드에서는 rear에 대해 `x_axle = x_base - base_link_to_axle_center_x_m`, front에 대해 `x_axle = x_base + base_link_to_axle_center_x_m`, 그리고 공통으로 `y_axle = y_base`를 적용합니다.
 
 `target_x_offset_m`는 비전이 보는 카트 기준점과 실제 정렬 목표점 사이의 longitudinal 오프셋입니다.
 코드에서는 그 다음 `x_target = x_axle - target_x_offset_m * cos(theta_vision)`,

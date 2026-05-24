@@ -39,6 +39,7 @@ class CartAlignSpecialistPolicyNode(Node):
         self.declare_parameter('base_link_to_axle_center_x_m', 0.0)
         self.declare_parameter('target_x_offset_m', 0.0)
         self.declare_parameter('final_forward_distance_m', 0.35)
+        self.declare_parameter('calibration_escape_distance_m', 0.20)
         self.declare_parameter('near_target_distance_m', 0.5)
         self.declare_parameter('near_target_linear_speed_limit_m_s', 0.0)
         self.declare_parameter('near_target_angular_speed_limit_rad_s', 0.0)
@@ -82,6 +83,9 @@ class CartAlignSpecialistPolicyNode(Node):
         self.final_forward_distance_m = float(
             self.get_parameter('final_forward_distance_m').value
         )
+        self.calibration_escape_distance_m = float(
+            self.get_parameter('calibration_escape_distance_m').value
+        )
         self.near_target_distance_m = float(
             self.get_parameter('near_target_distance_m').value
         )
@@ -119,6 +123,10 @@ class CartAlignSpecialistPolicyNode(Node):
         self.last_motor_rx_time = None
         self.control_phase = 'align'
         self.calibration_stage = ''
+        self.calibration_distance_traveled_m = 0.0
+        self.calibration_last_update_time = None
+        self.calibration_linear_cmd_m_s = 0.0
+        self.calibration_angular_cmd_rad_s = 0.0
         self.final_forward_distance_traveled_m = 0.0
         self.final_forward_last_update_time = None
         self.shutdown_requested = False
@@ -190,6 +198,8 @@ class CartAlignSpecialistPolicyNode(Node):
             raise ValueError('target_x_offset_m must be >= 0.')
         if self.final_forward_distance_m < 0.0:
             raise ValueError('final_forward_distance_m must be >= 0.')
+        if self.calibration_escape_distance_m < 0.0:
+            raise ValueError('calibration_escape_distance_m must be >= 0.')
         if self.near_target_distance_m < 0.0:
             raise ValueError('near_target_distance_m must be >= 0.')
         if self.near_target_linear_speed_limit_m_s <= 0.0:
@@ -436,14 +446,28 @@ class CartAlignSpecialistPolicyNode(Node):
         if self.control_phase == 'calibration':
             return
         self.control_phase = 'calibration'
-        self.calibration_stage = 'turn_to_point'
+        angular_limit = max(self.near_target_angular_speed_limit_rad_s, 0.3)
+        linear_limit = self.near_target_linear_speed_limit_m_s
+        target_y_local = self.target_y_local_m if self.target_y_local_m is not None else 0.0
+        if target_y_local < 0.0:
+            self.calibration_stage = 'back_right'
+            self.calibration_angular_cmd_rad_s = angular_limit
+        elif target_y_local > 0.0:
+            self.calibration_stage = 'back_left'
+            self.calibration_angular_cmd_rad_s = -angular_limit
+        else:
+            self.calibration_stage = 'back_straight'
+            self.calibration_angular_cmd_rad_s = 0.0
+        self.calibration_linear_cmd_m_s = -linear_limit
+        self.calibration_distance_traveled_m = 0.0
+        self.calibration_last_update_time = now
         self.pending_target_msg = None
         self.pending_target_rx_time = None
         self._publish_cmd_vel(
             linear_x_m_s=0.0,
             angular_z_rad_s=0.0,
         )
-        self._set_status('calibration_turn_to_point')
+        self._set_status(f'calibration_{self.calibration_stage}')
 
     def _run_calibration(self, now) -> None:
         if (
@@ -462,57 +486,32 @@ class CartAlignSpecialistPolicyNode(Node):
             self._publish_zero('stale_motor_vel')
             return
 
-        self._update_target_state_from_odometry(now)
+        if self.calibration_last_update_time is None:
+            self.calibration_last_update_time = now
 
-        target_x_local = self.target_x_local_m
-        target_y_local = self.target_y_local_m
-        heading_error = self._wrap_to_pi(-self.target_theta_vision_rad)
-        target_bearing = math.atan2(target_y_local, target_x_local)
-        target_distance = math.hypot(target_x_local, target_y_local)
+        dt = (now - self.calibration_last_update_time).nanoseconds * 1e-9
+        if dt < 0.0:
+            dt = 0.0
+        self.calibration_last_update_time = now
+        self.calibration_distance_traveled_m += abs(self.current_linear_velocity_m_s) * dt
 
-        angular_limit = max(self.near_target_angular_speed_limit_rad_s, 0.3)
-        linear_limit = self.near_target_linear_speed_limit_m_s
-
-        if self.calibration_stage == 'turn_to_point':
-            if abs(target_bearing) <= self.target_yaw_stop_tolerance_rad:
-                self.calibration_stage = 'drive_to_point'
-                self._publish_cmd_vel(linear_x_m_s=0.0, angular_z_rad_s=0.0)
-                self._set_status('calibration_drive_to_point')
-                return
-            angular_cmd = math.copysign(angular_limit, target_bearing)
-            self._publish_cmd_vel(
-                linear_x_m_s=0.0,
-                angular_z_rad_s=angular_cmd,
-            )
+        if self.calibration_distance_traveled_m >= self.calibration_escape_distance_m:
+            self._publish_cmd_vel(linear_x_m_s=0.0, angular_z_rad_s=0.0)
+            self._finish_calibration()
             return
 
-        if self.calibration_stage == 'drive_to_point':
-            if target_distance <= self.target_xy_stop_tolerance_m:
-                self.calibration_stage = 'turn_to_heading'
-                self._publish_cmd_vel(linear_x_m_s=0.0, angular_z_rad_s=0.0)
-                self._set_status('calibration_turn_to_heading')
-                return
-            linear_cmd = float(np.clip(target_distance, 0.0, linear_limit))
-            self._publish_cmd_vel(linear_x_m_s=linear_cmd, angular_z_rad_s=0.0)
-            return
-
-        if self.calibration_stage == 'turn_to_heading':
-            if abs(heading_error) <= self.target_yaw_stop_tolerance_rad:
-                self._publish_cmd_vel(linear_x_m_s=0.0, angular_z_rad_s=0.0)
-                self._finish_calibration()
-                return
-            angular_cmd = math.copysign(angular_limit, heading_error)
-            self._publish_cmd_vel(
-                linear_x_m_s=0.0,
-                angular_z_rad_s=angular_cmd,
-            )
-            return
-
-        self._publish_zero('invalid_calibration_state')
+        self._publish_cmd_vel(
+            linear_x_m_s=self.calibration_linear_cmd_m_s,
+            angular_z_rad_s=self.calibration_angular_cmd_rad_s,
+        )
 
     def _finish_calibration(self) -> None:
         self.control_phase = 'align'
         self.calibration_stage = ''
+        self.calibration_distance_traveled_m = 0.0
+        self.calibration_last_update_time = None
+        self.calibration_linear_cmd_m_s = 0.0
+        self.calibration_angular_cmd_rad_s = 0.0
         self._set_status('calibration_done')
         if self.pending_target_msg is not None and self.pending_target_rx_time is not None:
             self._apply_target_measurement(

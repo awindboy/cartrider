@@ -200,6 +200,10 @@ def _build_policy_node(context):
             LaunchConfiguration('final_forward_distance_m').perform(context),
             'final_forward_distance_m',
         ),
+        'calibration_escape_distance_m': _parse_float(
+            LaunchConfiguration('calibration_escape_distance_m').perform(context),
+            'calibration_escape_distance_m',
+        ),
         'near_target_distance_m': _parse_float(
             _resolve_arg(
                 context,
@@ -368,6 +372,7 @@ def generate_launch_description() -> LaunchDescription:
                 description='Longitudinal cart-surface offset applied after shifting the frame origin from base_link center to drive axle center.',
             ),
             DeclareLaunchArgument('final_forward_distance_m', default_value='0.31'),
+            DeclareLaunchArgument('calibration_escape_distance_m', default_value='0.20'),
             DeclareLaunchArgument('left_motor_id', default_value='1'),
             DeclareLaunchArgument('right_motor_id', default_value='2'),
             OpaqueFunction(function=_build_policy_node),

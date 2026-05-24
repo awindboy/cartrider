@@ -479,7 +479,7 @@ class CartAlignSpecialistPolicyNode(Node):
                 self._publish_cmd_vel(linear_x_m_s=0.0, angular_z_rad_s=0.0)
                 self._set_status('calibration_drive_to_point')
                 return
-            angular_cmd = float(np.clip(target_bearing, -angular_limit, angular_limit))
+            angular_cmd = math.copysign(angular_limit, target_bearing)
             self._publish_cmd_vel(linear_x_m_s=0.0, angular_z_rad_s=angular_cmd)
             return
 
@@ -498,7 +498,7 @@ class CartAlignSpecialistPolicyNode(Node):
                 self._publish_cmd_vel(linear_x_m_s=0.0, angular_z_rad_s=0.0)
                 self._finish_calibration()
                 return
-            angular_cmd = float(np.clip(heading_error, -angular_limit, angular_limit))
+            angular_cmd = math.copysign(angular_limit, heading_error)
             self._publish_cmd_vel(linear_x_m_s=0.0, angular_z_rad_s=angular_cmd)
             return
 

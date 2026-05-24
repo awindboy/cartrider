@@ -110,8 +110,8 @@ class CartAlignSpecialistPolicyNode(Node):
         )
 
         self.last_target_rx_time = None
-        self.target_x_axle_m: Optional[float] = None
-        self.target_y_axle_m: Optional[float] = None
+        self.target_x_local_m: Optional[float] = None
+        self.target_y_local_m: Optional[float] = None
         self.target_theta_vision_rad: Optional[float] = None
         self.last_target_state_update_time = None
         self.current_linear_velocity_m_s: Optional[float] = None
@@ -247,8 +247,13 @@ class CartAlignSpecialistPolicyNode(Node):
             float(msg.x),
             float(msg.y),
         )
-        self.target_x_axle_m = target_x_axle_m
-        self.target_y_axle_m = target_y_axle_m
+        target_x_local_m, target_y_local_m = self._apply_target_offset(
+            target_x_axle_m,
+            target_y_axle_m,
+            target_theta_vision_rad,
+        )
+        self.target_x_local_m = target_x_local_m
+        self.target_y_local_m = target_y_local_m
         self.target_theta_vision_rad = target_theta_vision_rad
         self.last_target_rx_time = now
         self.last_target_state_update_time = now
@@ -303,8 +308,8 @@ class CartAlignSpecialistPolicyNode(Node):
             return
 
         if (
-            self.target_x_axle_m is None
-            or self.target_y_axle_m is None
+            self.target_x_local_m is None
+            or self.target_y_local_m is None
             or self.target_theta_vision_rad is None
             or self.last_target_rx_time is None
             or self.last_target_state_update_time is None
@@ -333,11 +338,8 @@ class CartAlignSpecialistPolicyNode(Node):
         self._update_target_state_from_odometry(now)
 
         heading_error = self._wrap_to_pi(-self.target_theta_vision_rad)
-        target_x_local, target_y_local = self._apply_target_offset(
-            self.target_x_axle_m,
-            self.target_y_axle_m,
-            self.target_theta_vision_rad,
-        )
+        target_x_local = self.target_x_local_m
+        target_y_local = self.target_y_local_m
         if (
             abs(target_x_local) <= self.target_xy_stop_tolerance_m
             and abs(target_y_local) <= self.target_xy_stop_tolerance_m
@@ -511,8 +513,8 @@ class CartAlignSpecialistPolicyNode(Node):
 
     def _update_target_state_from_odometry(self, now) -> None:
         if (
-            self.target_x_axle_m is None
-            or self.target_y_axle_m is None
+            self.target_x_local_m is None
+            or self.target_y_local_m is None
             or self.target_theta_vision_rad is None
             or self.last_target_state_update_time is None
             or self.current_linear_velocity_m_s is None
@@ -538,11 +540,11 @@ class CartAlignSpecialistPolicyNode(Node):
 
         cos_yaw = math.cos(delta_yaw)
         sin_yaw = math.sin(delta_yaw)
-        shifted_x = self.target_x_axle_m - delta_x
-        shifted_y = self.target_y_axle_m - delta_y
+        shifted_x = self.target_x_local_m - delta_x
+        shifted_y = self.target_y_local_m - delta_y
 
-        self.target_x_axle_m = cos_yaw * shifted_x + sin_yaw * shifted_y
-        self.target_y_axle_m = -sin_yaw * shifted_x + cos_yaw * shifted_y
+        self.target_x_local_m = cos_yaw * shifted_x + sin_yaw * shifted_y
+        self.target_y_local_m = -sin_yaw * shifted_x + cos_yaw * shifted_y
         self.target_theta_vision_rad = self._wrap_to_pi(
             self.target_theta_vision_rad + delta_yaw
         )

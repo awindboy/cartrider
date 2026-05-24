@@ -54,7 +54,7 @@ PROFILE_DEFAULTS = {
         'state_invert_right': True,
         'wheel_radius_m': 0.0635,
         'wheel_separation_m': 0.2460,
-        'external_reduction': 3.0,
+        'external_reduction': 1.0,
     },
 }
 

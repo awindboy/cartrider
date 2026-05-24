@@ -51,10 +51,12 @@ IsaacLab에서 export한 specialist ONNX 정책을 ROS2 노드로 실행하여,
   - `angular.z` = `cmd_angular_velocity_rad_s`
 
 ### 4) 그리퍼 토글 출력
-- Topic: `/gripper_toggle` (기본값)
+- Topic (robot_type 기준):
+  - front(default): `/front/cart_docking`
+  - rear: `/gripper_toggle`
 - Type: `std_msgs/msg/Bool`
 - 매핑:
-  - 정렬 완료 후 `final_forward_distance_m` 직진까지 끝나면 `data=true` 1회 publish
+  - 정렬 완료 후 `final_forward_distance_m` 이동까지 끝나면 `data=true` 1회 publish
   - publish 후 노드 종료
 
 ## specialist_policy_node 동작
@@ -108,7 +110,7 @@ IsaacLab에서 export한 specialist ONNX 정책을 ROS2 노드로 실행하여,
 - `motor_state_topic` (default: `__auto__`)
 - `motor_state_type` (default: `cartrider_rmd_sdk/msg/MotorStateArray`)
 - `cmd_vel_topic` (default: `__auto__`)
-- `gripper_toggle_topic` (default: `/gripper_toggle`)
+- `gripper_toggle_topic` (default: `__auto__`)
 - `wheel_radius_m` (default: `__auto__`, 현재는 직접 지정 필요)
 - `wheel_separation_m` (default: `__auto__`)
 - `external_reduction` (default: `__auto__`)
@@ -132,6 +134,7 @@ IsaacLab에서 export한 specialist ONNX 정책을 ROS2 노드로 실행하여,
 
 `__auto__`일 때 robot_type별 기본값:
 - front: `model=front_specialist_policy.onnx`, `target_topic=/front/rs/cart_pose`, `motor_state_topic=/front/rmd_state`,
+  `gripper_toggle_topic=/front/cart_docking`,
   `cmd_vel_topic=/front/cmd_vel`, `state_invert_left=false`, `state_invert_right=true`,
   `near_target_distance_m=0.5`, `wheel_radius_m=0.0635`, `wheel_separation_m=0.2460`,
   `external_reduction=1.0`, `base_link_to_axle_center_x_m=0.095`, `target_x_offset_m=0.0`,
@@ -141,6 +144,7 @@ IsaacLab에서 export한 specialist ONNX 정책을 ROS2 노드로 실행하여,
   `near_target_linear_speed_limit_m_s=0.06`,
   `near_target_angular_speed_limit_rad_s=0.46`
 - rear: `model=specialist_policy.onnx`, `target_topic=/rear/rs/cart_pose`, `motor_state_topic=/rmd_state`,
+  `gripper_toggle_topic=/gripper_toggle`,
   `cmd_vel_topic=/cmd_vel`, `state_invert_left=true`, `state_invert_right=false`,
   `near_target_distance_m=0.5`, `wheel_radius_m=0.1100`, `wheel_separation_m=0.3000`,
   `external_reduction=1.0`, `base_link_to_axle_center_x_m=0.120`, `target_x_offset_m=0.20`,

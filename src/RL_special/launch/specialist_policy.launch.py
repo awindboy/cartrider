@@ -17,6 +17,7 @@ PROFILE_DEFAULTS = {
     'rear': {
         'model_file': 'specialist_policy.onnx',
         'target_topic': '/rear/rs/cart_pose',
+        'gripper_toggle_topic': '/gripper_toggle',
         'linear_velocity_scale_m_s': 0.2,
         'angular_velocity_scale_rad_s': 0.3,
         'near_target_linear_speed_limit_m_s': 0.06,
@@ -38,6 +39,7 @@ PROFILE_DEFAULTS = {
     'front': {
         'model_file': 'front_specialist_policy.onnx',
         'target_topic': '/front/rs/cart_pose',
+        'gripper_toggle_topic': '/front/cart_docking',
         'linear_velocity_scale_m_s': 0.2,
         'angular_velocity_scale_rad_s': 0.3,
         'near_target_linear_speed_limit_m_s': 0.06,
@@ -147,8 +149,10 @@ def _build_policy_node(context):
             'cmd_vel_topic',
             profile['cmd_vel_topic'],
         ),
-        'gripper_toggle_topic': LaunchConfiguration('gripper_toggle_topic').perform(
-            context
+        'gripper_toggle_topic': _resolve_arg(
+            context,
+            'gripper_toggle_topic',
+            profile['gripper_toggle_topic'],
         ),
         'linear_velocity_scale_m_s': _parse_float(
             _resolve_arg(
@@ -362,8 +366,8 @@ def generate_launch_description() -> LaunchDescription:
             ),
             DeclareLaunchArgument(
                 'gripper_toggle_topic',
-                default_value='/gripper_toggle',
-                description='Topic used to toggle the rear gripper when alignment succeeds.',
+                default_value='__auto__',
+                description='__auto__ uses profile default completion signal topic.',
             ),
             DeclareLaunchArgument(
                 'wheel_radius_m',

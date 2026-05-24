@@ -38,9 +38,11 @@ class CartAlignSpecialistPolicyNode(Node):
         self.declare_parameter('target_yaw_stop_tolerance_deg', 5.0)
         self.declare_parameter('base_link_to_axle_center_x_m', 0.0)
         self.declare_parameter('target_x_offset_m', 0.0)
+        self.declare_parameter('invert_target_xy_for_policy', False)
         self.declare_parameter('final_forward_distance_m', 0.35)
         self.declare_parameter('calibration_escape_distance_m', 0.30)
         self.declare_parameter('calibration_escape_turn_deg', 30.0)
+        self.declare_parameter('calibration_escape_motion_sign', -1.0)
         self.declare_parameter('near_target_distance_m', 0.5)
         self.declare_parameter('near_target_linear_speed_limit_m_s', 0.0)
         self.declare_parameter('near_target_angular_speed_limit_rad_s', 0.0)
@@ -81,6 +83,9 @@ class CartAlignSpecialistPolicyNode(Node):
         self.target_x_offset_m = float(
             self.get_parameter('target_x_offset_m').value
         )
+        self.invert_target_xy_for_policy = bool(
+            self.get_parameter('invert_target_xy_for_policy').value
+        )
         self.final_forward_distance_m = float(
             self.get_parameter('final_forward_distance_m').value
         )
@@ -89,6 +94,9 @@ class CartAlignSpecialistPolicyNode(Node):
         )
         self.calibration_escape_turn_deg = float(
             self.get_parameter('calibration_escape_turn_deg').value
+        )
+        self.calibration_escape_motion_sign = float(
+            self.get_parameter('calibration_escape_motion_sign').value
         )
         self.near_target_distance_m = float(
             self.get_parameter('near_target_distance_m').value
@@ -209,6 +217,8 @@ class CartAlignSpecialistPolicyNode(Node):
             raise ValueError('calibration_escape_distance_m must be >= 0.')
         if self.calibration_escape_turn_deg < 0.0:
             raise ValueError('calibration_escape_turn_deg must be >= 0.')
+        if self.calibration_escape_motion_sign not in (-1.0, 1.0):
+            raise ValueError('calibration_escape_motion_sign must be -1.0 or 1.0.')
         if self.near_target_distance_m < 0.0:
             raise ValueError('near_target_distance_m must be >= 0.')
         if self.near_target_linear_speed_limit_m_s <= 0.0:
@@ -375,6 +385,11 @@ class CartAlignSpecialistPolicyNode(Node):
         heading_error = self._wrap_to_pi(-self.target_theta_vision_rad)
         target_x_local = self.target_x_local_m
         target_y_local = self.target_y_local_m
+        policy_target_x_local = target_x_local
+        policy_target_y_local = target_y_local
+        if self.invert_target_xy_for_policy:
+            policy_target_x_local *= -1.0
+            policy_target_y_local *= -1.0
         if (
             abs(target_x_local) <= self.target_xy_stop_tolerance_m
             and abs(target_y_local) <= self.target_xy_stop_tolerance_m
@@ -389,8 +404,8 @@ class CartAlignSpecialistPolicyNode(Node):
         obs = np.array(
             [
                 [
-                    target_x_local,
-                    target_y_local,
+                    policy_target_x_local,
+                    policy_target_y_local,
                     heading_error,
                     self.current_linear_velocity_m_s,
                     self.current_angular_velocity_rad_s,
@@ -457,11 +472,9 @@ class CartAlignSpecialistPolicyNode(Node):
         self.control_phase = 'calibration'
         target_y_local = self.target_y_local_m if self.target_y_local_m is not None else 0.0
         if target_y_local < 0.0:
-            # Rotate left first, then reverse, then rotate right to escape to right-back.
-            self.calibration_turn_direction_sign = 1.0
+            self.calibration_turn_direction_sign = -self.calibration_escape_motion_sign
         elif target_y_local > 0.0:
-            # Rotate right first, then reverse, then rotate left to escape to left-back.
-            self.calibration_turn_direction_sign = -1.0
+            self.calibration_turn_direction_sign = self.calibration_escape_motion_sign
         else:
             self.calibration_turn_direction_sign = 0.0
         if abs(self.calibration_turn_direction_sign) > 0.0 and self.calibration_escape_turn_rad > 0.0:
@@ -521,7 +534,14 @@ class CartAlignSpecialistPolicyNode(Node):
             return
 
         if self.calibration_stage == 'reverse_escape':
-            self.calibration_distance_traveled_m += max(0.0, -self.current_linear_velocity_m_s) * dt
+            if self.calibration_escape_motion_sign > 0.0:
+                self.calibration_distance_traveled_m += max(
+                    0.0, self.current_linear_velocity_m_s
+                ) * dt
+            else:
+                self.calibration_distance_traveled_m += max(
+                    0.0, -self.current_linear_velocity_m_s
+                ) * dt
             if self.calibration_distance_traveled_m >= self.calibration_escape_distance_m:
                 if abs(self.calibration_turn_direction_sign) <= 0.0 or self.calibration_escape_turn_rad <= 0.0:
                     self._publish_cmd_vel(linear_x_m_s=0.0, angular_z_rad_s=0.0)
@@ -533,7 +553,7 @@ class CartAlignSpecialistPolicyNode(Node):
                 self._set_status('calibration_rotate_back')
                 return
             self._publish_cmd_vel(
-                linear_x_m_s=-linear_limit,
+                linear_x_m_s=self.calibration_escape_motion_sign * linear_limit,
                 angular_z_rad_s=0.0,
             )
             return

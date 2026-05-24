@@ -25,7 +25,8 @@ IsaacLab에서 export한 specialist ONNX 정책을 ROS2 노드로 실행하여,
   - 그 다음 `target_x_offset_m`를 비전 `theta` 방향으로 투영해 최종 `target_x_local`, `target_y_local` 를 계산
   - 내부 상태와 오도메트리 fallback은 이 최종 `target_x_local`, `target_y_local` 기준으로 유지
   - policy 입력에는 `heading_error = wrap_to_pi(-theta)` 를 사용
-  - 비전 업데이트가 끊기면 마지막 타겟 상태를 시작점으로, 현재 로봇 `v/omega`를 적분해 타겟 pose를 계속 예측
+  - front는 policy 입력에 넣기 직전에 `target_x_local`, `target_y_local`에 `-1`을 곱하고, rear는 그대로 사용
+  - 비전 업데이트가 끊기면 policy를 계속 돌리지 않고 calibration mode로 전환
 
 ### 2) 현재 로봇 속도 입력 -> Policy
 - Topic (robot_type 기준):
@@ -71,9 +72,13 @@ IsaacLab에서 export한 specialist ONNX 정책을 ROS2 노드로 실행하여,
 - `target_x_offset_m`로 비전 기준점과 실제 정렬 목표점 사이의 longitudinal 차이를 보정
 - 비전이 잠시 끊기면 정책을 계속 돌리지 않고 calibration mode로 진입
 - calibration mode는 마지막으로 기억된 최종 target state의 `y` 부호를 보고
-  `y < 0`이면 좌회전 `calibration_escape_turn_deg` -> 30cm 후진 -> 우회전 복귀,
+  rear는 `y < 0`이면 좌회전 `calibration_escape_turn_deg` -> 30cm 후진 -> 우회전 복귀,
   `y > 0`이면 우회전 `calibration_escape_turn_deg` -> 30cm 후진 -> 좌회전 복귀,
   `y ~= 0`이면 회전 없이 바로 후진
+- front는 같은 `y` 부호 기준으로 좌우 전방 대각선 방향으로 빠지도록,
+  `y < 0`이면 우회전 `calibration_escape_turn_deg` -> 30cm 전진 -> 좌회전 복귀,
+  `y > 0`이면 좌회전 `calibration_escape_turn_deg` -> 30cm 전진 -> 우회전 복귀,
+  `y ~= 0`이면 회전 없이 바로 전진
 - calibration 회전 각도는 `/rmd_state`에서 계산한 현재 각속도를 적분해 측정
 - calibration 이동 거리는 `/rmd_state`에서 계산한 현재 선속도를 적분해 측정
 - calibration mode 중에는 비전이 다시 들어와도 바로 정책을 재개하지 않고, 새 측정은 보류했다가 calibration 종료 후에만 다시 정책 입력으로 사용
@@ -115,15 +120,18 @@ IsaacLab에서 export한 specialist ONNX 정책을 ROS2 노드로 실행하여,
 - `target_yaw_stop_tolerance_deg` (default: `5.0`)
 - `base_link_to_axle_center_x_m` (default: `__auto__`)
 - `target_x_offset_m` (default: `__auto__`)
+- `invert_target_xy_for_policy` (default: `__auto__`)
 - `final_forward_distance_m` (default: `0.35`)
 - `calibration_escape_distance_m` (default: `0.30`)
 - `calibration_escape_turn_deg` (default: `30.0`)
+- `calibration_escape_motion_sign` (default: `__auto__`)
 
 `__auto__`일 때 robot_type별 기본값:
 - front: `model=front_specialist_policy.onnx`, `target_topic=/front/rs/cart_pose`, `motor_state_topic=/front/rmd_state`,
   `cmd_vel_topic=/cmd_vel`, `state_invert_left=false`, `state_invert_right=true`,
   `near_target_distance_m=0.5`, `wheel_radius_m=0.0635`, `wheel_separation_m=0.2460`,
   `external_reduction=3.0`, `base_link_to_axle_center_x_m=0.095`, `target_x_offset_m=0.0`,
+  `invert_target_xy_for_policy=true`, `calibration_escape_motion_sign=1.0`,
   `linear_velocity_scale_m_s=0.22`,
   `angular_velocity_scale_rad_s=1.81`,
   `near_target_linear_speed_limit_m_s=0.06`,
@@ -132,6 +140,7 @@ IsaacLab에서 export한 specialist ONNX 정책을 ROS2 노드로 실행하여,
   `cmd_vel_topic=/cmd_vel`, `state_invert_left=true`, `state_invert_right=false`,
   `near_target_distance_m=0.5`, `wheel_radius_m=0.1100`, `wheel_separation_m=0.3000`,
   `external_reduction=1.0`, `base_link_to_axle_center_x_m=0.120`, `target_x_offset_m=0.20`,
+  `invert_target_xy_for_policy=false`, `calibration_escape_motion_sign=-1.0`,
   `linear_velocity_scale_m_s=0.22`,
   `angular_velocity_scale_rad_s=1.47`,
   `near_target_linear_speed_limit_m_s=0.06`,
@@ -153,14 +162,20 @@ IsaacLab에서 export한 specialist ONNX 정책을 ROS2 노드로 실행하여,
 코드에서는 그 다음 `x_target = x_axle - target_x_offset_m * cos(theta_vision)`,
 `y_target = y_axle - target_x_offset_m * sin(theta_vision)`를 적용합니다.
 비전의 yaw error 부호가 정책 기대값과 반대이므로, policy 입력에는 `heading_error = wrap_to_pi(-theta_vision)`를 사용합니다.
+front는 rear와 같은 방식으로 최종 `x_target`, `y_target`를 계산한 뒤, policy 입력에 넣을 때만 `-x_target`, `-y_target`를 사용합니다.
 
 비전 업데이트가 멈추면 노드는 마지막으로 받은 최종 `y_target`의 부호를 기준으로
 캘리 방향을 한 번 결정합니다.
-- `y_target < 0`: 좌회전 `calibration_escape_turn_deg` -> 후진 `calibration_escape_distance_m` -> 우회전 복귀
-- `y_target > 0`: 우회전 `calibration_escape_turn_deg` -> 후진 `calibration_escape_distance_m` -> 좌회전 복귀
-- `y_target ~= 0`: 회전 없이 후진 `calibration_escape_distance_m`
+- rear
+  - `y_target < 0`: 좌회전 `calibration_escape_turn_deg` -> 후진 `calibration_escape_distance_m` -> 우회전 복귀
+  - `y_target > 0`: 우회전 `calibration_escape_turn_deg` -> 후진 `calibration_escape_distance_m` -> 좌회전 복귀
+  - `y_target ~= 0`: 회전 없이 후진 `calibration_escape_distance_m`
+- front
+  - `y_target < 0`: 우회전 `calibration_escape_turn_deg` -> 전진 `calibration_escape_distance_m` -> 좌회전 복귀
+  - `y_target > 0`: 좌회전 `calibration_escape_turn_deg` -> 전진 `calibration_escape_distance_m` -> 우회전 복귀
+  - `y_target ~= 0`: 회전 없이 전진 `calibration_escape_distance_m`
 
-회전 각도와 후진 거리는 모두 `/rmd_state`에서 계산한 현재 `angular_velocity_rad_s`,
+회전 각도와 이동 거리는 모두 `/rmd_state`에서 계산한 현재 `angular_velocity_rad_s`,
 `linear_velocity_m_s`를 적분해 측정합니다.
 
 ## 빌드

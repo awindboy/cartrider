@@ -24,6 +24,8 @@ PROFILE_DEFAULTS = {
         'near_target_distance_m': 0.3,
         'base_link_to_axle_center_x_m': REAR_BASE_LINK_TO_AXLE_CENTER_X_M,
         'target_x_offset_m': REAR_TARGET_X_OFFSET_M,
+        'invert_target_xy_for_policy': False,
+        'calibration_escape_motion_sign': -1.0,
         'motor_state_topic': '/rmd_state',
         'cmd_vel_topic': '/cmd_vel',
         'state_invert_left': True,
@@ -42,6 +44,8 @@ PROFILE_DEFAULTS = {
         'near_target_distance_m': 0.3,
         'base_link_to_axle_center_x_m': FRONT_BASE_LINK_TO_AXLE_CENTER_X_M,
         'target_x_offset_m': FRONT_TARGET_X_OFFSET_M,
+        'invert_target_xy_for_policy': True,
+        'calibration_escape_motion_sign': 1.0,
         'motor_state_topic': '/front/rmd_state',
         'cmd_vel_topic': '/cmd_vel',
         'state_invert_left': False,
@@ -196,6 +200,14 @@ def _build_policy_node(context):
             ),
             'target_x_offset_m',
         ),
+        'invert_target_xy_for_policy': _parse_bool(
+            _resolve_arg(
+                context,
+                'invert_target_xy_for_policy',
+                str(profile['invert_target_xy_for_policy']).lower(),
+            ),
+            'invert_target_xy_for_policy',
+        ),
         'final_forward_distance_m': _parse_float(
             LaunchConfiguration('final_forward_distance_m').perform(context),
             'final_forward_distance_m',
@@ -207,6 +219,14 @@ def _build_policy_node(context):
         'calibration_escape_turn_deg': _parse_float(
             LaunchConfiguration('calibration_escape_turn_deg').perform(context),
             'calibration_escape_turn_deg',
+        ),
+        'calibration_escape_motion_sign': _parse_float(
+            _resolve_arg(
+                context,
+                'calibration_escape_motion_sign',
+                profile['calibration_escape_motion_sign'],
+            ),
+            'calibration_escape_motion_sign',
         ),
         'near_target_distance_m': _parse_float(
             _resolve_arg(
@@ -375,9 +395,19 @@ def generate_launch_description() -> LaunchDescription:
                 default_value='__auto__',
                 description='Longitudinal cart-surface offset applied after shifting the frame origin from base_link center to drive axle center.',
             ),
+            DeclareLaunchArgument(
+                'invert_target_xy_for_policy',
+                default_value='__auto__',
+                description='__auto__ uses profile default target x/y sign for policy input.',
+            ),
             DeclareLaunchArgument('final_forward_distance_m', default_value='0.31'),
             DeclareLaunchArgument('calibration_escape_distance_m', default_value='0.30'),
             DeclareLaunchArgument('calibration_escape_turn_deg', default_value='30.0'),
+            DeclareLaunchArgument(
+                'calibration_escape_motion_sign',
+                default_value='__auto__',
+                description='__auto__ uses profile default calibration travel direction: -1 reverse, +1 forward.',
+            ),
             DeclareLaunchArgument('left_motor_id', default_value='1'),
             DeclareLaunchArgument('right_motor_id', default_value='2'),
             OpaqueFunction(function=_build_policy_node),

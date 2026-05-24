@@ -47,7 +47,7 @@ PROFILE_DEFAULTS = {
         'invert_target_xy_for_policy': True,
         'calibration_escape_motion_sign': 1.0,
         'motor_state_topic': '/front/rmd_state',
-        'cmd_vel_topic': '/cmd_vel',
+        'cmd_vel_topic': '/front/cmd_vel',
         'state_invert_left': False,
         'state_invert_right': True,
         'wheel_radius_m': 0.0635,

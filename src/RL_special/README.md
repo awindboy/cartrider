@@ -42,7 +42,9 @@ IsaacLab에서 export한 specialist ONNX 정책을 ROS2 노드로 실행하여,
   - `angular_velocity_rad_s = (v_right - v_left) / wheel_separation_m`
 
 ### 3) 로봇 속도 출력 (Policy -> Nav)
-- Topic: `/cmd_vel` (front/rear 공통 기본값)
+- Topic (robot_type 기준):
+  - front(default): `/front/cmd_vel`
+  - rear: `/cmd_vel`
 - Type: `geometry_msgs/msg/Twist`
 - 매핑:
   - `linear.x` = `cmd_linear_velocity_m_s`
@@ -128,7 +130,7 @@ IsaacLab에서 export한 specialist ONNX 정책을 ROS2 노드로 실행하여,
 
 `__auto__`일 때 robot_type별 기본값:
 - front: `model=front_specialist_policy.onnx`, `target_topic=/front/rs/cart_pose`, `motor_state_topic=/front/rmd_state`,
-  `cmd_vel_topic=/cmd_vel`, `state_invert_left=false`, `state_invert_right=true`,
+  `cmd_vel_topic=/front/cmd_vel`, `state_invert_left=false`, `state_invert_right=true`,
   `near_target_distance_m=0.5`, `wheel_radius_m=0.0635`, `wheel_separation_m=0.2460`,
   `external_reduction=3.0`, `base_link_to_axle_center_x_m=0.095`, `target_x_offset_m=0.0`,
   `invert_target_xy_for_policy=true`, `calibration_escape_motion_sign=1.0`,

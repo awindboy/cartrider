@@ -69,7 +69,10 @@ IsaacLab에서 export한 specialist ONNX 정책을 ROS2 노드로 실행하여,
 - `target_yaw_stop_tolerance_deg`는 정렬 완료(정지) 판정 조건에서만 사용
 - `base_link_to_axle_center_x_m`로 비전 좌표의 기준점을 `base_link` 중심에서 로봇 구동축 중심으로 이동
 - `target_x_offset_m`로 비전 기준점과 실제 정렬 목표점 사이의 longitudinal 차이를 보정
-- 비전이 잠시 끊겨도 마지막 target state를 `/rmd_state` 기반 로봇 오도메트리로 계속 업데이트
+- 비전이 잠시 끊기면 정책을 계속 돌리지 않고 calibration mode로 진입
+- calibration mode는 마지막으로 기억된 최종 target state를 기준으로
+  `turn_to_point -> drive_to_point -> turn_to_heading` 순서로 `/rmd_state` 기반 오도메트리만 사용해 수행
+- calibration mode 중에는 비전이 다시 들어와도 바로 정책을 재개하지 않고, 새 측정은 보류했다가 calibration 종료 후에만 다시 정책 입력으로 사용
 - 정렬 완료되면 이후에는 타겟 정보와 무관하게 `final_forward_distance_m`만큼 직진
 - 이 직진 속도는 `near_target_linear_speed_limit_m_s`, 회전 속도는 `0.0`을 사용
 - 직진 이동거리는 `/rmd_state`에서 변환한 현재 선속도를 적분해 계산
@@ -146,7 +149,7 @@ IsaacLab에서 export한 specialist ONNX 정책을 ROS2 노드로 실행하여,
 비전의 yaw error 부호가 정책 기대값과 반대이므로, policy 입력에는 `heading_error = wrap_to_pi(-theta_vision)`를 사용합니다.
 
 비전 업데이트가 멈추면 노드는 마지막으로 받은 최종 `x_target`, `y_target`, `theta_vision`를 시작점으로
-현재 로봇 속도 `v`, `omega`를 적분해 내부 target state를 계속 갱신합니다.
+현재 로봇 속도 `v`, `omega`를 적분해 calibration mode의 내부 target state를 계속 갱신합니다.
 적분은 구동축 중심 기준에서
 - `p_new = R(-omega * dt) * (p_old - [dx, dy])`
 - `dx = (v / omega) * sin(omega * dt)`, `dy = (v / omega) * (1 - cos(omega * dt))`

@@ -118,10 +118,13 @@ class CartAlignSpecialistPolicyNode(Node):
         self.current_angular_velocity_rad_s: Optional[float] = None
         self.last_motor_rx_time = None
         self.control_phase = 'align'
+        self.calibration_stage = ''
         self.final_forward_distance_traveled_m = 0.0
         self.final_forward_last_update_time = None
         self.shutdown_requested = False
         self.current_status = ''
+        self.pending_target_msg: Optional[Pose2D] = None
+        self.pending_target_rx_time = None
 
         self._load_model()
         self._load_motor_state_type()
@@ -242,6 +245,14 @@ class CartAlignSpecialistPolicyNode(Node):
 
     def _target_callback(self, msg: Pose2D) -> None:
         now = self.get_clock().now()
+        if self.control_phase == 'calibration':
+            self.pending_target_msg = msg
+            self.pending_target_rx_time = now
+            return
+        
+        self._apply_target_measurement(msg, now)
+
+    def _apply_target_measurement(self, msg: Pose2D, now) -> None:
         target_theta_vision_rad = self._wrap_to_pi(float(msg.theta))
         target_x_axle_m, target_y_axle_m = self._shift_target_to_axle_center(
             float(msg.x),
@@ -300,6 +311,10 @@ class CartAlignSpecialistPolicyNode(Node):
         if self.shutdown_requested:
             return
 
+        if self.control_phase == 'calibration':
+            self._run_calibration(now)
+            return
+
         if self.control_phase == 'final_forward':
             self._run_final_forward(now)
             return
@@ -317,11 +332,6 @@ class CartAlignSpecialistPolicyNode(Node):
             self._publish_zero('waiting_target')
             return
 
-        dt_target = (now - self.last_target_rx_time).nanoseconds * 1e-9
-        if dt_target > self.target_timeout_sec:
-            self._publish_zero('stale_target')
-            return
-
         if (
             self.current_linear_velocity_m_s is None
             or self.current_angular_velocity_rad_s is None
@@ -333,6 +343,12 @@ class CartAlignSpecialistPolicyNode(Node):
         dt_motor = (now - self.last_motor_rx_time).nanoseconds * 1e-9
         if dt_motor > self.motor_timeout_sec:
             self._publish_zero('stale_motor_vel')
+            return
+
+        dt_target = (now - self.last_target_rx_time).nanoseconds * 1e-9
+        if dt_target > self.target_timeout_sec:
+            self._start_calibration(now)
+            self._run_calibration(now)
             return
 
         self._update_target_state_from_odometry(now)
@@ -415,6 +431,93 @@ class CartAlignSpecialistPolicyNode(Node):
         self.final_forward_distance_traveled_m = 0.0
         self.final_forward_last_update_time = now
         self._set_status('final_forward')
+
+    def _start_calibration(self, now) -> None:
+        if self.control_phase == 'calibration':
+            return
+        self.control_phase = 'calibration'
+        self.calibration_stage = 'turn_to_point'
+        self.pending_target_msg = None
+        self.pending_target_rx_time = None
+        self._publish_cmd_vel(
+            linear_x_m_s=0.0,
+            angular_z_rad_s=0.0,
+        )
+        self._set_status('calibration_turn_to_point')
+
+    def _run_calibration(self, now) -> None:
+        if (
+            self.current_linear_velocity_m_s is None
+            or self.current_angular_velocity_rad_s is None
+            or self.last_motor_rx_time is None
+            or self.target_x_local_m is None
+            or self.target_y_local_m is None
+            or self.target_theta_vision_rad is None
+        ):
+            self._publish_zero('waiting_motor_vel')
+            return
+
+        dt_motor = (now - self.last_motor_rx_time).nanoseconds * 1e-9
+        if dt_motor > self.motor_timeout_sec:
+            self._publish_zero('stale_motor_vel')
+            return
+
+        self._update_target_state_from_odometry(now)
+
+        target_x_local = self.target_x_local_m
+        target_y_local = self.target_y_local_m
+        heading_error = self._wrap_to_pi(-self.target_theta_vision_rad)
+        target_bearing = math.atan2(target_y_local, target_x_local)
+        target_distance = math.hypot(target_x_local, target_y_local)
+
+        angular_limit = self.near_target_angular_speed_limit_rad_s
+        linear_limit = self.near_target_linear_speed_limit_m_s
+
+        if self.calibration_stage == 'turn_to_point':
+            if abs(target_bearing) <= self.target_yaw_stop_tolerance_rad:
+                self.calibration_stage = 'drive_to_point'
+                self._publish_cmd_vel(linear_x_m_s=0.0, angular_z_rad_s=0.0)
+                self._set_status('calibration_drive_to_point')
+                return
+            angular_cmd = float(np.clip(target_bearing, -angular_limit, angular_limit))
+            self._publish_cmd_vel(linear_x_m_s=0.0, angular_z_rad_s=angular_cmd)
+            return
+
+        if self.calibration_stage == 'drive_to_point':
+            if target_distance <= self.target_xy_stop_tolerance_m:
+                self.calibration_stage = 'turn_to_heading'
+                self._publish_cmd_vel(linear_x_m_s=0.0, angular_z_rad_s=0.0)
+                self._set_status('calibration_turn_to_heading')
+                return
+            linear_cmd = float(np.clip(target_distance, 0.0, linear_limit))
+            self._publish_cmd_vel(linear_x_m_s=linear_cmd, angular_z_rad_s=0.0)
+            return
+
+        if self.calibration_stage == 'turn_to_heading':
+            if abs(heading_error) <= self.target_yaw_stop_tolerance_rad:
+                self._publish_cmd_vel(linear_x_m_s=0.0, angular_z_rad_s=0.0)
+                self._finish_calibration()
+                return
+            angular_cmd = float(np.clip(heading_error, -angular_limit, angular_limit))
+            self._publish_cmd_vel(linear_x_m_s=0.0, angular_z_rad_s=angular_cmd)
+            return
+
+        self._publish_zero('invalid_calibration_state')
+
+    def _finish_calibration(self) -> None:
+        self.control_phase = 'align'
+        self.calibration_stage = ''
+        self._set_status('calibration_done')
+        if self.pending_target_msg is not None and self.pending_target_rx_time is not None:
+            self._apply_target_measurement(
+                self.pending_target_msg,
+                self.pending_target_rx_time,
+            )
+            self.pending_target_msg = None
+            self.pending_target_rx_time = None
+        else:
+            self.last_target_rx_time = None
+            self.last_target_state_update_time = None
 
     def _run_final_forward(self, now) -> None:
         if (

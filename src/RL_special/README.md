@@ -71,7 +71,10 @@ IsaacLab에서 export한 specialist ONNX 정책을 ROS2 노드로 실행하여,
 - `target_x_offset_m`로 비전 기준점과 실제 정렬 목표점 사이의 longitudinal 차이를 보정
 - 비전이 잠시 끊기면 정책을 계속 돌리지 않고 calibration mode로 진입
 - calibration mode는 마지막으로 기억된 최종 target state의 `y` 부호를 보고
-  `y < 0`이면 오른쪽 뒤 대각선, `y > 0`이면 왼쪽 뒤 대각선 방향으로 20cm 이동
+  `y < 0`이면 좌회전 `calibration_escape_turn_deg` -> 20cm 후진 -> 우회전 복귀,
+  `y > 0`이면 우회전 `calibration_escape_turn_deg` -> 20cm 후진 -> 좌회전 복귀,
+  `y ~= 0`이면 회전 없이 바로 후진
+- calibration 회전 각도는 `/rmd_state`에서 계산한 현재 각속도를 적분해 측정
 - calibration 이동 거리는 `/rmd_state`에서 계산한 현재 선속도를 적분해 측정
 - calibration mode 중에는 비전이 다시 들어와도 바로 정책을 재개하지 않고, 새 측정은 보류했다가 calibration 종료 후에만 다시 정책 입력으로 사용
 - 정렬 완료되면 이후에는 타겟 정보와 무관하게 `final_forward_distance_m`만큼 직진
@@ -114,6 +117,7 @@ IsaacLab에서 export한 specialist ONNX 정책을 ROS2 노드로 실행하여,
 - `target_x_offset_m` (default: `__auto__`)
 - `final_forward_distance_m` (default: `0.35`)
 - `calibration_escape_distance_m` (default: `0.20`)
+- `calibration_escape_turn_deg` (default: `45.0`)
 
 `__auto__`일 때 robot_type별 기본값:
 - front: `model=front_specialist_policy.onnx`, `target_topic=/front/rs/cart_pose`, `motor_state_topic=/front/rmd_state`,
@@ -151,8 +155,13 @@ IsaacLab에서 export한 specialist ONNX 정책을 ROS2 노드로 실행하여,
 비전의 yaw error 부호가 정책 기대값과 반대이므로, policy 입력에는 `heading_error = wrap_to_pi(-theta_vision)`를 사용합니다.
 
 비전 업데이트가 멈추면 노드는 마지막으로 받은 최종 `y_target`의 부호를 기준으로
-캘리 방향을 한 번 결정하고, 그 이후에는 `/rmd_state`에서 계산한 현재 선속도를 적분해
-`calibration_escape_distance_m`만큼 뒤-대각선 방향으로 이동합니다.
+캘리 방향을 한 번 결정합니다.
+- `y_target < 0`: 좌회전 `calibration_escape_turn_deg` -> 후진 `calibration_escape_distance_m` -> 우회전 복귀
+- `y_target > 0`: 우회전 `calibration_escape_turn_deg` -> 후진 `calibration_escape_distance_m` -> 좌회전 복귀
+- `y_target ~= 0`: 회전 없이 후진 `calibration_escape_distance_m`
+
+회전 각도와 후진 거리는 모두 `/rmd_state`에서 계산한 현재 `angular_velocity_rad_s`,
+`linear_velocity_m_s`를 적분해 측정합니다.
 
 ## 빌드
 

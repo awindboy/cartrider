@@ -40,6 +40,7 @@ class CartAlignSpecialistPolicyNode(Node):
         self.declare_parameter('target_x_offset_m', 0.0)
         self.declare_parameter('final_forward_distance_m', 0.35)
         self.declare_parameter('calibration_escape_distance_m', 0.20)
+        self.declare_parameter('calibration_escape_turn_deg', 45.0)
         self.declare_parameter('near_target_distance_m', 0.5)
         self.declare_parameter('near_target_linear_speed_limit_m_s', 0.0)
         self.declare_parameter('near_target_angular_speed_limit_rad_s', 0.0)
@@ -86,6 +87,9 @@ class CartAlignSpecialistPolicyNode(Node):
         self.calibration_escape_distance_m = float(
             self.get_parameter('calibration_escape_distance_m').value
         )
+        self.calibration_escape_turn_deg = float(
+            self.get_parameter('calibration_escape_turn_deg').value
+        )
         self.near_target_distance_m = float(
             self.get_parameter('near_target_distance_m').value
         )
@@ -112,6 +116,9 @@ class CartAlignSpecialistPolicyNode(Node):
         self.target_yaw_stop_tolerance_rad = math.radians(
             self.target_yaw_stop_tolerance_deg
         )
+        self.calibration_escape_turn_rad = math.radians(
+            self.calibration_escape_turn_deg
+        )
 
         self.last_target_rx_time = None
         self.target_x_local_m: Optional[float] = None
@@ -124,9 +131,9 @@ class CartAlignSpecialistPolicyNode(Node):
         self.control_phase = 'align'
         self.calibration_stage = ''
         self.calibration_distance_traveled_m = 0.0
+        self.calibration_yaw_traveled_rad = 0.0
         self.calibration_last_update_time = None
-        self.calibration_linear_cmd_m_s = 0.0
-        self.calibration_angular_cmd_rad_s = 0.0
+        self.calibration_turn_direction_sign = 0.0
         self.final_forward_distance_traveled_m = 0.0
         self.final_forward_last_update_time = None
         self.shutdown_requested = False
@@ -200,6 +207,8 @@ class CartAlignSpecialistPolicyNode(Node):
             raise ValueError('final_forward_distance_m must be >= 0.')
         if self.calibration_escape_distance_m < 0.0:
             raise ValueError('calibration_escape_distance_m must be >= 0.')
+        if self.calibration_escape_turn_deg < 0.0:
+            raise ValueError('calibration_escape_turn_deg must be >= 0.')
         if self.near_target_distance_m < 0.0:
             raise ValueError('near_target_distance_m must be >= 0.')
         if self.near_target_linear_speed_limit_m_s <= 0.0:
@@ -446,20 +455,21 @@ class CartAlignSpecialistPolicyNode(Node):
         if self.control_phase == 'calibration':
             return
         self.control_phase = 'calibration'
-        angular_limit = max(self.near_target_angular_speed_limit_rad_s, 0.3)
-        linear_limit = self.near_target_linear_speed_limit_m_s
         target_y_local = self.target_y_local_m if self.target_y_local_m is not None else 0.0
         if target_y_local < 0.0:
-            self.calibration_stage = 'back_right'
-            self.calibration_angular_cmd_rad_s = angular_limit
+            # Rotate left first, then reverse, then rotate right to escape to right-back.
+            self.calibration_turn_direction_sign = 1.0
         elif target_y_local > 0.0:
-            self.calibration_stage = 'back_left'
-            self.calibration_angular_cmd_rad_s = -angular_limit
+            # Rotate right first, then reverse, then rotate left to escape to left-back.
+            self.calibration_turn_direction_sign = -1.0
         else:
-            self.calibration_stage = 'back_straight'
-            self.calibration_angular_cmd_rad_s = 0.0
-        self.calibration_linear_cmd_m_s = -linear_limit
+            self.calibration_turn_direction_sign = 0.0
+        if abs(self.calibration_turn_direction_sign) > 0.0 and self.calibration_escape_turn_rad > 0.0:
+            self.calibration_stage = 'rotate_out'
+        else:
+            self.calibration_stage = 'reverse_escape'
         self.calibration_distance_traveled_m = 0.0
+        self.calibration_yaw_traveled_rad = 0.0
         self.calibration_last_update_time = now
         self.pending_target_msg = None
         self.pending_target_rx_time = None
@@ -493,25 +503,62 @@ class CartAlignSpecialistPolicyNode(Node):
         if dt < 0.0:
             dt = 0.0
         self.calibration_last_update_time = now
-        self.calibration_distance_traveled_m += abs(self.current_linear_velocity_m_s) * dt
+        angular_limit = max(self.near_target_angular_speed_limit_rad_s, 0.3)
+        linear_limit = self.near_target_linear_speed_limit_m_s
 
-        if self.calibration_distance_traveled_m >= self.calibration_escape_distance_m:
-            self._publish_cmd_vel(linear_x_m_s=0.0, angular_z_rad_s=0.0)
-            self._finish_calibration()
+        if self.calibration_stage == 'rotate_out':
+            self.calibration_yaw_traveled_rad += abs(self.current_angular_velocity_rad_s) * dt
+            if self.calibration_yaw_traveled_rad >= self.calibration_escape_turn_rad:
+                self.calibration_stage = 'reverse_escape'
+                self.calibration_distance_traveled_m = 0.0
+                self._publish_cmd_vel(linear_x_m_s=0.0, angular_z_rad_s=0.0)
+                self._set_status('calibration_reverse_escape')
+                return
+            self._publish_cmd_vel(
+                linear_x_m_s=0.0,
+                angular_z_rad_s=self.calibration_turn_direction_sign * angular_limit,
+            )
             return
 
-        self._publish_cmd_vel(
-            linear_x_m_s=self.calibration_linear_cmd_m_s,
-            angular_z_rad_s=self.calibration_angular_cmd_rad_s,
-        )
+        if self.calibration_stage == 'reverse_escape':
+            self.calibration_distance_traveled_m += max(0.0, -self.current_linear_velocity_m_s) * dt
+            if self.calibration_distance_traveled_m >= self.calibration_escape_distance_m:
+                if abs(self.calibration_turn_direction_sign) <= 0.0 or self.calibration_escape_turn_rad <= 0.0:
+                    self._publish_cmd_vel(linear_x_m_s=0.0, angular_z_rad_s=0.0)
+                    self._finish_calibration()
+                    return
+                self.calibration_stage = 'rotate_back'
+                self.calibration_yaw_traveled_rad = 0.0
+                self._publish_cmd_vel(linear_x_m_s=0.0, angular_z_rad_s=0.0)
+                self._set_status('calibration_rotate_back')
+                return
+            self._publish_cmd_vel(
+                linear_x_m_s=-linear_limit,
+                angular_z_rad_s=0.0,
+            )
+            return
+
+        if self.calibration_stage == 'rotate_back':
+            self.calibration_yaw_traveled_rad += abs(self.current_angular_velocity_rad_s) * dt
+            if self.calibration_yaw_traveled_rad >= self.calibration_escape_turn_rad:
+                self._publish_cmd_vel(linear_x_m_s=0.0, angular_z_rad_s=0.0)
+                self._finish_calibration()
+                return
+            self._publish_cmd_vel(
+                linear_x_m_s=0.0,
+                angular_z_rad_s=-self.calibration_turn_direction_sign * angular_limit,
+            )
+            return
+
+        self._publish_zero('invalid_calibration_state')
 
     def _finish_calibration(self) -> None:
         self.control_phase = 'align'
         self.calibration_stage = ''
         self.calibration_distance_traveled_m = 0.0
+        self.calibration_yaw_traveled_rad = 0.0
         self.calibration_last_update_time = None
-        self.calibration_linear_cmd_m_s = 0.0
-        self.calibration_angular_cmd_rad_s = 0.0
+        self.calibration_turn_direction_sign = 0.0
         self._set_status('calibration_done')
         if self.pending_target_msg is not None and self.pending_target_rx_time is not None:
             self._apply_target_measurement(

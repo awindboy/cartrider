@@ -7,7 +7,7 @@ from launch.substitutions import LaunchConfiguration
 from launch_ros.actions import Node
 
 
-FRONT_TARGET_X_OFFSET_M = 0.50
+FRONT_TARGET_X_OFFSET_M = 0.65
 REAR_TARGET_X_OFFSET_M = 0.50
 FRONT_BASE_LINK_TO_AXLE_CENTER_X_M = 0.095
 REAR_BASE_LINK_TO_AXLE_CENTER_X_M = 0.120
@@ -16,8 +16,12 @@ REAR_BASE_LINK_TO_AXLE_CENTER_X_M = 0.120
 PROFILE_DEFAULTS = {
     'rear': {
         'model_file': 'specialist_policy.onnx',
+        'docking_target_topic': '/docking_target',
         'target_topic': '/rear/rs/cart_pose',
-        'gripper_toggle_topic': '/gripper_toggle',
+        'robot_docking_completion_topic': '/gripper_toggle',
+        'cart_docking_completion_topic': '/gripper_toggle',
+        'cart_docking_final_distance_m': 0.31,
+        'robot_docking_final_distance_m': 0.31,
         'linear_velocity_scale_m_s': 0.2,
         'angular_velocity_scale_rad_s': 0.3,
         'near_target_linear_speed_limit_m_s': 0.06,
@@ -27,7 +31,7 @@ PROFILE_DEFAULTS = {
         'base_link_to_axle_center_x_sign': -1.0,
         'target_x_offset_m': REAR_TARGET_X_OFFSET_M,
         'invert_target_xy_for_policy': False,
-        'final_forward_motion_sign': 1.0,
+        'final_docking_motion_sign': 1.0,
         'calibration_escape_motion_sign': -1.0,
         'calibration_target_y_sign': 1.0,
         'motor_state_topic': '/rmd_state',
@@ -40,18 +44,22 @@ PROFILE_DEFAULTS = {
     },
     'front': {
         'model_file': 'front_specialist_policy.onnx',
+        'docking_target_topic': '/docking_target',
         'target_topic': '/front/rs/cart_pose',
-        'gripper_toggle_topic': '/front/cart_docking',
-        'linear_velocity_scale_m_s': 0.2,
-        'angular_velocity_scale_rad_s': 0.3,
-        'near_target_linear_speed_limit_m_s': 0.06,
-        'near_target_angular_speed_limit_rad_s': 0.3,
+        'robot_docking_completion_topic': '/front/robot_docking',
+        'cart_docking_completion_topic': '/front/cart_docking',
+        'cart_docking_final_distance_m': 0.31,
+        'robot_docking_final_distance_m': 0.31,
+        'linear_velocity_scale_m_s': 0.1,
+        'angular_velocity_scale_rad_s': 0.05,
+        'near_target_linear_speed_limit_m_s': 0.05,
+        'near_target_angular_speed_limit_rad_s': 0.03,
         'near_target_distance_m': 0.3,
         'base_link_to_axle_center_x_m': FRONT_BASE_LINK_TO_AXLE_CENTER_X_M,
         'base_link_to_axle_center_x_sign': 1.0,
         'target_x_offset_m': FRONT_TARGET_X_OFFSET_M,
         'invert_target_xy_for_policy': True,
-        'final_forward_motion_sign': -1.0,
+        'final_docking_motion_sign': -1.0,
         'calibration_escape_motion_sign': 1.0,
         'calibration_target_y_sign': -1.0,
         'motor_state_topic': '/front/rmd_state',
@@ -136,7 +144,13 @@ def _build_policy_node(context):
         raise RuntimeError('external_reduction must be > 0.')
 
     params = {
+        'robot_type': robot_type,
         'model_path': _resolve_arg(context, 'model_path', default_model_path),
+        'docking_target_topic': _resolve_arg(
+            context,
+            'docking_target_topic',
+            profile['docking_target_topic'],
+        ),
         'target_topic': _resolve_arg(
             context,
             'target_topic',
@@ -153,10 +167,15 @@ def _build_policy_node(context):
             'cmd_vel_topic',
             profile['cmd_vel_topic'],
         ),
-        'gripper_toggle_topic': _resolve_arg(
+        'robot_docking_completion_topic': _resolve_arg(
             context,
-            'gripper_toggle_topic',
-            profile['gripper_toggle_topic'],
+            'robot_docking_completion_topic',
+            profile['robot_docking_completion_topic'],
+        ),
+        'cart_docking_completion_topic': _resolve_arg(
+            context,
+            'cart_docking_completion_topic',
+            profile['cart_docking_completion_topic'],
         ),
         'linear_velocity_scale_m_s': _parse_float(
             _resolve_arg(
@@ -226,17 +245,29 @@ def _build_policy_node(context):
             ),
             'invert_target_xy_for_policy',
         ),
-        'final_forward_distance_m': _parse_float(
-            LaunchConfiguration('final_forward_distance_m').perform(context),
-            'final_forward_distance_m',
-        ),
-        'final_forward_motion_sign': _parse_float(
+        'cart_docking_final_distance_m': _parse_float(
             _resolve_arg(
                 context,
-                'final_forward_motion_sign',
-                profile['final_forward_motion_sign'],
+                'cart_docking_final_distance_m',
+                profile['cart_docking_final_distance_m'],
             ),
-            'final_forward_motion_sign',
+            'cart_docking_final_distance_m',
+        ),
+        'robot_docking_final_distance_m': _parse_float(
+            _resolve_arg(
+                context,
+                'robot_docking_final_distance_m',
+                profile['robot_docking_final_distance_m'],
+            ),
+            'robot_docking_final_distance_m',
+        ),
+        'final_docking_motion_sign': _parse_float(
+            _resolve_arg(
+                context,
+                'final_docking_motion_sign',
+                profile['final_docking_motion_sign'],
+            ),
+            'final_docking_motion_sign',
         ),
         'calibration_escape_distance_m': _parse_float(
             LaunchConfiguration('calibration_escape_distance_m').perform(context),
@@ -341,24 +372,29 @@ def generate_launch_description() -> LaunchDescription:
                 description='__auto__ uses profile default model path.',
             ),
             DeclareLaunchArgument(
+                'docking_target_topic',
+                default_value='__auto__',
+                description='__auto__ uses profile default docking_target topic.',
+            ),
+            DeclareLaunchArgument(
                 'linear_velocity_scale_m_s',
                 default_value='__auto__',
-                description='__auto__ derives the linear action scale from wheel geometry and legacy limits.',
+                description='__auto__ uses profile default linear scale.',
             ),
             DeclareLaunchArgument(
                 'angular_velocity_scale_rad_s',
                 default_value='__auto__',
-                description='__auto__ derives the angular action scale from wheel geometry and legacy limits.',
+                description='__auto__ uses profile default angular scale.',
             ),
             DeclareLaunchArgument(
                 'near_target_linear_speed_limit_m_s',
                 default_value='__auto__',
-                description='__auto__ derives the near-target linear limit from wheel geometry and legacy limits.',
+                description='__auto__ uses profile default near-target linear limit.',
             ),
             DeclareLaunchArgument(
                 'near_target_angular_speed_limit_rad_s',
                 default_value='__auto__',
-                description='__auto__ derives the near-target angular limit from wheel geometry and legacy limits.',
+                description='__auto__ uses profile default near-target angular limit.',
             ),
             DeclareLaunchArgument(
                 'near_target_distance_m',
@@ -385,9 +421,14 @@ def generate_launch_description() -> LaunchDescription:
                 description='__auto__ uses profile default cmd_vel_topic.',
             ),
             DeclareLaunchArgument(
-                'gripper_toggle_topic',
+                'robot_docking_completion_topic',
                 default_value='__auto__',
-                description='__auto__ uses profile default completion signal topic.',
+                description='__auto__ uses profile default robot-docking completion topic.',
+            ),
+            DeclareLaunchArgument(
+                'cart_docking_completion_topic',
+                default_value='__auto__',
+                description='__auto__ uses profile default cart-docking completion topic.',
             ),
             DeclareLaunchArgument(
                 'wheel_radius_m',
@@ -417,7 +458,7 @@ def generate_launch_description() -> LaunchDescription:
             DeclareLaunchArgument('control_rate_hz', default_value='30.0'),
             DeclareLaunchArgument('target_timeout_sec', default_value='0.3'),
             DeclareLaunchArgument('motor_timeout_sec', default_value='1000.0'),
-            DeclareLaunchArgument('target_xy_stop_tolerance_m', default_value='0.1'),
+            DeclareLaunchArgument('target_xy_stop_tolerance_m', default_value='0.05'),
             DeclareLaunchArgument('target_yaw_stop_tolerance_deg', default_value='2.0'),
             DeclareLaunchArgument(
                 'base_link_to_axle_center_x_m',
@@ -439,9 +480,18 @@ def generate_launch_description() -> LaunchDescription:
                 default_value='__auto__',
                 description='__auto__ uses profile default target x/y sign for policy input.',
             ),
-            DeclareLaunchArgument('final_forward_distance_m', default_value='0.31'),
             DeclareLaunchArgument(
-                'final_forward_motion_sign',
+                'cart_docking_final_distance_m',
+                default_value='__auto__',
+                description='__auto__ uses profile default final distance for cart docking.',
+            ),
+            DeclareLaunchArgument(
+                'robot_docking_final_distance_m',
+                default_value='__auto__',
+                description='__auto__ uses profile default final distance for robot docking.',
+            ),
+            DeclareLaunchArgument(
+                'final_docking_motion_sign',
                 default_value='__auto__',
                 description='__auto__ uses profile default final motion direction: +1 forward, -1 reverse.',
             ),

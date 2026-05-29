@@ -109,24 +109,25 @@ front는 현재 `/front/rmd_state`가 이미 감속 후 속도라고 가정해�
 
 비전 target이 `target_timeout_sec` 이상 끊기면 calibration으로 들어갑니다.
 
-현재 calibration은 단순 escape 시퀀스입니다.
+현재 calibration은 가변 회전 escape 시퀀스입니다.
 
 - `rotate_out`
 - `reverse_escape`
 - `rotate_back`
 
-rear는 뒤 대각선 방향으로 빠지고, front는 앞 대각선 방향으로 빠집니다.
+첫 회전은 마지막으로 기억한 **오프셋 적용 완료 후의 실제 target state**에서 계산합니다.
 
-방향 결정은 마지막으로 저장된 최종 `target_y_local`의 부호를 기준으로 합니다.
+- `alpha = atan2(target_y_local, target_x_local)`
+- 의미: 회전 후 target이 로봇 x축 위에 오도록 맞춰서, 이후 30cm 직선 이동 동안 lateral error가 추가로 생기지 않게 합니다.
 
-- rear
-  - `y < 0`: 좌회전 `calibration_escape_turn_deg` -> 후진 `calibration_escape_distance_m` -> 우회전 복귀
-  - `y > 0`: 우회전 `calibration_escape_turn_deg` -> 후진 `calibration_escape_distance_m` -> 좌회전 복귀
-- front
-  - `y < 0`: 우회전 `calibration_escape_turn_deg` -> 전진 `calibration_escape_distance_m` -> 좌회전 복귀
-  - `y > 0`: 좌회전 `calibration_escape_turn_deg` -> 전진 `calibration_escape_distance_m` -> 우회전 복귀
+이후 `calibration_escape_distance_m`만큼 직선 이동하고, 마지막 회전은 이동 중 오도메트리로 계속 적분된 현재 `target_theta_vision_rad`를 기준으로 계산합니다.
 
-회전 각도와 이동 거리는 모두 `/rmd_state`에서 계산한 현재 속도를 적분해 측정합니다.
+- `rotate_back_target = -target_theta_vision_rad`
+- 의미: 마지막 회전이 끝났을 때 yaw error가 0이 되도록 맞춥니다.
+
+rear는 기존처럼 후진 `calibration_escape_distance_m`, front는 기존처럼 전진 `calibration_escape_distance_m`를 유지합니다.
+
+회전 각도와 이동 거리는 모두 `/rmd_state`에서 계산한 현재 속도를 적분해 측정하고, calibration 중에도 내부 target state를 계속 오도메트리로 업데이트합니다.
 
 calibration 중 비전이 다시 들어와도 즉시 정책을 재개하지 않습니다. 새 측정은 보류해두고, calibration이 끝난 다음에만 다시 align에 반영합니다.
 
@@ -165,7 +166,6 @@ calibration 중 비전이 다시 들어와도 즉시 정책을 재개하지 않�
 - `invert_target_xy_for_policy = true`
 - `final_docking_motion_sign = -1.0`
 - `calibration_escape_motion_sign = +1.0`
-- `calibration_target_y_sign = -1.0`
 - `external_reduction = 1.0`
 
 ### rear
@@ -180,7 +180,6 @@ calibration 중 비전이 다시 들어와도 즉시 정책을 재개하지 않�
 - `invert_target_xy_for_policy = false`
 - `final_docking_motion_sign = +1.0`
 - `calibration_escape_motion_sign = -1.0`
-- `calibration_target_y_sign = +1.0`
 - `external_reduction = 1.0`
 
 ## 주요 파라미터
@@ -209,9 +208,7 @@ calibration 중 비전이 다시 들어와도 즉시 정책을 재개하지 않�
 - `robot_docking_final_distance_m`
 - `final_docking_motion_sign`
 - `calibration_escape_distance_m`
-- `calibration_escape_turn_deg`
 - `calibration_escape_motion_sign`
-- `calibration_target_y_sign`
 - `wheel_radius_m`
 - `wheel_separation_m`
 - `external_reduction`

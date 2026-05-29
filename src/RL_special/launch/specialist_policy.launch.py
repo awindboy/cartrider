@@ -17,7 +17,7 @@ PROFILE_DEFAULTS = {
     'rear': {
         'model_file': 'specialist_policy.onnx',
         'docking_target_topic': '/docking_target',
-        'target_topic': '/rear/rs/cart_pose',
+        'target_topic': '/rear/cart_pose',
         'robot_docking_completion_topic': '/gripper_toggle',
         'cart_docking_completion_topic': '/gripper_toggle',
         'cart_docking_final_distance_m': 0.31,
@@ -33,7 +33,6 @@ PROFILE_DEFAULTS = {
         'invert_target_xy_for_policy': False,
         'final_docking_motion_sign': 1.0,
         'calibration_escape_motion_sign': -1.0,
-        'calibration_target_y_sign': 1.0,
         'motor_state_topic': '/rmd_state',
         'cmd_vel_topic': '/cmd_vel',
         'state_invert_left': True,
@@ -45,7 +44,7 @@ PROFILE_DEFAULTS = {
     'front': {
         'model_file': 'front_specialist_policy.onnx',
         'docking_target_topic': '/docking_target',
-        'target_topic': '/front/rs/cart_pose',
+        'target_topic': '/front/cart_pose',
         'robot_docking_completion_topic': '/front/robot_docking',
         'cart_docking_completion_topic': '/front/cart_docking',
         'cart_docking_final_distance_m': 0.31,
@@ -61,7 +60,6 @@ PROFILE_DEFAULTS = {
         'invert_target_xy_for_policy': True,
         'final_docking_motion_sign': -1.0,
         'calibration_escape_motion_sign': 1.0,
-        'calibration_target_y_sign': -1.0,
         'motor_state_topic': '/front/rmd_state',
         'cmd_vel_topic': '/front/cmd_vel',
         'state_invert_left': False,
@@ -273,10 +271,6 @@ def _build_policy_node(context):
             LaunchConfiguration('calibration_escape_distance_m').perform(context),
             'calibration_escape_distance_m',
         ),
-        'calibration_escape_turn_deg': _parse_float(
-            LaunchConfiguration('calibration_escape_turn_deg').perform(context),
-            'calibration_escape_turn_deg',
-        ),
         'calibration_escape_motion_sign': _parse_float(
             _resolve_arg(
                 context,
@@ -284,14 +278,6 @@ def _build_policy_node(context):
                 profile['calibration_escape_motion_sign'],
             ),
             'calibration_escape_motion_sign',
-        ),
-        'calibration_target_y_sign': _parse_float(
-            _resolve_arg(
-                context,
-                'calibration_target_y_sign',
-                profile['calibration_target_y_sign'],
-            ),
-            'calibration_target_y_sign',
         ),
         'near_target_distance_m': _parse_float(
             _resolve_arg(
@@ -496,16 +482,10 @@ def generate_launch_description() -> LaunchDescription:
                 description='__auto__ uses profile default final motion direction: +1 forward, -1 reverse.',
             ),
             DeclareLaunchArgument('calibration_escape_distance_m', default_value='0.30'),
-            DeclareLaunchArgument('calibration_escape_turn_deg', default_value='30.0'),
             DeclareLaunchArgument(
                 'calibration_escape_motion_sign',
                 default_value='__auto__',
                 description='__auto__ uses profile default calibration travel direction: -1 reverse, +1 forward.',
-            ),
-            DeclareLaunchArgument(
-                'calibration_target_y_sign',
-                default_value='__auto__',
-                description='__auto__ uses profile default y-sign interpretation for calibration lateral direction.',
             ),
             DeclareLaunchArgument('left_motor_id', default_value='1'),
             DeclareLaunchArgument('right_motor_id', default_value='2'),

@@ -274,7 +274,6 @@ class CartAlignSpecialistPolicyNode(Node):
             raise ValueError('wheel_separation_m must be > 0.')
         if self.external_reduction <= 0.0:
             raise ValueError('external_reduction must be > 0.')
-
     def _load_model(self) -> None:
         if not os.path.isfile(self.model_path):
             raise FileNotFoundError(f'ONNX model not found: {self.model_path}')
@@ -615,9 +614,12 @@ class CartAlignSpecialistPolicyNode(Node):
         ):
             self.calibration_rotate_out_target_rad = 0.0
         else:
-            self.calibration_rotate_out_target_rad = math.atan2(
+            self.calibration_rotate_out_target_rad = self._compute_calibration_rotate_out_target_rad(
                 target_y_local,
                 target_x_local,
+                self.target_theta_vision_rad if self.target_theta_vision_rad is not None else 0.0,
+                self.calibration_escape_motion_sign,
+                self.calibration_escape_distance_m,
             )
         self.calibration_rotate_back_target_rad = 0.0
         self.calibration_stage = (
@@ -856,6 +858,70 @@ class CartAlignSpecialistPolicyNode(Node):
         return (
             axle_target_x_local - offset_x_local,
             axle_target_y_local - offset_y_local,
+        )
+
+    @staticmethod
+    def _compute_calibration_rotate_out_target_rad(
+        target_y_local: float,
+        target_x_local: float,
+        target_theta_vision_rad: float,
+        calibration_escape_motion_sign: float,
+        calibration_escape_distance_m: float,
+    ) -> float:
+        signed_motion_distance_m = (
+            calibration_escape_motion_sign * calibration_escape_distance_m
+        )
+        if abs(signed_motion_distance_m) <= 1.0e-9:
+            return 0.0
+
+        robot_x_target_frame_m, robot_y_target_frame_m, robot_heading_target_frame_rad = (
+            CartAlignSpecialistPolicyNode._robot_pose_in_target_frame(
+                target_x_local,
+                target_y_local,
+                target_theta_vision_rad,
+            )
+        )
+
+        lateral_move_target_frame_m = -robot_y_target_frame_m
+        longitudinal_sq_m2 = (
+            signed_motion_distance_m * signed_motion_distance_m
+            - lateral_move_target_frame_m * lateral_move_target_frame_m
+        )
+        if longitudinal_sq_m2 < 0.0:
+            longitudinal_sq_m2 = 0.0
+
+        # The target requirement is unique: after the fixed move distance, the
+        # robot axle center must lie on the target frame x- axis.
+        moved_x_target_frame_m = -math.sqrt(longitudinal_sq_m2)
+        delta_x_target_frame_m = moved_x_target_frame_m - robot_x_target_frame_m
+        delta_y_target_frame_m = -robot_y_target_frame_m
+        move_heading_target_frame_rad = math.atan2(
+            delta_y_target_frame_m / signed_motion_distance_m,
+            delta_x_target_frame_m / signed_motion_distance_m,
+        )
+        return CartAlignSpecialistPolicyNode._wrap_to_pi(
+            move_heading_target_frame_rad - robot_heading_target_frame_rad
+        )
+
+    @staticmethod
+    def _robot_pose_in_target_frame(
+        target_x_local: float,
+        target_y_local: float,
+        target_theta_vision_rad: float,
+    ) -> tuple[float, float, float]:
+        cos_theta = math.cos(target_theta_vision_rad)
+        sin_theta = math.sin(target_theta_vision_rad)
+        robot_x_target_frame_m = -(
+            cos_theta * target_x_local + sin_theta * target_y_local
+        )
+        robot_y_target_frame_m = (
+            sin_theta * target_x_local - cos_theta * target_y_local
+        )
+        robot_heading_target_frame_rad = -target_theta_vision_rad
+        return (
+            robot_x_target_frame_m,
+            robot_y_target_frame_m,
+            robot_heading_target_frame_rad,
         )
 
     def _update_target_state_from_odometry(self, now) -> None:

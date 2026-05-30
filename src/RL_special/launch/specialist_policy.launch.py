@@ -7,7 +7,7 @@ from launch.substitutions import LaunchConfiguration
 from launch_ros.actions import Node
 
 
-FRONT_TARGET_X_OFFSET_M = 0.65
+FRONT_TARGET_X_OFFSET_M = 0.55
 REAR_TARGET_X_OFFSET_M = 0.50
 FRONT_BASE_LINK_TO_AXLE_CENTER_X_M = 0.095
 REAR_BASE_LINK_TO_AXLE_CENTER_X_M = 0.120
@@ -47,12 +47,12 @@ PROFILE_DEFAULTS = {
         'target_topic': '/front/cart_pose',
         'robot_docking_completion_topic': '/front/robot_docking',
         'cart_docking_completion_topic': '/front/cart_docking',
-        'cart_docking_final_distance_m': 0.31,
+        'cart_docking_final_distance_m': 0.12,
         'robot_docking_final_distance_m': 0.31,
         'linear_velocity_scale_m_s': 0.1,
         'angular_velocity_scale_rad_s': 0.05,
         'near_target_linear_speed_limit_m_s': 0.05,
-        'near_target_angular_speed_limit_rad_s': 0.03,
+        'near_target_angular_speed_limit_rad_s': 0.01,
         'near_target_distance_m': 0.3,
         'base_link_to_axle_center_x_m': FRONT_BASE_LINK_TO_AXLE_CENTER_X_M,
         'base_link_to_axle_center_x_sign': 1.0,

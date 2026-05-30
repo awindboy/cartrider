@@ -117,8 +117,11 @@ front는 현재 `/front/rmd_state`가 이미 감속 후 속도라고 가정해�
 
 첫 회전은 마지막으로 기억한 **오프셋 적용 완료 후의 실제 target state**에서 계산합니다.
 
-- `alpha = atan2(target_y_local, target_x_local)`
-- 의미: 회전 후 target이 로봇 x축 위에 오도록 맞춰서, 이후 30cm 직선 이동 동안 lateral error가 추가로 생기지 않게 합니다.
+- 기준은 robot frame이 아니라 **target-centered frame**입니다.
+- 목표는 “첫 회전 후 `calibration_escape_distance_m`만큼 직선 이동했을 때, 로봇 구동축 중심이 target frame의 `x-`축 위에 놓이게 하는 것”입니다.
+- 이를 위해 현재 target state를 target frame으로 변환한 뒤, 30cm 이동 후 도달해야 할 점을 `y_T = 0`이면서 `x_T < 0`인 유일한 점으로 바로 계산합니다.
+- 즉 1차 회전은 “후보 두 개를 만든 뒤 고르는 방식”이 아니라, **고정 이동거리 후 로봇이 target frame의 `x-`축 위에 오도록 하는 단일 해**를 직접 계산합니다.
+- rear는 이후 후진 30cm, front는 이후 전진 30cm이므로 같은 target state에서도 다른 첫 회전각이 나올 수 있습니다.
 
 이후 `calibration_escape_distance_m`만큼 직선 이동하고, 마지막 회전은 이동 중 오도메트리로 계속 적분된 현재 `target_theta_vision_rad`를 기준으로 계산합니다.
 

@@ -24,24 +24,23 @@ rear 프로파일은 `docking_target=1`을 받으면 동작하지 않고 `rear_r
 ### Vision target 입력
 
 - Type: `geometry_msgs/msg/Pose2D`
-- front 기본값: `/front/rs/cart_pose`
-- rear 기본값: `/rear/rs/cart_pose`
+- front 기본값: `/front/target_pose`
+- rear 기본값: `/rear/target_pose`
 
-비전이 주는 `x, y, theta`는 `base_link` 중심 기준입니다. 내부에서는 다음 순서로 가공합니다.
+비전이 주는 `x, y, theta`는 `base_link` 중심 기준입니다. 내부에서는 수신 즉시 “구동축 중앙 기준 로봇 로컬 프레임”의 canonical target으로 변환하고, 이후 policy/align/calibration/odometry는 모두 이 값만 사용합니다.
 
 1. front만 카메라 기준 `x, y`를 로봇 진행방향 기준으로 변환
    - `x_robot = -x_camera`
    - `y_robot = -y_camera`
 2. `base_link -> 구동축 중심` 변환
-   - rear: `x_axle = x_base - base_link_to_axle_center_x_m`
-   - front: `x_axle = x_base + base_link_to_axle_center_x_m`
+   - front/rear 공통: `x_axle = x_base - base_link_to_axle_center_x_m`
 3. 카트 표면 offset 적용
-   - `x_target = x_axle - target_x_offset_m * cos(theta_vision)`
-   - `y_target = y_axle - target_x_offset_m * sin(theta_vision)`
+   - rear: `x_target = x_axle - target_x_offset_m * cos(theta)`, `y_target = y_axle - target_x_offset_m * sin(theta)`
+   - front: `x_target = x_axle + target_x_offset_m * cos(theta)`, `y_target = y_axle + target_x_offset_m * sin(theta)`
 4. policy yaw 입력
-   - `heading_error = wrap_to_pi(-theta_vision)`
+   - `target_yaw_error = wrap_to_pi(-theta)`
 
-즉 front는 target 입력 좌표를 먼저 로봇 진행방향 기준으로 바꾸고, 그 뒤의 가공 체인은 rear와 동일합니다.
+즉 front는 target 입력 좌표를 먼저 로봇 진행방향 기준으로 바꾸고, 그 뒤의 가공 체인은 rear와 동일합니다. 정책 입력도 canonical target인 `[x_target, y_target, target_yaw_error, current_v, current_omega]`를 그대로 사용합니다.
 
 idle 중에도 최신 비전 target은 계속 캐시됩니다.  
 명령이 들어오면 이 캐시를 바로 사용할 수 있고, 캐시가 stale이면 새 비전 입력을 기다립니다.
@@ -95,7 +94,7 @@ front는 현재 `/front/rmd_state`가 이미 감속 후 속도라고 가정해�
 
 1. `target_x_local`
 2. `target_y_local`
-3. `heading_error = wrap_to_pi(-theta_vision)`
+3. `target_yaw_error = wrap_to_pi(-theta)`
 4. 현재 선속도
 5. 현재 각속도
 
@@ -103,7 +102,7 @@ front는 현재 `/front/rmd_state`가 이미 감속 후 속도라고 가정해�
 
 - `abs(target_x_local) <= target_xy_stop_tolerance_m`
 - `abs(target_y_local) <= target_xy_stop_tolerance_m`
-- `abs(heading_error) <= target_yaw_stop_tolerance_rad`
+- `abs(target_yaw_error) <= target_yaw_stop_tolerance_rad`
 
 완료되면 `final_docking_motion`으로 넘어갑니다.
 
@@ -119,15 +118,15 @@ front는 현재 `/front/rmd_state`가 이미 감속 후 속도라고 가정해�
 
 첫 회전은 마지막으로 기억한 **오프셋 적용 완료 후의 실제 target state**에서 계산합니다.
 
-- 기준은 robot frame이 아니라 **target-centered frame**입니다.
-- 목표는 “첫 회전 후 `calibration_escape_distance_m`만큼 직선 이동했을 때, 로봇 구동축 중심이 target frame의 `x-`축 위에 놓이게 하는 것”입니다.
-- 이를 위해 현재 target state를 target frame으로 변환한 뒤, 30cm 이동 후 도달해야 할 점을 `y_T = 0`이면서 `x_T < 0`인 유일한 점으로 바로 계산합니다.
-- 즉 1차 회전은 “후보 두 개를 만든 뒤 고르는 방식”이 아니라, **고정 이동거리 후 로봇이 target frame의 `x-`축 위에 오도록 하는 단일 해**를 직접 계산합니다.
-- rear는 이후 후진 30cm, front는 이후 전진 30cm이므로 같은 target state에서도 다른 첫 회전각이 나올 수 있습니다.
+- 기준은 canonical target state와 노드 내부 odometry 모델입니다.
+- 목표는 첫 회전 후 `calibration_escape_distance_m`만큼 직선 이동했을 때, 로봇 구동축 중심이 target frame의 docking 축 위에 놓이게 하는 것입니다.
+- rear는 후진 30cm 뒤 target frame의 `x-`축 위에 놓이도록 계산합니다.
+- front는 전진 30cm 뒤 target frame의 `x+`축 위에 놓이도록 계산합니다.
+- 1차 회전각은 내부 odometry 업데이트를 그대로 시뮬레이션해 `y_T = 0`을 만족하는 해 중 docking 축 방향으로 더 먼 점을 선택합니다.
 
-이후 `calibration_escape_distance_m`만큼 직선 이동하고, 마지막 회전은 이동 중 오도메트리로 계속 적분된 현재 `target_theta_vision_rad`를 기준으로 계산합니다.
+이후 `calibration_escape_distance_m`만큼 직선 이동하고, 마지막 회전은 이동 중 오도메트리로 계속 적분된 현재 `target_yaw_error_rad`를 기준으로 계산합니다.
 
-- `rotate_back_target = -target_theta_vision_rad`
+- `rotate_back_target = target_yaw_error_rad`
 - 의미: 마지막 회전이 끝났을 때 yaw error가 0이 되도록 맞춥니다.
 
 rear는 기존처럼 후진 `calibration_escape_distance_m`, front는 기존처럼 전진 `calibration_escape_distance_m`를 유지합니다.
@@ -161,28 +160,24 @@ calibration 중 비전이 다시 들어와도 즉시 정책을 재개하지 않�
 
 ### front
 
-- target topic: `/front/rs/cart_pose`
+- target topic: `/front/target_pose`
 - motor state topic: `/front/rmd_state`
 - cmd_vel topic: `/front/cmd_vel`
 - completion topic
   - robot docking: `/front/robot_docking`
   - cart docking: `/front/cart_docking`
-- `base_link_to_axle_center_x_sign = +1.0`
-- `invert_target_xy_for_policy = false`
 - `final_docking_motion_sign = -1.0`
 - `calibration_escape_motion_sign = +1.0`
 - `external_reduction = 1.0`
 
 ### rear
 
-- target topic: `/rear/rs/cart_pose`
+- target topic: `/rear/target_pose`
 - motor state topic: `/rmd_state`
 - cmd_vel topic: `/cmd_vel`
 - completion topic
   - robot docking: `/gripper_toggle` but runtime no-op
   - cart docking: `/gripper_toggle`
-- `base_link_to_axle_center_x_sign = -1.0`
-- `invert_target_xy_for_policy = false`
 - `final_docking_motion_sign = +1.0`
 - `calibration_escape_motion_sign = -1.0`
 - `external_reduction = 1.0`
@@ -206,9 +201,7 @@ calibration 중 비전이 다시 들어와도 즉시 정책을 재개하지 않�
 - `target_xy_stop_tolerance_m`
 - `target_yaw_stop_tolerance_deg`
 - `base_link_to_axle_center_x_m`
-- `base_link_to_axle_center_x_sign`
 - `target_x_offset_m`
-- `invert_target_xy_for_policy`
 - `cart_docking_final_distance_m`
 - `robot_docking_final_distance_m`
 - `final_docking_motion_sign`

@@ -1,153 +1,96 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="1560" height="920" viewBox="0 0 1560 920">
+<svg xmlns="http://www.w3.org/2000/svg" width="1380" height="930" viewBox="0 0 1380 930">
 <defs>
 <marker id="arrow" markerWidth="8" markerHeight="8" refX="4" refY="4" orient="auto" markerUnits="strokeWidth">
 <path d="M 0 0 L 8 4 L 0 8 z" fill="#555555" />
 </marker>
 </defs>
-<rect x="0.0" y="0.0" width="1560.0" height="920.0" rx="12" ry="12" fill="#ffffff" stroke="#ffffff" stroke-width="0" />
-<text x="780.0" y="28.0" font-size="24" fill="#000" text-anchor="middle" font-weight="bold" font-family="Arial">RL_special target transform pipeline</text>
-<text x="780.0" y="48.0" font-size="13" fill="#555555" text-anchor="middle" font-weight="normal" font-family="Arial">Each row shows: raw vision target -&gt; axle-frame target -&gt; cart-offset target -&gt; policy view and docking direction</text>
-<text x="24.0" y="284.0" font-size="20" fill="#1f77b4" text-anchor="start" font-weight="bold" font-family="Arial">FRONT</text>
-<rect x="48.0" y="104.0" width="360.0" height="360.0" rx="12" ry="12" fill="#fcfcfc" stroke="#dddddd" stroke-width="1" />
-<text x="228.0" y="130.0" font-size="18" fill="#000" text-anchor="middle" font-weight="bold" font-family="Arial">Front 1/4</text>
-<text x="228.0" y="152.0" font-size="12" fill="#666666" text-anchor="middle" font-weight="normal" font-family="Arial">Vision raw target in base_link frame</text>
-<line x1="98.0" y1="284.0" x2="358.0" y2="284.0" stroke="#cfcfcf" stroke-width="1" fill="none" />
-<line x1="212.1" y1="154.0" x2="212.1" y2="414.0" stroke="#cfcfcf" stroke-width="1" fill="none" />
-<text x="380.0" y="276.0" font-size="12" fill="#666666" text-anchor="end" font-weight="normal" font-family="Arial">+x</text>
-<text x="220.1" y="166.0" font-size="12" fill="#666666" text-anchor="start" font-weight="normal" font-family="Arial">+y</text>
-<circle cx="212.1" cy="284.0" r="6" fill="#000000" stroke="#000" stroke-width="1" />
-<text x="212.1" y="272.0" font-size="12" fill="#000" text-anchor="middle" font-weight="normal" font-family="Arial">base_link center</text>
-<circle cx="320.0" cy="232.0" r="7" fill="#1f77b4" stroke="#000" stroke-width="1" />
-<text x="330.0" y="222.0" font-size="12" fill="#1f77b4" text-anchor="start" font-weight="normal" font-family="Arial">raw target</text>
-<line x1="320.0" y1="232.0" x2="340.6" y2="214.0" stroke="#1f77b4" stroke-width="2.5" fill="none" marker-end="url(#arrow)" />
-<text x="350.6" y="218.0" font-size="12" fill="#1f77b4" text-anchor="start" font-weight="normal" font-family="Arial">theta_vision=25 deg</text>
-<text x="64.0" y="386.0" font-size="12" fill="#000" font-family="Courier New" xml:space="preserve"><tspan x="64.0" dy="0">Input from vision</tspan><tspan x="64.0" dy="18">x_base = 0.850 m</tspan><tspan x="64.0" dy="18">y_base = 0.220 m</tspan><tspan x="64.0" dy="18">theta_vision = 25.0 deg</tspan></text>
-<rect x="432.0" y="104.0" width="360.0" height="360.0" rx="12" ry="12" fill="#fcfcfc" stroke="#dddddd" stroke-width="1" />
-<text x="612.0" y="130.0" font-size="18" fill="#000" text-anchor="middle" font-weight="bold" font-family="Arial">Front 2/4</text>
-<text x="612.0" y="152.0" font-size="12" fill="#666666" text-anchor="middle" font-weight="normal" font-family="Arial">Shift origin from base_link to axle center</text>
-<line x1="482.0" y1="284.0" x2="742.0" y2="284.0" stroke="#cfcfcf" stroke-width="1" fill="none" />
-<line x1="596.1" y1="154.0" x2="596.1" y2="414.0" stroke="#cfcfcf" stroke-width="1" fill="none" />
-<text x="764.0" y="276.0" font-size="12" fill="#666666" text-anchor="end" font-weight="normal" font-family="Arial">+x</text>
-<text x="604.1" y="166.0" font-size="12" fill="#666666" text-anchor="start" font-weight="normal" font-family="Arial">+y</text>
-<circle cx="596.1" cy="284.0" r="6" fill="#000000" stroke="#000" stroke-width="1" />
-<text x="596.1" y="272.0" font-size="12" fill="#000" text-anchor="middle" font-weight="normal" font-family="Arial">base_link center</text>
-<circle cx="608.2" cy="284.0" r="6" fill="#2ca02c" stroke="#000" stroke-width="1" />
-<text x="608.2" y="272.0" font-size="12" fill="#2ca02c" text-anchor="middle" font-weight="normal" font-family="Arial">axle center</text>
-<line x1="596.1" y1="302.0" x2="608.2" y2="302.0" stroke="#2ca02c" stroke-width="2.5" fill="none" marker-end="url(#arrow)" marker-start="url(#arrow)" />
-<text x="602.2" y="324.0" font-size="12" fill="#2ca02c" text-anchor="middle" font-weight="normal" font-family="Arial">0.095 m</text>
-<circle cx="716.0" cy="232.0" r="7" fill="#2ca02c" stroke="#000" stroke-width="1" />
-<text x="726.0" y="222.0" font-size="12" fill="#2ca02c" text-anchor="start" font-weight="normal" font-family="Arial">same target in axle frame</text>
-<line x1="716.0" y1="232.0" x2="736.7" y2="214.0" stroke="#2ca02c" stroke-width="2.5" fill="none" marker-end="url(#arrow)" />
-<text x="746.7" y="218.0" font-size="12" fill="#2ca02c" text-anchor="start" font-weight="normal" font-family="Arial">theta_vision=25 deg</text>
-<text x="448.0" y="386.0" font-size="12" fill="#000" font-family="Courier New" xml:space="preserve"><tspan x="448.0" dy="0">Origin shift</tspan><tspan x="448.0" dy="18">x_axle = x_base + 0.095</tspan><tspan x="448.0" dy="18">y_axle = y_base</tspan><tspan x="448.0" dy="18">x_axle = 0.945 m</tspan><tspan x="448.0" dy="18">y_axle = 0.220 m</tspan></text>
-<rect x="816.0" y="104.0" width="360.0" height="360.0" rx="12" ry="12" fill="#fcfcfc" stroke="#dddddd" stroke-width="1" />
-<text x="996.0" y="130.0" font-size="18" fill="#000" text-anchor="middle" font-weight="bold" font-family="Arial">Front 3/4</text>
-<text x="996.0" y="152.0" font-size="12" fill="#666666" text-anchor="middle" font-weight="normal" font-family="Arial">Apply cart longitudinal offset</text>
-<line x1="866.0" y1="284.0" x2="1126.0" y2="284.0" stroke="#cfcfcf" stroke-width="1" fill="none" />
-<line x1="980.1" y1="154.0" x2="980.1" y2="414.0" stroke="#cfcfcf" stroke-width="1" fill="none" />
-<text x="1148.0" y="276.0" font-size="12" fill="#666666" text-anchor="end" font-weight="normal" font-family="Arial">+x</text>
-<text x="988.1" y="166.0" font-size="12" fill="#666666" text-anchor="start" font-weight="normal" font-family="Arial">+y</text>
-<circle cx="980.1" cy="284.0" r="6" fill="#2ca02c" stroke="#000" stroke-width="1" />
-<text x="980.1" y="272.0" font-size="12" fill="#2ca02c" text-anchor="middle" font-weight="normal" font-family="Arial">axle origin</text>
-<circle cx="1100.0" cy="232.0" r="7" fill="#888888" stroke="#000" stroke-width="1" />
-<text x="1110.0" y="222.0" font-size="12" fill="#888888" text-anchor="start" font-weight="normal" font-family="Arial">axle-frame target</text>
-<line x1="1100.0" y1="232.0" x2="1120.7" y2="214.0" stroke="#888888" stroke-width="2.5" fill="none" marker-end="url(#arrow)" />
-<text x="1130.7" y="218.0" font-size="12" fill="#888888" text-anchor="start" font-weight="normal" font-family="Arial">theta_vision=25 deg</text>
-<circle cx="1042.5" cy="281.9" r="7" fill="#ff7f0e" stroke="#000" stroke-width="1" />
-<text x="1052.5" y="271.9" font-size="12" fill="#ff7f0e" text-anchor="start" font-weight="normal" font-family="Arial">final target</text>
-<line x1="1042.5" y1="281.9" x2="1063.2" y2="264.0" stroke="#ff7f0e" stroke-width="2.5" fill="none" marker-end="url(#arrow)" />
-<text x="1073.2" y="268.0" font-size="12" fill="#ff7f0e" text-anchor="start" font-weight="normal" font-family="Arial">theta_vision=25 deg</text>
-<line x1="1100.0" y1="232.0" x2="1042.5" y2="281.9" stroke="#ff7f0e" stroke-width="2.5" fill="none" marker-end="url(#arrow)" />
-<text x="1071.3" y="247.0" font-size="12" fill="#ff7f0e" text-anchor="middle" font-weight="normal" font-family="Arial">offset 0.500 m</text>
-<text x="832.0" y="368.0" font-size="12" fill="#000" font-family="Courier New" xml:space="preserve"><tspan x="832.0" dy="0">Physical target</tspan><tspan x="832.0" dy="18">x_target = x_axle - d cos(theta_vision)</tspan><tspan x="832.0" dy="18">y_target = y_axle - d sin(theta_vision)</tspan><tspan x="832.0" dy="18">d = 0.500 m</tspan><tspan x="832.0" dy="18">x_target = 0.492 m</tspan><tspan x="832.0" dy="18">y_target = 0.009 m</tspan></text>
-<rect x="1200.0" y="104.0" width="360.0" height="360.0" rx="12" ry="12" fill="#fcfcfc" stroke="#dddddd" stroke-width="1" />
-<text x="1380.0" y="130.0" font-size="18" fill="#000" text-anchor="middle" font-weight="bold" font-family="Arial">Front 4/4</text>
-<text x="1380.0" y="152.0" font-size="12" fill="#666666" text-anchor="middle" font-weight="normal" font-family="Arial">Policy view for reverse alignment</text>
-<line x1="1250.0" y1="284.0" x2="1510.0" y2="284.0" stroke="#cfcfcf" stroke-width="1" fill="none" />
-<line x1="1364.1" y1="154.0" x2="1364.1" y2="414.0" stroke="#cfcfcf" stroke-width="1" fill="none" />
-<text x="1532.0" y="276.0" font-size="12" fill="#666666" text-anchor="end" font-weight="normal" font-family="Arial">+x</text>
-<text x="1372.1" y="166.0" font-size="12" fill="#666666" text-anchor="start" font-weight="normal" font-family="Arial">+y</text>
-<circle cx="1364.1" cy="284.0" r="6" fill="#2ca02c" stroke="#000" stroke-width="1" />
-<text x="1364.1" y="272.0" font-size="12" fill="#2ca02c" text-anchor="middle" font-weight="normal" font-family="Arial">axle origin</text>
-<circle cx="1426.5" cy="281.9" r="7" fill="#888888" stroke="#000" stroke-width="1" />
-<text x="1436.5" y="271.9" font-size="12" fill="#888888" text-anchor="start" font-weight="normal" font-family="Arial">physical target</text>
-<line x1="1426.5" y1="281.9" x2="1447.2" y2="264.0" stroke="#888888" stroke-width="2.5" fill="none" marker-end="url(#arrow)" />
-<text x="1457.2" y="268.0" font-size="12" fill="#888888" text-anchor="start" font-weight="normal" font-family="Arial">theta_vision=25 deg</text>
-<circle cx="1301.8" cy="286.1" r="7" fill="#9467bd" stroke="#000" stroke-width="1" />
-<text x="1311.8" y="276.1" font-size="12" fill="#9467bd" text-anchor="start" font-weight="normal" font-family="Arial">policy input target</text>
-<line x1="1426.5" y1="281.9" x2="1301.8" y2="286.1" stroke="#9467bd" stroke-width="2.5" fill="none" stroke-dasharray="8 6" marker-end="url(#arrow)" />
-<line x1="1364.1" y1="306.0" x2="1328.6" y2="306.0" stroke="#111111" stroke-width="3" fill="none" marker-end="url(#arrow)" />
-<text x="1346.4" y="328.0" font-size="12" fill="#111111" text-anchor="middle" font-weight="normal" font-family="Arial">final motion: reverse</text>
-<text x="1216.0" y="352.0" font-size="12" fill="#000" font-family="Courier New" xml:space="preserve"><tspan x="1216.0" dy="0">Control view</tspan><tspan x="1216.0" dy="18">heading_error = wrap_to_pi(-theta_vision)</tspan><tspan x="1216.0" dy="18">x_target = 0.492 m</tspan><tspan x="1216.0" dy="18">y_target = 0.009 m</tspan><tspan x="1216.0" dy="18">front policy mirrors target x/y</tspan><tspan x="1216.0" dy="18">x_policy = -0.492 m</tspan><tspan x="1216.0" dy="18">y_policy = -0.009 m</tspan></text>
-<text x="24.0" y="692.0" font-size="20" fill="#d62728" text-anchor="start" font-weight="bold" font-family="Arial">REAR</text>
-<rect x="48.0" y="512.0" width="360.0" height="360.0" rx="12" ry="12" fill="#fcfcfc" stroke="#dddddd" stroke-width="1" />
-<text x="228.0" y="538.0" font-size="18" fill="#000" text-anchor="middle" font-weight="bold" font-family="Arial">Rear 1/4</text>
-<text x="228.0" y="560.0" font-size="12" fill="#666666" text-anchor="middle" font-weight="normal" font-family="Arial">Vision raw target in base_link frame</text>
-<line x1="98.0" y1="692.0" x2="358.0" y2="692.0" stroke="#cfcfcf" stroke-width="1" fill="none" />
-<line x1="212.1" y1="562.0" x2="212.1" y2="822.0" stroke="#cfcfcf" stroke-width="1" fill="none" />
-<text x="380.0" y="684.0" font-size="12" fill="#666666" text-anchor="end" font-weight="normal" font-family="Arial">+x</text>
-<text x="220.1" y="574.0" font-size="12" fill="#666666" text-anchor="start" font-weight="normal" font-family="Arial">+y</text>
-<circle cx="212.1" cy="692.0" r="6" fill="#000000" stroke="#000" stroke-width="1" />
-<text x="212.1" y="680.0" font-size="12" fill="#000" text-anchor="middle" font-weight="normal" font-family="Arial">base_link center</text>
-<circle cx="320.0" cy="640.0" r="7" fill="#d62728" stroke="#000" stroke-width="1" />
-<text x="330.0" y="630.0" font-size="12" fill="#d62728" text-anchor="start" font-weight="normal" font-family="Arial">raw target</text>
-<line x1="320.0" y1="640.0" x2="340.6" y2="622.0" stroke="#d62728" stroke-width="2.5" fill="none" marker-end="url(#arrow)" />
-<text x="350.6" y="626.0" font-size="12" fill="#d62728" text-anchor="start" font-weight="normal" font-family="Arial">theta_vision=25 deg</text>
-<text x="64.0" y="794.0" font-size="12" fill="#000" font-family="Courier New" xml:space="preserve"><tspan x="64.0" dy="0">Input from vision</tspan><tspan x="64.0" dy="18">x_base = 0.850 m</tspan><tspan x="64.0" dy="18">y_base = 0.220 m</tspan><tspan x="64.0" dy="18">theta_vision = 25.0 deg</tspan></text>
-<rect x="432.0" y="512.0" width="360.0" height="360.0" rx="12" ry="12" fill="#fcfcfc" stroke="#dddddd" stroke-width="1" />
-<text x="612.0" y="538.0" font-size="18" fill="#000" text-anchor="middle" font-weight="bold" font-family="Arial">Rear 2/4</text>
-<text x="612.0" y="560.0" font-size="12" fill="#666666" text-anchor="middle" font-weight="normal" font-family="Arial">Shift origin from base_link to axle center</text>
-<line x1="482.0" y1="692.0" x2="742.0" y2="692.0" stroke="#cfcfcf" stroke-width="1" fill="none" />
-<line x1="596.1" y1="562.0" x2="596.1" y2="822.0" stroke="#cfcfcf" stroke-width="1" fill="none" />
-<text x="764.0" y="684.0" font-size="12" fill="#666666" text-anchor="end" font-weight="normal" font-family="Arial">+x</text>
-<text x="604.1" y="574.0" font-size="12" fill="#666666" text-anchor="start" font-weight="normal" font-family="Arial">+y</text>
-<circle cx="596.1" cy="692.0" r="6" fill="#000000" stroke="#000" stroke-width="1" />
-<text x="596.1" y="680.0" font-size="12" fill="#000" text-anchor="middle" font-weight="normal" font-family="Arial">base_link center</text>
-<circle cx="611.4" cy="692.0" r="6" fill="#2ca02c" stroke="#000" stroke-width="1" />
-<text x="611.4" y="680.0" font-size="12" fill="#2ca02c" text-anchor="middle" font-weight="normal" font-family="Arial">axle center</text>
-<line x1="596.1" y1="710.0" x2="611.4" y2="710.0" stroke="#2ca02c" stroke-width="2.5" fill="none" marker-end="url(#arrow)" marker-start="url(#arrow)" />
-<text x="603.8" y="732.0" font-size="12" fill="#2ca02c" text-anchor="middle" font-weight="normal" font-family="Arial">0.120 m</text>
-<circle cx="688.7" cy="640.0" r="7" fill="#2ca02c" stroke="#000" stroke-width="1" />
-<text x="698.7" y="630.0" font-size="12" fill="#2ca02c" text-anchor="start" font-weight="normal" font-family="Arial">same target in axle frame</text>
-<line x1="688.7" y1="640.0" x2="709.4" y2="622.0" stroke="#2ca02c" stroke-width="2.5" fill="none" marker-end="url(#arrow)" />
-<text x="719.4" y="626.0" font-size="12" fill="#2ca02c" text-anchor="start" font-weight="normal" font-family="Arial">theta_vision=25 deg</text>
-<text x="448.0" y="794.0" font-size="12" fill="#000" font-family="Courier New" xml:space="preserve"><tspan x="448.0" dy="0">Origin shift</tspan><tspan x="448.0" dy="18">x_axle = x_base - 0.120</tspan><tspan x="448.0" dy="18">y_axle = y_base</tspan><tspan x="448.0" dy="18">x_axle = 0.730 m</tspan><tspan x="448.0" dy="18">y_axle = 0.220 m</tspan></text>
-<rect x="816.0" y="512.0" width="360.0" height="360.0" rx="12" ry="12" fill="#fcfcfc" stroke="#dddddd" stroke-width="1" />
-<text x="996.0" y="538.0" font-size="18" fill="#000" text-anchor="middle" font-weight="bold" font-family="Arial">Rear 3/4</text>
-<text x="996.0" y="560.0" font-size="12" fill="#666666" text-anchor="middle" font-weight="normal" font-family="Arial">Apply cart longitudinal offset</text>
-<line x1="866.0" y1="692.0" x2="1126.0" y2="692.0" stroke="#cfcfcf" stroke-width="1" fill="none" />
-<line x1="980.1" y1="562.0" x2="980.1" y2="822.0" stroke="#cfcfcf" stroke-width="1" fill="none" />
-<text x="1148.0" y="684.0" font-size="12" fill="#666666" text-anchor="end" font-weight="normal" font-family="Arial">+x</text>
-<text x="988.1" y="574.0" font-size="12" fill="#666666" text-anchor="start" font-weight="normal" font-family="Arial">+y</text>
-<circle cx="980.1" cy="692.0" r="6" fill="#2ca02c" stroke="#000" stroke-width="1" />
-<text x="980.1" y="680.0" font-size="12" fill="#2ca02c" text-anchor="middle" font-weight="normal" font-family="Arial">axle origin</text>
-<circle cx="1072.7" cy="640.0" r="7" fill="#888888" stroke="#000" stroke-width="1" />
-<text x="1082.7" y="630.0" font-size="12" fill="#888888" text-anchor="start" font-weight="normal" font-family="Arial">axle-frame target</text>
-<line x1="1072.7" y1="640.0" x2="1093.4" y2="622.0" stroke="#888888" stroke-width="2.5" fill="none" marker-end="url(#arrow)" />
-<text x="1103.4" y="626.0" font-size="12" fill="#888888" text-anchor="start" font-weight="normal" font-family="Arial">theta_vision=25 deg</text>
-<circle cx="1049.7" cy="660.0" r="7" fill="#ff7f0e" stroke="#000" stroke-width="1" />
-<text x="1059.7" y="650.0" font-size="12" fill="#ff7f0e" text-anchor="start" font-weight="normal" font-family="Arial">final target</text>
-<line x1="1049.7" y1="660.0" x2="1070.4" y2="642.0" stroke="#ff7f0e" stroke-width="2.5" fill="none" marker-end="url(#arrow)" />
-<text x="1080.4" y="646.0" font-size="12" fill="#ff7f0e" text-anchor="start" font-weight="normal" font-family="Arial">theta_vision=25 deg</text>
-<line x1="1072.7" y1="640.0" x2="1049.7" y2="660.0" stroke="#ff7f0e" stroke-width="2.5" fill="none" marker-end="url(#arrow)" />
-<text x="1061.2" y="640.0" font-size="12" fill="#ff7f0e" text-anchor="middle" font-weight="normal" font-family="Arial">offset 0.200 m</text>
-<text x="832.0" y="776.0" font-size="12" fill="#000" font-family="Courier New" xml:space="preserve"><tspan x="832.0" dy="0">Physical target</tspan><tspan x="832.0" dy="18">x_target = x_axle - d cos(theta_vision)</tspan><tspan x="832.0" dy="18">y_target = y_axle - d sin(theta_vision)</tspan><tspan x="832.0" dy="18">d = 0.200 m</tspan><tspan x="832.0" dy="18">x_target = 0.549 m</tspan><tspan x="832.0" dy="18">y_target = 0.135 m</tspan></text>
-<rect x="1200.0" y="512.0" width="360.0" height="360.0" rx="12" ry="12" fill="#fcfcfc" stroke="#dddddd" stroke-width="1" />
-<text x="1380.0" y="538.0" font-size="18" fill="#000" text-anchor="middle" font-weight="bold" font-family="Arial">Rear 4/4</text>
-<text x="1380.0" y="560.0" font-size="12" fill="#666666" text-anchor="middle" font-weight="normal" font-family="Arial">Policy view for forward alignment</text>
-<line x1="1250.0" y1="692.0" x2="1510.0" y2="692.0" stroke="#cfcfcf" stroke-width="1" fill="none" />
-<line x1="1364.1" y1="562.0" x2="1364.1" y2="822.0" stroke="#cfcfcf" stroke-width="1" fill="none" />
-<text x="1532.0" y="684.0" font-size="12" fill="#666666" text-anchor="end" font-weight="normal" font-family="Arial">+x</text>
-<text x="1372.1" y="574.0" font-size="12" fill="#666666" text-anchor="start" font-weight="normal" font-family="Arial">+y</text>
-<circle cx="1364.1" cy="692.0" r="6" fill="#2ca02c" stroke="#000" stroke-width="1" />
-<text x="1364.1" y="680.0" font-size="12" fill="#2ca02c" text-anchor="middle" font-weight="normal" font-family="Arial">axle origin</text>
-<circle cx="1433.7" cy="660.0" r="7" fill="#888888" stroke="#000" stroke-width="1" />
-<text x="1443.7" y="650.0" font-size="12" fill="#888888" text-anchor="start" font-weight="normal" font-family="Arial">physical target</text>
-<line x1="1433.7" y1="660.0" x2="1454.4" y2="642.0" stroke="#888888" stroke-width="2.5" fill="none" marker-end="url(#arrow)" />
-<text x="1464.4" y="646.0" font-size="12" fill="#888888" text-anchor="start" font-weight="normal" font-family="Arial">theta_vision=25 deg</text>
-<circle cx="1433.7" cy="660.0" r="7" fill="#9467bd" stroke="#000" stroke-width="1" />
-<text x="1443.7" y="650.0" font-size="12" fill="#9467bd" text-anchor="start" font-weight="normal" font-family="Arial">policy input target</text>
-<line x1="1364.1" y1="714.0" x2="1399.7" y2="714.0" stroke="#111111" stroke-width="3" fill="none" marker-end="url(#arrow)" />
-<text x="1381.9" y="736.0" font-size="12" fill="#111111" text-anchor="middle" font-weight="normal" font-family="Arial">final motion: forward</text>
-<text x="1216.0" y="760.0" font-size="12" fill="#000" font-family="Courier New" xml:space="preserve"><tspan x="1216.0" dy="0">Control view</tspan><tspan x="1216.0" dy="18">heading_error = wrap_to_pi(-theta_vision)</tspan><tspan x="1216.0" dy="18">x_target = 0.549 m</tspan><tspan x="1216.0" dy="18">y_target = 0.135 m</tspan><tspan x="1216.0" dy="18">rear policy keeps target as-is</tspan><tspan x="1216.0" dy="18">x_policy = 0.549 m</tspan><tspan x="1216.0" dy="18">y_policy = 0.135 m</tspan></text>
+<rect x="0.0" y="0.0" width="1380.0" height="930.0" rx="0" ry="0" fill="#ffffff" stroke="#ffffff" stroke-width="0" />
+<text x="690.0" y="30.0" font-size="24" fill="#000" text-anchor="middle" font-weight="bold" font-family="Arial">RL_special canonical target transform</text>
+<text x="690.0" y="51.0" font-size="13" fill="#555555" text-anchor="middle" font-weight="normal" font-family="Arial">After this transform, policy, align, calibration, and odometry all use the same target state.</text>
+<text x="18.0" y="290.0" font-size="20" fill="#1f77b4" text-anchor="start" font-weight="bold" font-family="Arial">FRONT</text>
+<rect x="30.0" y="110.0" width="420.0" height="360.0" rx="10" ry="10" fill="#fcfcfc" stroke="#dddddd" stroke-width="1" />
+<text x="240.0" y="136.0" font-size="18" fill="#000" text-anchor="middle" font-weight="bold" font-family="Arial">Front 1/3</text>
+<text x="240.0" y="157.0" font-size="12" fill="#666666" text-anchor="middle" font-weight="normal" font-family="Arial">Vision target in camera/base_link frame</text>
+<line x1="82.0" y1="290.0" x2="398.0" y2="290.0" stroke="#cfcfcf" stroke-width="1" fill="none" />
+<line x1="250.5" y1="162.0" x2="250.5" y2="418.0" stroke="#cfcfcf" stroke-width="1" fill="none" />
+<text x="422.0" y="282.0" font-size="12" fill="#666666" text-anchor="end" font-weight="normal" font-family="Arial">+x</text>
+<text x="258.5" y="174.0" font-size="12" fill="#666666" text-anchor="start" font-weight="normal" font-family="Arial">+y</text>
+<circle cx="250.5" cy="290.0" r="6" fill="#000000" stroke="#000" stroke-width="1" />
+<circle cx="369.9" cy="246.7" r="7" fill="#1f77b4" stroke="#ffffff" stroke-width="2" />
+<text x="379.9" y="237.7" font-size="12" fill="#1f77b4" text-anchor="start" font-weight="normal" font-family="Arial">vision target</text>
+<line x1="369.9" y1="246.7" x2="390.3" y2="233.4" stroke="#1f77b4" stroke-width="2.5" fill="none" marker-end="url(#arrow)" />
+<text x="48.0" y="386.0" font-size="12" fill="#000" font-family="Courier New" xml:space="preserve"><tspan x="48.0" dy="0">Pose2D from vision</tspan><tspan x="48.0" dy="17">x = 0.850 m</tspan><tspan x="48.0" dy="17">y = 0.220 m</tspan><tspan x="48.0" dy="17">theta = 25.0 deg</tspan><tspan x="48.0" dy="17">front only: x,y signs are flipped</tspan></text>
+<rect x="480.0" y="110.0" width="420.0" height="360.0" rx="10" ry="10" fill="#fcfcfc" stroke="#dddddd" stroke-width="1" />
+<text x="690.0" y="136.0" font-size="18" fill="#000" text-anchor="middle" font-weight="bold" font-family="Arial">Front 2/3</text>
+<text x="690.0" y="157.0" font-size="12" fill="#666666" text-anchor="middle" font-weight="normal" font-family="Arial">Canonical robot-local target before cart offset</text>
+<line x1="532.0" y1="290.0" x2="848.0" y2="290.0" stroke="#cfcfcf" stroke-width="1" fill="none" />
+<line x1="700.5" y1="162.0" x2="700.5" y2="418.0" stroke="#cfcfcf" stroke-width="1" fill="none" />
+<text x="872.0" y="282.0" font-size="12" fill="#666666" text-anchor="end" font-weight="normal" font-family="Arial">+x</text>
+<text x="708.5" y="174.0" font-size="12" fill="#666666" text-anchor="start" font-weight="normal" font-family="Arial">+y</text>
+<circle cx="700.5" cy="290.0" r="6" fill="#000000" stroke="#000" stroke-width="1" />
+<text x="700.5" y="278.0" font-size="12" fill="#000" text-anchor="middle" font-weight="normal" font-family="Arial">axle origin</text>
+<circle cx="567.8" cy="333.3" r="7" fill="#2ca02c" stroke="#ffffff" stroke-width="2" />
+<text x="577.8" y="324.3" font-size="12" fill="#2ca02c" text-anchor="start" font-weight="normal" font-family="Arial">axle target</text>
+<line x1="567.8" y1="333.3" x2="588.2" y2="320.0" stroke="#2ca02c" stroke-width="2.5" fill="none" marker-end="url(#arrow)" />
+<text x="498.0" y="372.0" font-size="12" fill="#000" font-family="Courier New" xml:space="preserve"><tspan x="498.0" dy="0">Normalize to robot frame</tspan><tspan x="498.0" dy="17">x_base = -0.850 m</tspan><tspan x="498.0" dy="17">y_base = -0.220 m</tspan><tspan x="498.0" dy="17">x_axle = x_base - 0.095</tspan><tspan x="498.0" dy="17">x_axle = -0.945 m</tspan><tspan x="498.0" dy="17">y_axle = -0.220 m</tspan></text>
+<rect x="930.0" y="110.0" width="420.0" height="360.0" rx="10" ry="10" fill="#fcfcfc" stroke="#dddddd" stroke-width="1" />
+<text x="1140.0" y="136.0" font-size="18" fill="#000" text-anchor="middle" font-weight="bold" font-family="Arial">Front 3/3</text>
+<text x="1140.0" y="157.0" font-size="12" fill="#666666" text-anchor="middle" font-weight="normal" font-family="Arial">Canonical policy/align/calibration target</text>
+<line x1="982.0" y1="290.0" x2="1298.0" y2="290.0" stroke="#cfcfcf" stroke-width="1" fill="none" />
+<line x1="1150.5" y1="162.0" x2="1150.5" y2="418.0" stroke="#cfcfcf" stroke-width="1" fill="none" />
+<text x="1322.0" y="282.0" font-size="12" fill="#666666" text-anchor="end" font-weight="normal" font-family="Arial">+x</text>
+<text x="1158.5" y="174.0" font-size="12" fill="#666666" text-anchor="start" font-weight="normal" font-family="Arial">+y</text>
+<circle cx="1150.5" cy="290.0" r="6" fill="#000000" stroke="#000" stroke-width="1" />
+<text x="1150.5" y="278.0" font-size="12" fill="#000" text-anchor="middle" font-weight="normal" font-family="Arial">axle origin</text>
+<circle cx="1017.8" cy="333.3" r="7" fill="#aaaaaa" stroke="#ffffff" stroke-width="2" />
+<text x="1027.8" y="324.3" font-size="12" fill="#aaaaaa" text-anchor="start" font-weight="normal" font-family="Arial">axle target</text>
+<line x1="1017.8" y1="333.3" x2="1038.2" y2="320.0" stroke="#aaaaaa" stroke-width="2.5" fill="none" marker-end="url(#arrow)" />
+<circle cx="1087.8" cy="287.6" r="7" fill="#ff7f0e" stroke="#ffffff" stroke-width="2" />
+<text x="1097.8" y="278.6" font-size="12" fill="#ff7f0e" text-anchor="start" font-weight="normal" font-family="Arial">canonical target</text>
+<line x1="1087.8" y1="287.6" x2="1108.2" y2="274.2" stroke="#ff7f0e" stroke-width="2.5" fill="none" marker-end="url(#arrow)" />
+<line x1="1017.8" y1="333.3" x2="1087.8" y2="287.6" stroke="#ff7f0e" stroke-width="2.5" fill="none" stroke-dasharray="7 5" marker-end="url(#arrow)" />
+<text x="948.0" y="354.0" font-size="12" fill="#000" font-family="Courier New" xml:space="preserve"><tspan x="948.0" dy="0">Shared canonical state</tspan><tspan x="948.0" dy="17">x_target = x_axle + d cos(theta)</tspan><tspan x="948.0" dy="17">y_target = y_axle + d sin(theta)</tspan><tspan x="948.0" dy="17">yaw_error = wrap_to_pi(-theta)</tspan><tspan x="948.0" dy="17">x_target = -0.447 m</tspan><tspan x="948.0" dy="17">y_target = 0.012 m</tspan><tspan x="948.0" dy="17">yaw_error = -25.0 deg</tspan></text>
+<text x="18.0" y="700.0" font-size="20" fill="#d62728" text-anchor="start" font-weight="bold" font-family="Arial">REAR</text>
+<rect x="30.0" y="520.0" width="420.0" height="360.0" rx="10" ry="10" fill="#fcfcfc" stroke="#dddddd" stroke-width="1" />
+<text x="240.0" y="546.0" font-size="18" fill="#000" text-anchor="middle" font-weight="bold" font-family="Arial">Rear 1/3</text>
+<text x="240.0" y="567.0" font-size="12" fill="#666666" text-anchor="middle" font-weight="normal" font-family="Arial">Vision target in camera/base_link frame</text>
+<line x1="82.0" y1="700.0" x2="398.0" y2="700.0" stroke="#cfcfcf" stroke-width="1" fill="none" />
+<line x1="250.5" y1="572.0" x2="250.5" y2="828.0" stroke="#cfcfcf" stroke-width="1" fill="none" />
+<text x="422.0" y="692.0" font-size="12" fill="#666666" text-anchor="end" font-weight="normal" font-family="Arial">+x</text>
+<text x="258.5" y="584.0" font-size="12" fill="#666666" text-anchor="start" font-weight="normal" font-family="Arial">+y</text>
+<circle cx="250.5" cy="700.0" r="6" fill="#000000" stroke="#000" stroke-width="1" />
+<circle cx="369.9" cy="656.7" r="7" fill="#d62728" stroke="#ffffff" stroke-width="2" />
+<text x="379.9" y="647.7" font-size="12" fill="#d62728" text-anchor="start" font-weight="normal" font-family="Arial">vision target</text>
+<line x1="369.9" y1="656.7" x2="390.3" y2="670.0" stroke="#d62728" stroke-width="2.5" fill="none" marker-end="url(#arrow)" />
+<text x="48.0" y="796.0" font-size="12" fill="#000" font-family="Courier New" xml:space="preserve"><tspan x="48.0" dy="0">Pose2D from vision</tspan><tspan x="48.0" dy="17">x = 0.850 m</tspan><tspan x="48.0" dy="17">y = 0.220 m</tspan><tspan x="48.0" dy="17">theta = -25.0 deg</tspan><tspan x="48.0" dy="17">front only: x,y signs are flipped</tspan></text>
+<rect x="480.0" y="520.0" width="420.0" height="360.0" rx="10" ry="10" fill="#fcfcfc" stroke="#dddddd" stroke-width="1" />
+<text x="690.0" y="546.0" font-size="18" fill="#000" text-anchor="middle" font-weight="bold" font-family="Arial">Rear 2/3</text>
+<text x="690.0" y="567.0" font-size="12" fill="#666666" text-anchor="middle" font-weight="normal" font-family="Arial">Canonical robot-local target before cart offset</text>
+<line x1="532.0" y1="700.0" x2="848.0" y2="700.0" stroke="#cfcfcf" stroke-width="1" fill="none" />
+<line x1="700.5" y1="572.0" x2="700.5" y2="828.0" stroke="#cfcfcf" stroke-width="1" fill="none" />
+<text x="872.0" y="692.0" font-size="12" fill="#666666" text-anchor="end" font-weight="normal" font-family="Arial">+x</text>
+<text x="708.5" y="584.0" font-size="12" fill="#666666" text-anchor="start" font-weight="normal" font-family="Arial">+y</text>
+<circle cx="700.5" cy="700.0" r="6" fill="#000000" stroke="#000" stroke-width="1" />
+<text x="700.5" y="688.0" font-size="12" fill="#000" text-anchor="middle" font-weight="normal" font-family="Arial">axle origin</text>
+<circle cx="803.1" cy="656.7" r="7" fill="#2ca02c" stroke="#ffffff" stroke-width="2" />
+<text x="813.1" y="647.7" font-size="12" fill="#2ca02c" text-anchor="start" font-weight="normal" font-family="Arial">axle target</text>
+<line x1="803.1" y1="656.7" x2="823.4" y2="670.0" stroke="#2ca02c" stroke-width="2.5" fill="none" marker-end="url(#arrow)" />
+<text x="498.0" y="782.0" font-size="12" fill="#000" font-family="Courier New" xml:space="preserve"><tspan x="498.0" dy="0">Normalize to robot frame</tspan><tspan x="498.0" dy="17">x_base = 0.850 m</tspan><tspan x="498.0" dy="17">y_base = 0.220 m</tspan><tspan x="498.0" dy="17">x_axle = x_base - 0.120</tspan><tspan x="498.0" dy="17">x_axle = 0.730 m</tspan><tspan x="498.0" dy="17">y_axle = 0.220 m</tspan></text>
+<rect x="930.0" y="520.0" width="420.0" height="360.0" rx="10" ry="10" fill="#fcfcfc" stroke="#dddddd" stroke-width="1" />
+<text x="1140.0" y="546.0" font-size="18" fill="#000" text-anchor="middle" font-weight="bold" font-family="Arial">Rear 3/3</text>
+<text x="1140.0" y="567.0" font-size="12" fill="#666666" text-anchor="middle" font-weight="normal" font-family="Arial">Canonical policy/align/calibration target</text>
+<line x1="982.0" y1="700.0" x2="1298.0" y2="700.0" stroke="#cfcfcf" stroke-width="1" fill="none" />
+<line x1="1150.5" y1="572.0" x2="1150.5" y2="828.0" stroke="#cfcfcf" stroke-width="1" fill="none" />
+<text x="1322.0" y="692.0" font-size="12" fill="#666666" text-anchor="end" font-weight="normal" font-family="Arial">+x</text>
+<text x="1158.5" y="584.0" font-size="12" fill="#666666" text-anchor="start" font-weight="normal" font-family="Arial">+y</text>
+<circle cx="1150.5" cy="700.0" r="6" fill="#000000" stroke="#000" stroke-width="1" />
+<text x="1150.5" y="688.0" font-size="12" fill="#000" text-anchor="middle" font-weight="normal" font-family="Arial">axle origin</text>
+<circle cx="1253.1" cy="656.7" r="7" fill="#aaaaaa" stroke="#ffffff" stroke-width="2" />
+<text x="1263.1" y="647.7" font-size="12" fill="#aaaaaa" text-anchor="start" font-weight="normal" font-family="Arial">axle target</text>
+<line x1="1253.1" y1="656.7" x2="1273.4" y2="670.0" stroke="#aaaaaa" stroke-width="2.5" fill="none" marker-end="url(#arrow)" />
+<circle cx="1189.4" cy="615.1" r="7" fill="#ff7f0e" stroke="#ffffff" stroke-width="2" />
+<text x="1199.4" y="606.1" font-size="12" fill="#ff7f0e" text-anchor="start" font-weight="normal" font-family="Arial">canonical target</text>
+<line x1="1189.4" y1="615.1" x2="1209.8" y2="628.4" stroke="#ff7f0e" stroke-width="2.5" fill="none" marker-end="url(#arrow)" />
+<line x1="1253.1" y1="656.7" x2="1189.4" y2="615.1" stroke="#ff7f0e" stroke-width="2.5" fill="none" stroke-dasharray="7 5" marker-end="url(#arrow)" />
+<text x="948.0" y="764.0" font-size="12" fill="#000" font-family="Courier New" xml:space="preserve"><tspan x="948.0" dy="0">Shared canonical state</tspan><tspan x="948.0" dy="17">x_target = x_axle - d cos(theta)</tspan><tspan x="948.0" dy="17">y_target = y_axle - d sin(theta)</tspan><tspan x="948.0" dy="17">yaw_error = wrap_to_pi(-theta)</tspan><tspan x="948.0" dy="17">x_target = 0.277 m</tspan><tspan x="948.0" dy="17">y_target = 0.431 m</tspan><tspan x="948.0" dy="17">yaw_error = 25.0 deg</tspan></text>
 </svg>

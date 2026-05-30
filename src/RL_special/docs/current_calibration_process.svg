@@ -1,82 +1,86 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="1560" height="808" viewBox="0 0 1560 808">
+<svg xmlns="http://www.w3.org/2000/svg" width="1320" height="798" viewBox="0 0 1320 798">
 <defs>
-<marker id="arrow" markerWidth="12" markerHeight="12" refX="10" refY="6" orient="auto" markerUnits="strokeWidth">
-<path d="M0,0 L12,6 L0,12 z" fill="#333333" />
+<marker id="arrow" markerWidth="8" markerHeight="8" refX="4" refY="4" orient="auto" markerUnits="strokeWidth">
+<path d="M 0 0 L 8 4 L 0 8 z" fill="#555555" />
 </marker>
 </defs>
-<rect x="0.0" y="0.0" width="1560.0" height="808.0" rx="0" ry="0" fill="#ffffff" stroke="none" stroke-width="0" />
-<text x="780.0" y="30.0" font-size="24" fill="#000" text-anchor="middle" font-weight="bold" font-family="Arial">RL_special Calibration In Robot-Centered Frame</text>
-<text x="780.0" y="52.0" font-size="12" fill="#555555" text-anchor="middle" font-weight="normal" font-family="Arial">Robot axle center stays fixed at the origin. The target pose shows what the robot sees after theta, after the 30 cm move, and after beta.</text>
-<text x="14.0" y="262.0" font-size="20" fill="#d62728" text-anchor="start" font-weight="bold" font-family="Arial">REAR</text>
-<rect x="24.0" y="112.0" width="360.0" height="300.0" rx="12" ry="12" fill="#fcfcfc" stroke="#dddddd" stroke-width="1" />
-<text x="204.0" y="136.0" font-size="17" fill="#000" text-anchor="middle" font-weight="bold" font-family="Arial">1/4 Start</text>
-<text x="204.0" y="158.0" font-size="11" fill="#666666" text-anchor="middle" font-weight="normal" font-family="Arial">Target axis must already pass through the 30cm circle</text>
-<polygon points="220.1,262.0 194.8,256.0 194.8,268.0" fill="#111111" stroke="#111111" stroke-width="1" />
-<rect x="408.0" y="112.0" width="360.0" height="300.0" rx="12" ry="12" fill="#fcfcfc" stroke="#dddddd" stroke-width="1" />
-<text x="588.0" y="136.0" font-size="17" fill="#000" text-anchor="middle" font-weight="bold" font-family="Arial">2/4 After First Turn</text>
-<text x="588.0" y="158.0" font-size="11" fill="#666666" text-anchor="middle" font-weight="normal" font-family="Arial">Rotate to face the farther axis-circle intersection</text>
-<polygon points="604.1,262.0 578.8,256.0 578.8,268.0" fill="#111111" stroke="#111111" stroke-width="1" />
-<rect x="792.0" y="112.0" width="360.0" height="300.0" rx="12" ry="12" fill="#fcfcfc" stroke="#dddddd" stroke-width="1" />
-<text x="972.0" y="136.0" font-size="17" fill="#000" text-anchor="middle" font-weight="bold" font-family="Arial">3/4 After 30cm Move</text>
-<text x="972.0" y="158.0" font-size="11" fill="#666666" text-anchor="middle" font-weight="normal" font-family="Arial">Robot reaches the target axis after the 30cm move</text>
-<polygon points="988.1,262.0 962.8,256.0 962.8,268.0" fill="#111111" stroke="#111111" stroke-width="1" />
-<rect x="1176.0" y="112.0" width="360.0" height="300.0" rx="12" ry="12" fill="#fcfcfc" stroke="#dddddd" stroke-width="1" />
-<text x="1356.0" y="136.0" font-size="17" fill="#000" text-anchor="middle" font-weight="bold" font-family="Arial">4/4 After Final Turn</text>
-<text x="1356.0" y="158.0" font-size="11" fill="#666666" text-anchor="middle" font-weight="normal" font-family="Arial">Rotate by beta so yaw error becomes 0</text>
-<polygon points="1372.1,262.0 1346.8,256.0 1346.8,268.0" fill="#111111" stroke="#111111" stroke-width="1" />
-<polygon points="236.0,250.1 210.2,247.8 211.8,259.7" fill="#d62728" stroke="#d62728" stroke-width="1" />
-<line x1="220.1" y1="252.4" x2="60.7" y2="275.8" stroke="#d62728" stroke-width="2" fill="none" stroke-dasharray="8 6" />
-<circle cx="204.0" cy="262.0" r="34.5" fill="none" stroke="#d62728" stroke-width="1.5" opacity="0.35" stroke-dasharray="6 6" />
-<text x="40.0" y="310.0" font-size="12" fill="#d62728" font-family="Courier New"><tspan x="40.0" dy="0">x=+0.140 m</tspan><tspan x="40.0" dy="16">y=+0.080 m</tspan><tspan x="40.0" dy="16">theta_vision=+8.0 deg</tspan><tspan x="40.0" dy="16">robot in target frame: x_T=-0.150, y_T=-0.060</tspan></text>
-<polygon points="619.3,248.1 593.4,247.4 595.6,259.2" fill="#d62728" stroke="#d62728" stroke-width="1" />
-<line x1="603.5" y1="251.4" x2="445.7" y2="284.8" stroke="#d62728" stroke-width="2" fill="none" stroke-dasharray="8 6" />
-<circle cx="588.0" cy="262.0" r="34.5" fill="none" stroke="#d62728" stroke-width="1.5" opacity="0.35" stroke-dasharray="6 6" />
-<circle cx="553.5" cy="262.0" r="4" fill="#d62728" stroke="#d62728" stroke-width="1" />
-<polygon points="569.6,260.8 544.7,253.2 544.0,265.2" fill="#d62728" stroke="#d62728" stroke-width="1" opacity="0.25" />
-<line x1="588.0" y1="262.0" x2="553.6" y2="259.8" stroke="#d62728" stroke-width="1.5" fill="none" stroke-dasharray="4 4" />
-<text x="424.0" y="294.0" font-size="12" fill="#d62728" font-family="Courier New"><tspan x="424.0" dy="0">theta=-3.5 deg</tspan><tspan x="424.0" dy="16">x=+0.135 m</tspan><tspan x="424.0" dy="16">y=+0.088 m</tspan><tspan x="424.0" dy="16">theta_vision=+11.5 deg</tspan><tspan x="424.0" dy="16">ghost triangle = farther axis-circle intersection</tspan></text>
-<polygon points="1037.8,248.1 1011.9,247.4 1014.1,259.2" fill="#2ca02c" stroke="#2ca02c" stroke-width="1" />
-<line x1="1022.0" y1="251.4" x2="864.2" y2="284.8" stroke="#2ca02c" stroke-width="2" fill="none" stroke-dasharray="8 6" />
-<text x="808.0" y="294.0" font-size="12" fill="#2ca02c" font-family="Courier New"><tspan x="808.0" dy="0">move=-0.30 m</tspan><tspan x="808.0" dy="16">x=+0.435 m</tspan><tspan x="808.0" dy="16">y=+0.088 m</tspan><tspan x="808.0" dy="16">theta_vision=+11.5 deg</tspan><tspan x="808.0" dy="16">robot is now on the target axis, but yaw is not aligned yet</tspan></text>
-<polygon points="1423.1,262.0 1397.8,256.0 1397.8,268.0" fill="#d62728" stroke="#d62728" stroke-width="1" />
-<line x1="1407.0" y1="262.0" x2="1246.0" y2="262.0" stroke="#d62728" stroke-width="2" fill="none" stroke-dasharray="8 6" />
-<text x="1192.0" y="294.0" font-size="12" fill="#d62728" font-family="Courier New"><tspan x="1192.0" dy="0">beta=+11.5 deg</tspan><tspan x="1192.0" dy="16">x=+0.444 m</tspan><tspan x="1192.0" dy="16">y=+0.000 m</tspan><tspan x="1192.0" dy="16">theta_vision=+0.0 deg</tspan><tspan x="1192.0" dy="16">goal here: yaw error = 0</tspan></text>
-<text x="14.0" y="610.0" font-size="20" fill="#1f77b4" text-anchor="start" font-weight="bold" font-family="Arial">FRONT</text>
-<rect x="24.0" y="460.0" width="360.0" height="300.0" rx="12" ry="12" fill="#fcfcfc" stroke="#dddddd" stroke-width="1" />
-<text x="204.0" y="484.0" font-size="17" fill="#000" text-anchor="middle" font-weight="bold" font-family="Arial">1/4 Start</text>
-<text x="204.0" y="506.0" font-size="11" fill="#666666" text-anchor="middle" font-weight="normal" font-family="Arial">Target axis must already pass through the 30cm circle</text>
-<polygon points="220.1,610.0 194.8,604.0 194.8,616.0" fill="#111111" stroke="#111111" stroke-width="1" />
-<polygon points="187.9,610.0 213.2,616.0 213.2,604.0" fill="#ffffff" stroke="#555555" stroke-width="1" />
-<rect x="408.0" y="460.0" width="360.0" height="300.0" rx="12" ry="12" fill="#fcfcfc" stroke="#dddddd" stroke-width="1" />
-<text x="588.0" y="484.0" font-size="17" fill="#000" text-anchor="middle" font-weight="bold" font-family="Arial">2/4 After First Turn</text>
-<text x="588.0" y="506.0" font-size="11" fill="#666666" text-anchor="middle" font-weight="normal" font-family="Arial">Rotate to face the farther axis-circle intersection</text>
-<polygon points="604.1,610.0 578.8,604.0 578.8,616.0" fill="#111111" stroke="#111111" stroke-width="1" />
-<polygon points="571.9,610.0 597.2,616.0 597.2,604.0" fill="#ffffff" stroke="#555555" stroke-width="1" />
-<rect x="792.0" y="460.0" width="360.0" height="300.0" rx="12" ry="12" fill="#fcfcfc" stroke="#dddddd" stroke-width="1" />
-<text x="972.0" y="484.0" font-size="17" fill="#000" text-anchor="middle" font-weight="bold" font-family="Arial">3/4 After 30cm Move</text>
-<text x="972.0" y="506.0" font-size="11" fill="#666666" text-anchor="middle" font-weight="normal" font-family="Arial">Robot reaches the target axis after the 30cm move</text>
-<polygon points="988.1,610.0 962.8,604.0 962.8,616.0" fill="#111111" stroke="#111111" stroke-width="1" />
-<polygon points="955.9,610.0 981.2,616.0 981.2,604.0" fill="#ffffff" stroke="#555555" stroke-width="1" />
-<rect x="1176.0" y="460.0" width="360.0" height="300.0" rx="12" ry="12" fill="#fcfcfc" stroke="#dddddd" stroke-width="1" />
-<text x="1356.0" y="484.0" font-size="17" fill="#000" text-anchor="middle" font-weight="bold" font-family="Arial">4/4 After Final Turn</text>
-<text x="1356.0" y="506.0" font-size="11" fill="#666666" text-anchor="middle" font-weight="normal" font-family="Arial">Rotate by beta so yaw error becomes 0</text>
-<polygon points="1372.1,610.0 1346.8,604.0 1346.8,616.0" fill="#111111" stroke="#111111" stroke-width="1" />
-<polygon points="1339.9,610.0 1365.2,616.0 1365.2,604.0" fill="#ffffff" stroke="#555555" stroke-width="1" />
-<polygon points="203.8,601.7 178.0,599.4 179.6,611.3" fill="#1f77b4" stroke="#1f77b4" stroke-width="1" />
-<line x1="187.9" y1="604.0" x2="347.3" y2="580.6" stroke="#1f77b4" stroke-width="2" fill="none" stroke-dasharray="8 6" />
-<circle cx="204.0" cy="610.0" r="34.5" fill="none" stroke="#1f77b4" stroke-width="1.5" opacity="0.35" stroke-dasharray="6 6" />
-<text x="40.0" y="658.0" font-size="12" fill="#1f77b4" font-family="Courier New"><tspan x="40.0" dy="0">x=-0.140 m</tspan><tspan x="40.0" dy="16">y=+0.050 m</tspan><tspan x="40.0" dy="16">theta_vision=+8.0 deg</tspan><tspan x="40.0" dy="16">robot in target frame: x_T=+0.132, y_T=-0.069</tspan></text>
-<polygon points="590.8,602.2 567.5,590.3 564.8,601.9" fill="#1f77b4" stroke="#1f77b4" stroke-width="1" />
-<line x1="575.1" y1="598.3" x2="731.8" y2="636.9" stroke="#1f77b4" stroke-width="2" fill="none" stroke-dasharray="8 6" />
-<circle cx="588.0" cy="610.0" r="34.5" fill="none" stroke="#1f77b4" stroke-width="1.5" opacity="0.35" stroke-dasharray="6 6" />
-<circle cx="622.5" cy="610.0" r="4" fill="#1f77b4" stroke="#1f77b4" stroke-width="1" />
-<polygon points="635.1,590.8 609.5,594.8 613.7,606.0" fill="#1f77b4" stroke="#1f77b4" stroke-width="1" opacity="0.25" />
-<line x1="588.0" y1="610.0" x2="620.1" y2="596.9" stroke="#1f77b4" stroke-width="1.5" fill="none" stroke-dasharray="4 4" />
-<text x="424.0" y="642.0" font-size="12" fill="#1f77b4" font-family="Courier New"><tspan x="424.0" dy="0">theta=+21.3 deg</tspan><tspan x="424.0" dy="16">x=-0.112 m</tspan><tspan x="424.0" dy="16">y=+0.097 m</tspan><tspan x="424.0" dy="16">theta_vision=-13.3 deg</tspan><tspan x="424.0" dy="16">ghost triangle = farther axis-circle intersection</tspan></text>
-<polygon points="940.3,602.2 917.0,590.3 914.3,601.9" fill="#2ca02c" stroke="#2ca02c" stroke-width="1" />
-<line x1="924.6" y1="598.3" x2="1081.3" y2="636.9" stroke="#2ca02c" stroke-width="2" fill="none" stroke-dasharray="8 6" />
-<text x="808.0" y="642.0" font-size="12" fill="#2ca02c" font-family="Courier New"><tspan x="808.0" dy="0">move=+0.30 m</tspan><tspan x="808.0" dy="16">x=-0.412 m</tspan><tspan x="808.0" dy="16">y=+0.097 m</tspan><tspan x="808.0" dy="16">theta_vision=-13.3 deg</tspan><tspan x="808.0" dy="16">robot is now on the target axis, but yaw is not aligned yet</tspan></text>
-<polygon points="1323.4,610.0 1298.1,604.0 1298.1,616.0" fill="#1f77b4" stroke="#1f77b4" stroke-width="1" />
-<line x1="1307.3" y1="610.0" x2="1468.3" y2="610.0" stroke="#1f77b4" stroke-width="2" fill="none" stroke-dasharray="8 6" />
-<text x="1192.0" y="642.0" font-size="12" fill="#1f77b4" font-family="Courier New"><tspan x="1192.0" dy="0">beta=-13.3 deg</tspan><tspan x="1192.0" dy="16">x=-0.424 m</tspan><tspan x="1192.0" dy="16">y=-0.000 m</tspan><tspan x="1192.0" dy="16">theta_vision=+0.0 deg</tspan><tspan x="1192.0" dy="16">goal here: yaw error = 0</tspan></text>
+<rect x="0.0" y="0.0" width="1320.0" height="798.0" rx="0" ry="0" fill="#ffffff" stroke="#ffffff" stroke-width="0" />
+<text x="660.0" y="31.0" font-size="24" fill="#000" text-anchor="middle" font-weight="bold" font-family="Arial">RL_special Calibration Process</text>
+<text x="660.0" y="53.0" font-size="13" fill="#555555" text-anchor="middle" font-weight="normal" font-family="Arial">Panels are drawn in the target frame. The orange dot is the target; the colored axis is the docking side.</text>
+<rect x="24.0" y="110.0" width="300.0" height="300.0" rx="8" ry="8" fill="#fcfcfc" stroke="#dddddd" stroke-width="1" />
+<text x="174.0" y="134.0" font-size="15" fill="#000" text-anchor="middle" font-weight="bold" font-family="Arial">REAR 1. target lost</text>
+<line x1="66.0" y1="260.0" x2="282.0" y2="260.0" stroke="#d0d0d0" stroke-width="1" fill="none" />
+<line x1="174.0" y1="152.0" x2="174.0" y2="368.0" stroke="#d0d0d0" stroke-width="1" fill="none" />
+<line x1="174.0" y1="260.0" x2="78.2" y2="260.0" stroke="#d62728" stroke-width="1.5" fill="none" />
+<circle cx="174.0" cy="260.0" r="7" fill="#ff7f0e" stroke="#ffffff" stroke-width="2" opacity="1.0" />
+<polygon points="111.2,330.2 92.3,312.9 85.8,326.8" fill="#d62728" stroke="#d62728" stroke-width="1" opacity="1.0" />
+<circle cx="98.5" cy="324.3" r="3" fill="#111111" stroke="#111111" stroke-width="1" opacity="1.0" />
+<text x="38.0" y="344.0" font-size="10" fill="#333333" font-family="Courier New" xml:space="preserve"><tspan x="38.0" dy="0">canonical target</tspan><tspan x="38.0" dy="14">start y_T=-0.274 m</tspan><tspan x="38.0" dy="14">yaw_error=+25.0 deg</tspan></text>
+<rect x="348.0" y="110.0" width="300.0" height="300.0" rx="8" ry="8" fill="#fcfcfc" stroke="#dddddd" stroke-width="1" />
+<text x="498.0" y="134.0" font-size="15" fill="#000" text-anchor="middle" font-weight="bold" font-family="Arial">2. rotate_out</text>
+<line x1="390.0" y1="260.0" x2="606.0" y2="260.0" stroke="#d0d0d0" stroke-width="1" fill="none" />
+<line x1="498.0" y1="152.0" x2="498.0" y2="368.0" stroke="#d0d0d0" stroke-width="1" fill="none" />
+<line x1="498.0" y1="260.0" x2="402.2" y2="260.0" stroke="#d62728" stroke-width="1.5" fill="none" />
+<circle cx="498.0" cy="260.0" r="7" fill="#ff7f0e" stroke="#ffffff" stroke-width="2" opacity="1.0" />
+<line x1="422.5" y1="324.3" x2="401.2" y2="260.0" stroke="#d62728" stroke-width="2" fill="none" stroke-dasharray="7 5" />
+<polygon points="406.9,272.8 404.0,247.3 389.9,253.6" fill="#d62728" stroke="#d62728" stroke-width="1" opacity="0.28" />
+<polygon points="428.3,337.1 425.3,311.6 411.2,317.9" fill="#d62728" stroke="#d62728" stroke-width="1" opacity="1.0" />
+<circle cx="422.5" cy="324.3" r="3" fill="#111111" stroke="#111111" stroke-width="1" opacity="1.0" />
+<text x="362.0" y="344.0" font-size="10" fill="#333333" font-family="Courier New" xml:space="preserve"><tspan x="362.0" dy="0">rotate=-40.9 deg</tspan><tspan x="362.0" dy="14">faint robot = expected</tspan><tspan x="362.0" dy="14">position after 30 cm</tspan></text>
+<rect x="672.0" y="110.0" width="300.0" height="300.0" rx="8" ry="8" fill="#fcfcfc" stroke="#dddddd" stroke-width="1" />
+<text x="822.0" y="134.0" font-size="15" fill="#000" text-anchor="middle" font-weight="bold" font-family="Arial">3. move 30 cm</text>
+<line x1="714.0" y1="260.0" x2="930.0" y2="260.0" stroke="#d0d0d0" stroke-width="1" fill="none" />
+<line x1="822.0" y1="152.0" x2="822.0" y2="368.0" stroke="#d0d0d0" stroke-width="1" fill="none" />
+<line x1="822.0" y1="260.0" x2="726.2" y2="260.0" stroke="#d62728" stroke-width="1.5" fill="none" />
+<circle cx="822.0" cy="260.0" r="7" fill="#ff7f0e" stroke="#ffffff" stroke-width="2" opacity="1.0" />
+<polygon points="730.9,272.8 728.0,247.3 713.9,253.6" fill="#d62728" stroke="#d62728" stroke-width="1" opacity="1.0" />
+<circle cx="725.2" cy="260.0" r="3" fill="#111111" stroke="#111111" stroke-width="1" opacity="1.0" />
+<text x="686.0" y="344.0" font-size="10" fill="#333333" font-family="Courier New" xml:space="preserve"><tspan x="686.0" dy="0">moved x_T=-0.556 m</tspan><tspan x="686.0" dy="14">moved y_T=+0.000000 m</tspan><tspan x="686.0" dy="14">must be on target x-axis</tspan></text>
+<rect x="996.0" y="110.0" width="300.0" height="300.0" rx="8" ry="8" fill="#fcfcfc" stroke="#dddddd" stroke-width="1" />
+<text x="1146.0" y="134.0" font-size="15" fill="#000" text-anchor="middle" font-weight="bold" font-family="Arial">4. rotate_back</text>
+<line x1="1038.0" y1="260.0" x2="1254.0" y2="260.0" stroke="#d0d0d0" stroke-width="1" fill="none" />
+<line x1="1146.0" y1="152.0" x2="1146.0" y2="368.0" stroke="#d0d0d0" stroke-width="1" fill="none" />
+<line x1="1146.0" y1="260.0" x2="1050.2" y2="260.0" stroke="#d62728" stroke-width="1.5" fill="none" />
+<circle cx="1146.0" cy="260.0" r="7" fill="#ff7f0e" stroke="#ffffff" stroke-width="2" opacity="1.0" />
+<polygon points="1063.2,260.0 1038.7,252.3 1038.7,267.7" fill="#d62728" stroke="#d62728" stroke-width="1" opacity="1.0" />
+<circle cx="1049.2" cy="260.0" r="3" fill="#111111" stroke="#111111" stroke-width="1" opacity="1.0" />
+<text x="1010.0" y="344.0" font-size="10" fill="#333333" font-family="Courier New" xml:space="preserve"><tspan x="1010.0" dy="0">rotate=+65.9 deg</tspan><tspan x="1010.0" dy="14">final y_T=+0.000000 m</tspan><tspan x="1010.0" dy="14">final yaw=+0.0 deg</tspan></text>
+<rect x="24.0" y="454.0" width="300.0" height="300.0" rx="8" ry="8" fill="#fcfcfc" stroke="#dddddd" stroke-width="1" />
+<text x="174.0" y="478.0" font-size="15" fill="#000" text-anchor="middle" font-weight="bold" font-family="Arial">FRONT 1. target lost</text>
+<line x1="66.0" y1="604.0" x2="282.0" y2="604.0" stroke="#d0d0d0" stroke-width="1" fill="none" />
+<line x1="174.0" y1="496.0" x2="174.0" y2="712.0" stroke="#d0d0d0" stroke-width="1" fill="none" />
+<line x1="174.0" y1="604.0" x2="269.8" y2="604.0" stroke="#1f77b4" stroke-width="1.5" fill="none" />
+<circle cx="174.0" cy="604.0" r="7" fill="#ff7f0e" stroke="#ffffff" stroke-width="2" opacity="1.0" />
+<polygon points="258.1,556.4 232.6,559.8 239.1,573.8" fill="#1f77b4" stroke="#1f77b4" stroke-width="1" opacity="1.0" />
+<circle cx="245.4" cy="562.3" r="3" fill="#111111" stroke="#111111" stroke-width="1" opacity="1.0" />
+<text x="38.0" y="688.0" font-size="10" fill="#333333" font-family="Courier New" xml:space="preserve"><tspan x="38.0" dy="0">canonical target</tspan><tspan x="38.0" dy="14">start y_T=+0.177 m</tspan><tspan x="38.0" dy="14">yaw_error=-25.0 deg</tspan></text>
+<rect x="348.0" y="454.0" width="300.0" height="300.0" rx="8" ry="8" fill="#fcfcfc" stroke="#dddddd" stroke-width="1" />
+<text x="498.0" y="478.0" font-size="15" fill="#000" text-anchor="middle" font-weight="bold" font-family="Arial">2. rotate_out</text>
+<line x1="390.0" y1="604.0" x2="606.0" y2="604.0" stroke="#d0d0d0" stroke-width="1" fill="none" />
+<line x1="498.0" y1="496.0" x2="498.0" y2="712.0" stroke="#d0d0d0" stroke-width="1" fill="none" />
+<line x1="498.0" y1="604.0" x2="593.8" y2="604.0" stroke="#1f77b4" stroke-width="1.5" fill="none" />
+<circle cx="498.0" cy="604.0" r="7" fill="#ff7f0e" stroke="#ffffff" stroke-width="2" opacity="1.0" />
+<line x1="569.4" y1="562.3" x2="611.5" y2="604.0" stroke="#1f77b4" stroke-width="2" fill="none" stroke-dasharray="7 5" />
+<polygon points="622.8,612.3 607.6,591.6 598.5,604.0" fill="#1f77b4" stroke="#1f77b4" stroke-width="1" opacity="0.28" />
+<polygon points="580.7,570.6 565.5,549.9 556.4,562.3" fill="#1f77b4" stroke="#1f77b4" stroke-width="1" opacity="1.0" />
+<circle cx="569.4" cy="562.3" r="3" fill="#111111" stroke="#111111" stroke-width="1" opacity="1.0" />
+<text x="362.0" y="688.0" font-size="10" fill="#333333" font-family="Courier New" xml:space="preserve"><tspan x="362.0" dy="0">rotate=-61.3 deg</tspan><tspan x="362.0" dy="14">faint robot = expected</tspan><tspan x="362.0" dy="14">position after 30 cm</tspan></text>
+<rect x="672.0" y="454.0" width="300.0" height="300.0" rx="8" ry="8" fill="#fcfcfc" stroke="#dddddd" stroke-width="1" />
+<text x="822.0" y="478.0" font-size="15" fill="#000" text-anchor="middle" font-weight="bold" font-family="Arial">3. move 30 cm</text>
+<line x1="714.0" y1="604.0" x2="930.0" y2="604.0" stroke="#d0d0d0" stroke-width="1" fill="none" />
+<line x1="822.0" y1="496.0" x2="822.0" y2="712.0" stroke="#d0d0d0" stroke-width="1" fill="none" />
+<line x1="822.0" y1="604.0" x2="917.8" y2="604.0" stroke="#1f77b4" stroke-width="1.5" fill="none" />
+<circle cx="822.0" cy="604.0" r="7" fill="#ff7f0e" stroke="#ffffff" stroke-width="2" opacity="1.0" />
+<polygon points="946.8,612.3 931.6,591.6 922.5,604.0" fill="#1f77b4" stroke="#1f77b4" stroke-width="1" opacity="1.0" />
+<circle cx="935.5" cy="604.0" r="3" fill="#111111" stroke="#111111" stroke-width="1" opacity="1.0" />
+<text x="686.0" y="688.0" font-size="10" fill="#333333" font-family="Courier New" xml:space="preserve"><tspan x="686.0" dy="0">moved x_T=+0.652 m</tspan><tspan x="686.0" dy="14">moved y_T=+0.000000 m</tspan><tspan x="686.0" dy="14">must be on target x-axis</tspan></text>
+<rect x="996.0" y="454.0" width="300.0" height="300.0" rx="8" ry="8" fill="#fcfcfc" stroke="#dddddd" stroke-width="1" />
+<text x="1146.0" y="478.0" font-size="15" fill="#000" text-anchor="middle" font-weight="bold" font-family="Arial">4. rotate_back</text>
+<line x1="1038.0" y1="604.0" x2="1254.0" y2="604.0" stroke="#d0d0d0" stroke-width="1" fill="none" />
+<line x1="1146.0" y1="496.0" x2="1146.0" y2="712.0" stroke="#d0d0d0" stroke-width="1" fill="none" />
+<line x1="1146.0" y1="604.0" x2="1241.8" y2="604.0" stroke="#1f77b4" stroke-width="1.5" fill="none" />
+<circle cx="1146.0" cy="604.0" r="7" fill="#ff7f0e" stroke="#ffffff" stroke-width="2" opacity="1.0" />
+<polygon points="1273.5,604.0 1249.0,596.3 1249.0,611.7" fill="#1f77b4" stroke="#1f77b4" stroke-width="1" opacity="1.0" />
+<circle cx="1259.5" cy="604.0" r="3" fill="#111111" stroke="#111111" stroke-width="1" opacity="1.0" />
+<text x="1010.0" y="688.0" font-size="10" fill="#333333" font-family="Courier New" xml:space="preserve"><tspan x="1010.0" dy="0">rotate=+36.3 deg</tspan><tspan x="1010.0" dy="14">final y_T=+0.000000 m</tspan><tspan x="1010.0" dy="14">final yaw=+0.0 deg</tspan></text>
 </svg>

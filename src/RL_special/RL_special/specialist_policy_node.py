@@ -22,7 +22,7 @@ class CartAlignSpecialistPolicyNode(Node):
         self.declare_parameter('robot_type', 'front')
         self.declare_parameter('model_path', self._default_model_path())
         self.declare_parameter('docking_target_topic', '/docking_target')
-        self.declare_parameter('target_topic', '/rs/cart_pose')
+        self.declare_parameter('target_topic', '/target_pose')
         self.declare_parameter('motor_state_topic', '/rmd_state')
         self.declare_parameter(
             'motor_state_type',
@@ -45,9 +45,7 @@ class CartAlignSpecialistPolicyNode(Node):
         self.declare_parameter('target_xy_stop_tolerance_m', 0.05)
         self.declare_parameter('target_yaw_stop_tolerance_deg', 5.0)
         self.declare_parameter('base_link_to_axle_center_x_m', 0.0)
-        self.declare_parameter('base_link_to_axle_center_x_sign', -1.0)
         self.declare_parameter('target_x_offset_m', 0.0)
-        self.declare_parameter('invert_target_xy_for_policy', False)
         self.declare_parameter('cart_docking_final_distance_m', 0.35)
         self.declare_parameter('robot_docking_final_distance_m', 0.35)
         self.declare_parameter('final_docking_motion_sign', 1.0)
@@ -97,14 +95,8 @@ class CartAlignSpecialistPolicyNode(Node):
         self.base_link_to_axle_center_x_m = float(
             self.get_parameter('base_link_to_axle_center_x_m').value
         )
-        self.base_link_to_axle_center_x_sign = float(
-            self.get_parameter('base_link_to_axle_center_x_sign').value
-        )
         self.target_x_offset_m = float(
             self.get_parameter('target_x_offset_m').value
-        )
-        self.invert_target_xy_for_policy = bool(
-            self.get_parameter('invert_target_xy_for_policy').value
         )
         self.cart_docking_final_distance_m = float(
             self.get_parameter('cart_docking_final_distance_m').value
@@ -151,7 +143,7 @@ class CartAlignSpecialistPolicyNode(Node):
         self.last_target_rx_time = None
         self.target_x_local_m: Optional[float] = None
         self.target_y_local_m: Optional[float] = None
-        self.target_theta_vision_rad: Optional[float] = None
+        self.target_yaw_error_rad: Optional[float] = None
         self.last_target_state_update_time = None
         self.active_docking_target = 0
         self.current_linear_velocity_m_s: Optional[float] = None
@@ -244,8 +236,6 @@ class CartAlignSpecialistPolicyNode(Node):
             raise ValueError('target_yaw_stop_tolerance_deg must be >= 0.')
         if self.base_link_to_axle_center_x_m < 0.0:
             raise ValueError('base_link_to_axle_center_x_m must be >= 0.')
-        if self.base_link_to_axle_center_x_sign not in (-1.0, 1.0):
-            raise ValueError('base_link_to_axle_center_x_sign must be -1.0 or 1.0.')
         if self.target_x_offset_m < 0.0:
             raise ValueError('target_x_offset_m must be >= 0.')
         if self.cart_docking_final_distance_m < 0.0:
@@ -389,7 +379,7 @@ class CartAlignSpecialistPolicyNode(Node):
         self.last_target_rx_time = None
         self.target_x_local_m = None
         self.target_y_local_m = None
-        self.target_theta_vision_rad = None
+        self.target_yaw_error_rad = None
         self.last_target_state_update_time = None
 
     def _is_target_cache_stale(self, now) -> bool:
@@ -404,28 +394,29 @@ class CartAlignSpecialistPolicyNode(Node):
             self.pending_target_msg = msg
             self.pending_target_rx_time = now
             return
-        
-        self._apply_target_measurement(msg, now)
 
-    def _apply_target_measurement(self, msg: Pose2D, now) -> None:
-        target_theta_vision_rad = self._wrap_to_pi(float(msg.theta))
-        raw_target_x_local = float(msg.x)
-        raw_target_y_local = float(msg.y)
+        self._apply_canonical_target_measurement(msg, now)
+
+    def _apply_canonical_target_measurement(self, msg: Pose2D, now) -> None:
+        target_pose_theta_rad = self._wrap_to_pi(float(msg.theta))
+        target_yaw_error_rad = self._wrap_to_pi(-target_pose_theta_rad)
+        base_target_x_local = float(msg.x)
+        base_target_y_local = float(msg.y)
         if self.robot_type == 'front':
-            raw_target_x_local *= -1.0
-            raw_target_y_local *= -1.0
+            base_target_x_local *= -1.0
+            base_target_y_local *= -1.0
         target_x_axle_m, target_y_axle_m = self._shift_target_to_axle_center(
-            raw_target_x_local,
-            raw_target_y_local,
+            base_target_x_local,
+            base_target_y_local,
         )
         target_x_local_m, target_y_local_m = self._apply_target_offset(
             target_x_axle_m,
             target_y_axle_m,
-            target_theta_vision_rad,
+            target_pose_theta_rad,
         )
         self.target_x_local_m = target_x_local_m
         self.target_y_local_m = target_y_local_m
-        self.target_theta_vision_rad = target_theta_vision_rad
+        self.target_yaw_error_rad = target_yaw_error_rad
         self.last_target_rx_time = now
         self.last_target_state_update_time = now
 
@@ -490,7 +481,7 @@ class CartAlignSpecialistPolicyNode(Node):
         if (
             self.target_x_local_m is None
             or self.target_y_local_m is None
-            or self.target_theta_vision_rad is None
+            or self.target_yaw_error_rad is None
             or self.last_target_rx_time is None
             or self.last_target_state_update_time is None
         ):
@@ -518,18 +509,13 @@ class CartAlignSpecialistPolicyNode(Node):
 
         self._update_target_state_from_odometry(now)
 
-        heading_error = self._wrap_to_pi(-self.target_theta_vision_rad)
         target_x_local = self.target_x_local_m
         target_y_local = self.target_y_local_m
-        policy_target_x_local = target_x_local
-        policy_target_y_local = target_y_local
-        if self.invert_target_xy_for_policy:
-            policy_target_x_local *= -1.0
-            policy_target_y_local *= -1.0
+        target_yaw_error = self.target_yaw_error_rad
         if (
             abs(target_x_local) <= self.target_xy_stop_tolerance_m
             and abs(target_y_local) <= self.target_xy_stop_tolerance_m
-            and abs(heading_error) <= self.target_yaw_stop_tolerance_rad
+            and abs(target_yaw_error) <= self.target_yaw_stop_tolerance_rad
         ):
             self._start_final_docking_motion(now)
             self._run_final_docking_motion(now)
@@ -540,9 +526,9 @@ class CartAlignSpecialistPolicyNode(Node):
         obs = np.array(
             [
                 [
-                    policy_target_x_local,
-                    policy_target_y_local,
-                    heading_error,
+                    target_x_local,
+                    target_y_local,
+                    target_yaw_error,
                     self.current_linear_velocity_m_s,
                     self.current_angular_velocity_rad_s,
                 ]
@@ -620,9 +606,9 @@ class CartAlignSpecialistPolicyNode(Node):
             self.calibration_rotate_out_target_rad = 0.0
         else:
             self.calibration_rotate_out_target_rad = self._compute_calibration_rotate_out_target_rad(
-                target_y_local,
                 target_x_local,
-                self.target_theta_vision_rad if self.target_theta_vision_rad is not None else 0.0,
+                target_y_local,
+                self.target_yaw_error_rad if self.target_yaw_error_rad is not None else 0.0,
                 self.calibration_escape_motion_sign,
                 self.calibration_escape_distance_m,
             )
@@ -650,7 +636,7 @@ class CartAlignSpecialistPolicyNode(Node):
             or self.last_motor_rx_time is None
             or self.target_x_local_m is None
             or self.target_y_local_m is None
-            or self.target_theta_vision_rad is None
+            or self.target_yaw_error_rad is None
         ):
             self._publish_zero('waiting_motor_vel')
             return
@@ -704,11 +690,11 @@ class CartAlignSpecialistPolicyNode(Node):
                     0.0, -self.current_linear_velocity_m_s
                 ) * dt
             if self.calibration_distance_traveled_m >= self.calibration_escape_distance_m:
-                if self.target_theta_vision_rad is None:
+                if self.target_yaw_error_rad is None:
                     self._publish_cmd_vel(linear_x_m_s=0.0, angular_z_rad_s=0.0)
                     self._finish_calibration()
                     return
-                self.calibration_rotate_back_target_rad = self.target_theta_vision_rad
+                self.calibration_rotate_back_target_rad = self.target_yaw_error_rad
                 if abs(self.calibration_rotate_back_target_rad) <= 1.0e-9:
                     self._publish_cmd_vel(linear_x_m_s=0.0, angular_z_rad_s=0.0)
                     self._finish_calibration()
@@ -755,7 +741,7 @@ class CartAlignSpecialistPolicyNode(Node):
         self.calibration_rotate_back_target_rad = 0.0
         self._set_status('calibration_done')
         if self.pending_target_msg is not None and self.pending_target_rx_time is not None:
-            self._apply_target_measurement(
+            self._apply_canonical_target_measurement(
                 self.pending_target_msg,
                 self.pending_target_rx_time,
             )
@@ -856,20 +842,29 @@ class CartAlignSpecialistPolicyNode(Node):
         self,
         axle_target_x_local: float,
         axle_target_y_local: float,
-        target_theta_vision_rad: float,
+        target_pose_theta_rad: float,
     ) -> tuple[float, float]:
-        offset_x_local = self.target_x_offset_m * math.cos(target_theta_vision_rad)
-        offset_y_local = self.target_x_offset_m * math.sin(target_theta_vision_rad)
+        cart_offset_sign = 1.0 if self.robot_type == 'front' else -1.0
+        offset_x_local = (
+            cart_offset_sign
+            * self.target_x_offset_m
+            * math.cos(target_pose_theta_rad)
+        )
+        offset_y_local = (
+            cart_offset_sign
+            * self.target_x_offset_m
+            * math.sin(target_pose_theta_rad)
+        )
         return (
-            axle_target_x_local - offset_x_local,
-            axle_target_y_local - offset_y_local,
+            axle_target_x_local + offset_x_local,
+            axle_target_y_local + offset_y_local,
         )
 
     @staticmethod
     def _compute_calibration_rotate_out_target_rad(
-        target_y_local: float,
         target_x_local: float,
-        target_theta_vision_rad: float,
+        target_y_local: float,
+        target_yaw_error_rad: float,
         calibration_escape_motion_sign: float,
         calibration_escape_distance_m: float,
     ) -> float:
@@ -878,74 +873,135 @@ class CartAlignSpecialistPolicyNode(Node):
         )
         if abs(signed_motion_distance_m) <= 1.0e-9:
             return 0.0
+        x_axis_sign = 1.0 if calibration_escape_motion_sign > 0.0 else -1.0
 
-        robot_x_target_frame_m, robot_y_target_frame_m, robot_heading_target_frame_rad = (
-            CartAlignSpecialistPolicyNode._robot_pose_in_target_frame(
-                target_x_local,
-                target_y_local,
-                target_theta_vision_rad,
+        def axis_error(candidate_rad: float) -> float:
+            moved_state = (
+                CartAlignSpecialistPolicyNode._target_state_after_calibration_motion(
+                    target_x_local,
+                    target_y_local,
+                    target_yaw_error_rad,
+                    candidate_rad,
+                    signed_motion_distance_m,
+                )
             )
-        )
-
-        longitudinal_sq_m2 = (
-            signed_motion_distance_m * signed_motion_distance_m
-            - robot_y_target_frame_m * robot_y_target_frame_m
-        )
-        if longitudinal_sq_m2 < 0.0:
-            longitudinal_sq_m2 = 0.0
-
-        delta_x_target_frame_magnitude = math.sqrt(longitudinal_sq_m2)
-        x_axis_sign = (
-            1.0 if calibration_escape_motion_sign > 0.0 else -1.0
-        )
-
-        candidate_x_target_frame_m = (
-            robot_x_target_frame_m - delta_x_target_frame_magnitude,
-            robot_x_target_frame_m + delta_x_target_frame_magnitude,
-        )
-        valid_candidates = [
-            candidate
-            for candidate in candidate_x_target_frame_m
-            if candidate * x_axis_sign >= -1.0e-9
-        ]
-        if valid_candidates:
-            moved_x_target_frame_m = (
-                max(valid_candidates)
-                if x_axis_sign > 0.0
-                else min(valid_candidates)
+            _, robot_y_target_frame_m, _ = (
+                CartAlignSpecialistPolicyNode._robot_pose_in_target_frame(
+                    *moved_state
+                )
             )
-        else:
-            moved_x_target_frame_m = (
-                max(candidate_x_target_frame_m)
-                if x_axis_sign > 0.0
-                else min(candidate_x_target_frame_m)
+            return robot_y_target_frame_m
+
+        roots: list[float] = []
+        sample_count = 1440
+        previous_angle = -math.pi
+        previous_error = axis_error(previous_angle)
+        if abs(previous_error) <= 1.0e-9:
+            roots.append(previous_angle)
+
+        for sample_idx in range(1, sample_count + 1):
+            angle = -math.pi + (2.0 * math.pi * sample_idx / sample_count)
+            error = axis_error(angle)
+            if abs(error) <= 1.0e-9:
+                roots.append(angle)
+            elif previous_error * error < 0.0:
+                low = previous_angle
+                high = angle
+                low_error = previous_error
+                for _ in range(48):
+                    mid = 0.5 * (low + high)
+                    mid_error = axis_error(mid)
+                    if abs(mid_error) <= 1.0e-12:
+                        low = high = mid
+                        break
+                    if low_error * mid_error <= 0.0:
+                        high = mid
+                    else:
+                        low = mid
+                        low_error = mid_error
+                roots.append(0.5 * (low + high))
+            previous_angle = angle
+            previous_error = error
+
+        if not roots:
+            best_angle = 0.0
+            best_error = float('inf')
+            for sample_idx in range(sample_count + 1):
+                angle = -math.pi + (2.0 * math.pi * sample_idx / sample_count)
+                error = abs(axis_error(angle))
+                if error < best_error:
+                    best_error = error
+                    best_angle = angle
+            return CartAlignSpecialistPolicyNode._wrap_to_pi(best_angle)
+
+        def root_score(candidate_rad: float) -> tuple[int, float, float]:
+            moved_state = (
+                CartAlignSpecialistPolicyNode._target_state_after_calibration_motion(
+                    target_x_local,
+                    target_y_local,
+                    target_yaw_error_rad,
+                    candidate_rad,
+                    signed_motion_distance_m,
+                )
+            )
+            robot_x_target_frame_m, robot_y_target_frame_m, _ = (
+                CartAlignSpecialistPolicyNode._robot_pose_in_target_frame(
+                    *moved_state
+                )
+            )
+            axis_distance = robot_x_target_frame_m * x_axis_sign
+            axis_penalty = 0 if axis_distance >= -1.0e-9 else 1
+            return (
+                axis_penalty,
+                -axis_distance,
+                abs(robot_y_target_frame_m),
             )
 
-        delta_y_target_frame_m = -robot_y_target_frame_m
-        delta_x_target_frame_m = moved_x_target_frame_m - robot_x_target_frame_m
-        move_heading_target_frame_rad = math.atan2(
-            delta_y_target_frame_m / signed_motion_distance_m,
-            delta_x_target_frame_m / signed_motion_distance_m,
-        )
         return CartAlignSpecialistPolicyNode._wrap_to_pi(
-            move_heading_target_frame_rad - robot_heading_target_frame_rad
+            min(roots, key=root_score)
+        )
+
+    @staticmethod
+    def _target_state_after_calibration_motion(
+        target_x_local: float,
+        target_y_local: float,
+        target_yaw_error_rad: float,
+        rotate_out_rad: float,
+        signed_motion_distance_m: float,
+    ) -> tuple[float, float, float]:
+        cos_yaw = math.cos(rotate_out_rad)
+        sin_yaw = math.sin(rotate_out_rad)
+        rotated_x = (
+            cos_yaw * target_x_local
+            + sin_yaw * target_y_local
+        )
+        rotated_y = (
+            -sin_yaw * target_x_local
+            + cos_yaw * target_y_local
+        )
+        return (
+            rotated_x - signed_motion_distance_m,
+            rotated_y,
+            CartAlignSpecialistPolicyNode._wrap_to_pi(
+                target_yaw_error_rad - rotate_out_rad
+            ),
         )
 
     @staticmethod
     def _robot_pose_in_target_frame(
         target_x_local: float,
         target_y_local: float,
-        target_theta_vision_rad: float,
+        target_yaw_error_rad: float,
     ) -> tuple[float, float, float]:
-        cos_theta = math.cos(target_theta_vision_rad)
-        sin_theta = math.sin(target_theta_vision_rad)
+        robot_heading_target_frame_rad = -target_yaw_error_rad
+        cos_theta = math.cos(robot_heading_target_frame_rad)
+        sin_theta = math.sin(robot_heading_target_frame_rad)
         robot_x_target_frame_m = -(
-            cos_theta * target_x_local + sin_theta * target_y_local
+            cos_theta * target_x_local - sin_theta * target_y_local
         )
-        robot_y_target_frame_m = (
-            sin_theta * target_x_local - cos_theta * target_y_local
+        robot_y_target_frame_m = -(
+            sin_theta * target_x_local + cos_theta * target_y_local
         )
-        robot_heading_target_frame_rad = -target_theta_vision_rad
         return (
             robot_x_target_frame_m,
             robot_y_target_frame_m,
@@ -956,7 +1012,7 @@ class CartAlignSpecialistPolicyNode(Node):
         if (
             self.target_x_local_m is None
             or self.target_y_local_m is None
-            or self.target_theta_vision_rad is None
+            or self.target_yaw_error_rad is None
             or self.last_target_state_update_time is None
             or self.current_linear_velocity_m_s is None
             or self.current_angular_velocity_rad_s is None
@@ -986,8 +1042,8 @@ class CartAlignSpecialistPolicyNode(Node):
 
         self.target_x_local_m = cos_yaw * shifted_x + sin_yaw * shifted_y
         self.target_y_local_m = -sin_yaw * shifted_x + cos_yaw * shifted_y
-        self.target_theta_vision_rad = self._wrap_to_pi(
-            self.target_theta_vision_rad - delta_yaw
+        self.target_yaw_error_rad = self._wrap_to_pi(
+            self.target_yaw_error_rad - delta_yaw
         )
         self.last_target_state_update_time = now
 
@@ -997,9 +1053,7 @@ class CartAlignSpecialistPolicyNode(Node):
         raw_target_y_local: float,
     ) -> tuple[float, float]:
         return (
-            raw_target_x_local
-            + self.base_link_to_axle_center_x_sign
-            * self.base_link_to_axle_center_x_m,
+            raw_target_x_local - self.base_link_to_axle_center_x_m,
             raw_target_y_local,
         )
 

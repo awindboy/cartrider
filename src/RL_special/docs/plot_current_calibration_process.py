@@ -6,17 +6,17 @@ from pathlib import Path
 PROFILES = {
     "rear": {
         "color": "#d62728",
-        "target_x_local_m": 0.85,
-        "target_y_local_m": 0.18,
-        "target_theta_vision_deg": -12.0,
+        "target_x_local_m": 0.14,
+        "target_y_local_m": 0.08,
+        "target_theta_vision_deg": 8.0,
         "calibration_escape_motion_sign": -1.0,
         "calibration_escape_distance_m": 0.30,
     },
     "front": {
         "color": "#1f77b4",
-        "target_x_local_m": -0.85,
-        "target_y_local_m": 0.18,
-        "target_theta_vision_deg": -12.0,
+        "target_x_local_m": -0.14,
+        "target_y_local_m": 0.08,
+        "target_theta_vision_deg": 172.0,
         "calibration_escape_motion_sign": 1.0,
         "calibration_escape_distance_m": 0.30,
     },
@@ -319,10 +319,10 @@ def compute_rotate_out(
     target_theta_vision_rad: float,
     motion_sign: float,
     distance_m: float,
-) -> float:
+) -> tuple[float, float]:
     signed_motion_distance_m = motion_sign * distance_m
     if abs(signed_motion_distance_m) <= 1.0e-9:
-        return 0.0
+        return 0.0, 0.0
 
     robot_x_t, robot_y_t, robot_heading_t = robot_in_target_frame(
         target_x_local,
@@ -330,22 +330,44 @@ def compute_rotate_out(
         target_theta_vision_rad,
     )
 
-    lateral_move_t = -robot_y_t
     longitudinal_sq = (
         signed_motion_distance_m * signed_motion_distance_m
-        - lateral_move_t * lateral_move_t
+        - robot_y_t * robot_y_t
     )
     if longitudinal_sq < 0.0:
         longitudinal_sq = 0.0
 
-    moved_robot_x_t = -math.sqrt(longitudinal_sq)
+    delta_x_t_mag = math.sqrt(longitudinal_sq)
+    x_axis_sign = 1.0 if motion_sign > 0.0 else -1.0
+    candidates = (
+        robot_x_t - delta_x_t_mag,
+        robot_x_t + delta_x_t_mag,
+    )
+    valid_candidates = [
+        candidate
+        for candidate in candidates
+        if candidate * x_axis_sign >= -1.0e-9
+    ]
+    if valid_candidates:
+        moved_robot_x_t = (
+            max(valid_candidates)
+            if x_axis_sign > 0.0
+            else min(valid_candidates)
+        )
+    else:
+        moved_robot_x_t = (
+            max(candidates)
+            if x_axis_sign > 0.0
+            else min(candidates)
+        )
+
     delta_x_t = moved_robot_x_t - robot_x_t
     delta_y_t = -robot_y_t
     move_heading_t = math.atan2(
         delta_y_t / signed_motion_distance_m,
         delta_x_t / signed_motion_distance_m,
     )
-    return wrap_to_pi(move_heading_t - robot_heading_t)
+    return wrap_to_pi(move_heading_t - robot_heading_t), moved_robot_x_t
 
 
 def profile_row(row_idx: int, name: str, cfg: dict):
@@ -359,7 +381,7 @@ def profile_row(row_idx: int, name: str, cfg: dict):
     distance = cfg["calibration_escape_distance_m"]
     use_positive_axis = name == "front"
 
-    alpha = compute_rotate_out(x0, y0, theta0, motion_sign, distance)
+    alpha, moved_robot_x_t = compute_rotate_out(x0, y0, theta0, motion_sign, distance)
     x1, y1, theta1 = apply_robot_motion_to_target(
         x0,
         y0,
@@ -384,10 +406,9 @@ def profile_row(row_idx: int, name: str, cfg: dict):
     )
 
     parts = [text(14, top + PANEL_H / 2, name.upper(), size=20, fill=color, weight="bold")]
-
-    ghost_x0 = motion_sign * distance
-    ghost_y0 = 0.0
-    ghost_heading0 = 0.0
+    robot_x_t0, robot_y_t0, _ = robot_in_target_frame(x0, y0, theta0)
+    axis_endpoint_x_local = x1 + moved_robot_x_t * math.cos(theta1)
+    axis_endpoint_y_local = y1 + moved_robot_x_t * math.sin(theta1)
     ghost_x1 = motion_sign * distance * math.cos(alpha)
     ghost_y1 = motion_sign * distance * math.sin(alpha)
     ghost_heading1 = alpha
@@ -399,9 +420,9 @@ def profile_row(row_idx: int, name: str, cfg: dict):
         "4/4 After Final Turn",
     ]
     subtitles = [
-        "Current target and the 30cm reachable circle",
-        "Chosen point on the 30cm circle that lies on the target axis",
-        "After the actual 30cm move",
+        "Target axis must already pass through the 30cm circle",
+        "Rotate to face the farther axis-circle intersection",
+        "Robot reaches the target axis after the 30cm move",
         "Rotate by beta so yaw error becomes 0",
     ]
 
@@ -422,18 +443,6 @@ def profile_row(row_idx: int, name: str, cfg: dict):
         )
     )
     parts.extend(draw_reachable_circle(lefts[0], top, distance, color))
-    parts.extend(
-        draw_robot_pose(
-            lefts[0],
-            top,
-            ghost_x0,
-            ghost_y0,
-            ghost_heading0,
-            fill=color,
-            stroke=color,
-            opacity=0.25,
-        )
-    )
     parts.append(
         multiline_text(
             lefts[0] + 16,
@@ -442,7 +451,7 @@ def profile_row(row_idx: int, name: str, cfg: dict):
                 f"x={x0:+.3f} m",
                 f"y={y0:+.3f} m",
                 f"theta_vision={math.degrees(theta0):+.1f} deg",
-                "dashed circle = all 30cm reachable poses",
+                f"robot in target frame: x_T={robot_x_t0:+.3f}, y_T={robot_y_t0:+.3f}",
             ],
             fill=color,
         )
@@ -461,6 +470,16 @@ def profile_row(row_idx: int, name: str, cfg: dict):
         )
     )
     parts.extend(draw_reachable_circle(lefts[1], top, distance, color))
+    parts.append(
+        circle(
+            sx(lefts[1], axis_endpoint_x_local),
+            sy(top, axis_endpoint_y_local),
+            4,
+            color,
+            stroke=color,
+            width=1,
+        )
+    )
     parts.extend(
         draw_robot_pose(
             lefts[1],
@@ -493,7 +512,7 @@ def profile_row(row_idx: int, name: str, cfg: dict):
                 f"x={x1:+.3f} m",
                 f"y={y1:+.3f} m",
                 f"theta_vision={math.degrees(theta1):+.1f} deg",
-                "ghost triangle = chosen point on axis",
+                "ghost triangle = farther axis-circle intersection",
             ],
             fill=color,
         )
@@ -520,7 +539,7 @@ def profile_row(row_idx: int, name: str, cfg: dict):
                 f"x={x2:+.3f} m",
                 f"y={y2:+.3f} m",
                 f"theta_vision={math.degrees(theta2):+.1f} deg",
-                "now the moved robot should satisfy the axis condition",
+                "robot is now on the target axis, but yaw is not aligned yet",
             ],
             fill="#2ca02c",
         )

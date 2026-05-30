@@ -882,19 +882,42 @@ class CartAlignSpecialistPolicyNode(Node):
             )
         )
 
-        lateral_move_target_frame_m = -robot_y_target_frame_m
         longitudinal_sq_m2 = (
             signed_motion_distance_m * signed_motion_distance_m
-            - lateral_move_target_frame_m * lateral_move_target_frame_m
+            - robot_y_target_frame_m * robot_y_target_frame_m
         )
         if longitudinal_sq_m2 < 0.0:
             longitudinal_sq_m2 = 0.0
 
-        # The target requirement is unique: after the fixed move distance, the
-        # robot axle center must lie on the target frame x- axis.
-        moved_x_target_frame_m = -math.sqrt(longitudinal_sq_m2)
-        delta_x_target_frame_m = moved_x_target_frame_m - robot_x_target_frame_m
+        delta_x_target_frame_magnitude = math.sqrt(longitudinal_sq_m2)
+        x_axis_sign = (
+            1.0 if calibration_escape_motion_sign > 0.0 else -1.0
+        )
+
+        candidate_x_target_frame_m = (
+            robot_x_target_frame_m - delta_x_target_frame_magnitude,
+            robot_x_target_frame_m + delta_x_target_frame_magnitude,
+        )
+        valid_candidates = [
+            candidate
+            for candidate in candidate_x_target_frame_m
+            if candidate * x_axis_sign >= -1.0e-9
+        ]
+        if valid_candidates:
+            moved_x_target_frame_m = (
+                max(valid_candidates)
+                if x_axis_sign > 0.0
+                else min(valid_candidates)
+            )
+        else:
+            moved_x_target_frame_m = (
+                max(candidate_x_target_frame_m)
+                if x_axis_sign > 0.0
+                else min(candidate_x_target_frame_m)
+            )
+
         delta_y_target_frame_m = -robot_y_target_frame_m
+        delta_x_target_frame_m = moved_x_target_frame_m - robot_x_target_frame_m
         move_heading_target_frame_rad = math.atan2(
             delta_y_target_frame_m / signed_motion_distance_m,
             delta_x_target_frame_m / signed_motion_distance_m,

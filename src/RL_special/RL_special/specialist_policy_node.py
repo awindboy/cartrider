@@ -29,6 +29,7 @@ class CartAlignSpecialistPolicyNode(Node):
             'cartrider_rmd_sdk/msg/MotorStateArray',
         )
         self.declare_parameter('cmd_vel_topic', '/cmd_vel')
+        self.declare_parameter('cmd_angular_sign', 1.0)
         self.declare_parameter(
             'robot_docking_completion_topic',
             '/gripper_toggle',
@@ -73,6 +74,9 @@ class CartAlignSpecialistPolicyNode(Node):
         self.motor_state_topic = str(self.get_parameter('motor_state_topic').value)
         self.motor_state_type = str(self.get_parameter('motor_state_type').value)
         self.cmd_vel_topic = str(self.get_parameter('cmd_vel_topic').value)
+        self.cmd_angular_sign = float(
+            self.get_parameter('cmd_angular_sign').value
+        )
         self.robot_docking_completion_topic = str(
             self.get_parameter('robot_docking_completion_topic').value
         )
@@ -274,6 +278,8 @@ class CartAlignSpecialistPolicyNode(Node):
             raise ValueError('wheel_separation_m must be > 0.')
         if self.external_reduction <= 0.0:
             raise ValueError('external_reduction must be > 0.')
+        if self.cmd_angular_sign not in (-1.0, 1.0):
+            raise ValueError('cmd_angular_sign must be -1.0 or 1.0.')
     def _load_model(self) -> None:
         if not os.path.isfile(self.model_path):
             raise FileNotFoundError(f'ONNX model not found: {self.model_path}')
@@ -827,7 +833,7 @@ class CartAlignSpecialistPolicyNode(Node):
     ) -> None:
         msg = Twist()
         msg.linear.x = float(linear_x_m_s)
-        msg.angular.z = float(angular_z_rad_s)
+        msg.angular.z = float(self.cmd_angular_sign * angular_z_rad_s)
         self.cmd_vel_pub.publish(msg)
 
     def _publish_completion_signal(

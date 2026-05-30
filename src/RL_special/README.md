@@ -192,6 +192,7 @@ calibration 중 비전이 다시 들어와도 즉시 정책을 재개하지 않�
 - `target_topic`
 - `motor_state_topic`
 - `cmd_vel_topic`
+- `cmd_angular_sign`
 - `robot_docking_completion_topic`
 - `cart_docking_completion_topic`
 - `linear_velocity_scale_m_s`

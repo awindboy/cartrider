@@ -35,6 +35,7 @@ PROFILE_DEFAULTS = {
         'calibration_escape_motion_sign': -1.0,
         'motor_state_topic': '/rmd_state',
         'cmd_vel_topic': '/cmd_vel',
+        'cmd_angular_sign': 1.0,
         'state_invert_left': True,
         'state_invert_right': False,
         'wheel_radius_m': 0.1100,
@@ -62,6 +63,7 @@ PROFILE_DEFAULTS = {
         'calibration_escape_motion_sign': 1.0,
         'motor_state_topic': '/front/rmd_state',
         'cmd_vel_topic': '/front/cmd_vel',
+        'cmd_angular_sign': -1.0,
         'state_invert_left': False,
         'state_invert_right': True,
         'wheel_radius_m': 0.0635,
@@ -164,6 +166,14 @@ def _build_policy_node(context):
             context,
             'cmd_vel_topic',
             profile['cmd_vel_topic'],
+        ),
+        'cmd_angular_sign': _parse_float(
+            _resolve_arg(
+                context,
+                'cmd_angular_sign',
+                profile['cmd_angular_sign'],
+            ),
+            'cmd_angular_sign',
         ),
         'robot_docking_completion_topic': _resolve_arg(
             context,
@@ -405,6 +415,11 @@ def generate_launch_description() -> LaunchDescription:
                 'cmd_vel_topic',
                 default_value='__auto__',
                 description='__auto__ uses profile default cmd_vel_topic.',
+            ),
+            DeclareLaunchArgument(
+                'cmd_angular_sign',
+                default_value='__auto__',
+                description='__auto__ uses profile default published angular.z sign.',
             ),
             DeclareLaunchArgument(
                 'robot_docking_completion_topic',

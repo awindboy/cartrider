@@ -17,7 +17,7 @@ PROFILE_DEFAULTS = {
     'rear': {
         'model_file': 'specialist_policy.onnx',
         'docking_target_topic': '/docking_target',
-        'target_topic': '/rear/cart_pose',
+        'target_topic': '/rear/target_pose',
         'robot_docking_completion_topic': '/gripper_toggle',
         'cart_docking_completion_topic': '/gripper_toggle',
         'cart_docking_final_distance_m': 0.31,
@@ -44,7 +44,7 @@ PROFILE_DEFAULTS = {
     'front': {
         'model_file': 'front_specialist_policy.onnx',
         'docking_target_topic': '/docking_target',
-        'target_topic': '/front/cart_pose',
+        'target_topic': '/front/target_pose',
         'robot_docking_completion_topic': '/front/robot_docking',
         'cart_docking_completion_topic': '/front/cart_docking',
         'cart_docking_final_distance_m': 0.12,

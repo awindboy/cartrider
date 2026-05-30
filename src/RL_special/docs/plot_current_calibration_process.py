@@ -15,8 +15,8 @@ PROFILES = {
     "front": {
         "color": "#1f77b4",
         "target_x_local_m": -0.14,
-        "target_y_local_m": 0.08,
-        "target_theta_vision_deg": 172.0,
+        "target_y_local_m": 0.05,
+        "target_theta_vision_deg": 8.0,
         "calibration_escape_motion_sign": 1.0,
         "calibration_escape_distance_m": 0.30,
     },
@@ -118,15 +118,49 @@ def panel_frame(panel_left: float, panel_top: float, title: str, subtitle: str):
     ]
 
 
-def draw_robot_frame(panel_left: float, panel_top: float):
+def _triangle_points(
+    panel_left: float,
+    panel_top: float,
+    x_m: float,
+    y_m: float,
+    heading_rad: float,
+):
     ox = sx(panel_left, 0.0)
     oy = sy(panel_top, 0.0)
-    triangle = [
-        (ox + 14.0, oy),
-        (ox - 10.0, oy - 8.0),
-        (ox - 10.0, oy + 8.0),
+    tip = (
+        sx(panel_left, x_m + 0.14 * math.cos(heading_rad)),
+        sy(panel_top, y_m + 0.14 * math.sin(heading_rad)),
+    )
+    left = (
+        sx(panel_left, x_m - 0.08 * math.cos(heading_rad) - 0.05 * math.sin(heading_rad)),
+        sy(panel_top, y_m - 0.08 * math.sin(heading_rad) + 0.05 * math.cos(heading_rad)),
+    )
+    right = (
+        sx(panel_left, x_m - 0.08 * math.cos(heading_rad) + 0.05 * math.sin(heading_rad)),
+        sy(panel_top, y_m - 0.08 * math.sin(heading_rad) - 0.05 * math.cos(heading_rad)),
+    )
+    return [tip, left, right]
+
+
+def draw_robot_frame(panel_left: float, panel_top: float, show_camera_triangle: bool = False):
+    parts = [
+        polygon(
+            _triangle_points(panel_left, panel_top, 0.0, 0.0, 0.0),
+            fill="#111111",
+            stroke="#111111",
+            width=1,
+        )
     ]
-    return [polygon(triangle, fill="#111111", stroke="#111111", width=1)]
+    if show_camera_triangle:
+        parts.append(
+            polygon(
+                _triangle_points(panel_left, panel_top, 0.0, 0.0, math.pi),
+                fill="#ffffff",
+                stroke="#555555",
+                width=1,
+            )
+        )
+    return parts
 
 
 def draw_robot_pose(
@@ -139,34 +173,17 @@ def draw_robot_pose(
     stroke: str,
     opacity: float = 1.0,
 ):
-    ox = sx(panel_left, robot_x_local)
-    oy = sy(panel_top, robot_y_local)
-    tip = (
-        sx(panel_left, robot_x_local + 0.14 * math.cos(robot_heading_rad)),
-        sy(panel_top, robot_y_local + 0.14 * math.sin(robot_heading_rad)),
-    )
-    left = (
-        sx(
-            panel_left,
-            robot_x_local - 0.08 * math.cos(robot_heading_rad) - 0.05 * math.sin(robot_heading_rad),
-        ),
-        sy(
-            panel_top,
-            robot_y_local - 0.08 * math.sin(robot_heading_rad) + 0.05 * math.cos(robot_heading_rad),
-        ),
-    )
-    right = (
-        sx(
-            panel_left,
-            robot_x_local - 0.08 * math.cos(robot_heading_rad) + 0.05 * math.sin(robot_heading_rad),
-        ),
-        sy(
-            panel_top,
-            robot_y_local - 0.08 * math.sin(robot_heading_rad) - 0.05 * math.cos(robot_heading_rad),
-        ),
+    triangle_points = _triangle_points(
+        panel_left,
+        panel_top,
+        robot_x_local,
+        robot_y_local,
+        robot_heading_rad,
     )
     return [
-        f'<polygon points="{tip[0]:.1f},{tip[1]:.1f} {left[0]:.1f},{left[1]:.1f} {right[0]:.1f},{right[1]:.1f}" '
+        f'<polygon points="{triangle_points[0][0]:.1f},{triangle_points[0][1]:.1f} '
+        f'{triangle_points[1][0]:.1f},{triangle_points[1][1]:.1f} '
+        f'{triangle_points[2][0]:.1f},{triangle_points[2][1]:.1f}" '
         f'fill="{fill}" stroke="{stroke}" stroke-width="1" opacity="{opacity:.2f}" />'
     ]
 
@@ -286,17 +303,14 @@ def apply_robot_motion_to_target(
     linear_distance_m: float,
     delta_yaw_rad: float,
 ) -> tuple[float, float, float]:
-    delta_x = linear_distance_m
-    delta_y = 0.0
-
     cos_yaw = math.cos(delta_yaw_rad)
     sin_yaw = math.sin(delta_yaw_rad)
-    shifted_x = target_x_local - delta_x
-    shifted_y = target_y_local - delta_y
+    rotated_x = cos_yaw * target_x_local + sin_yaw * target_y_local
+    rotated_y = -sin_yaw * target_x_local + cos_yaw * target_y_local
 
-    new_x = cos_yaw * shifted_x + sin_yaw * shifted_y
-    new_y = -sin_yaw * shifted_x + cos_yaw * shifted_y
-    new_theta = wrap_to_pi(target_theta_vision_rad + delta_yaw_rad)
+    new_x = rotated_x - linear_distance_m
+    new_y = rotated_y
+    new_theta = wrap_to_pi(target_theta_vision_rad - delta_yaw_rad)
     return new_x, new_y, new_theta
 
 
@@ -396,7 +410,7 @@ def profile_row(row_idx: int, name: str, cfg: dict):
         linear_distance_m=motion_sign * distance,
         delta_yaw_rad=0.0,
     )
-    beta = wrap_to_pi(-theta2)
+    beta = wrap_to_pi(theta2)
     x3, y3, theta3 = apply_robot_motion_to_target(
         x2,
         y2,
@@ -428,7 +442,7 @@ def profile_row(row_idx: int, name: str, cfg: dict):
 
     for idx, left in enumerate(lefts):
         parts.extend(panel_frame(left, top, titles[idx], subtitles[idx]))
-        parts.extend(draw_robot_frame(left, top))
+        parts.extend(draw_robot_frame(left, top, show_camera_triangle=use_positive_axis))
 
     parts.extend(
         draw_target_pose(

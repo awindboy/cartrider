@@ -703,7 +703,7 @@ class CartAlignSpecialistPolicyNode(Node):
                     self._publish_cmd_vel(linear_x_m_s=0.0, angular_z_rad_s=0.0)
                     self._finish_calibration()
                     return
-                self.calibration_rotate_back_target_rad = -self.target_theta_vision_rad
+                self.calibration_rotate_back_target_rad = self.target_theta_vision_rad
                 if abs(self.calibration_rotate_back_target_rad) <= 1.0e-9:
                     self._publish_cmd_vel(linear_x_m_s=0.0, angular_z_rad_s=0.0)
                     self._finish_calibration()
@@ -982,7 +982,7 @@ class CartAlignSpecialistPolicyNode(Node):
         self.target_x_local_m = cos_yaw * shifted_x + sin_yaw * shifted_y
         self.target_y_local_m = -sin_yaw * shifted_x + cos_yaw * shifted_y
         self.target_theta_vision_rad = self._wrap_to_pi(
-            self.target_theta_vision_rad + delta_yaw
+            self.target_theta_vision_rad - delta_yaw
         )
         self.last_target_state_update_time = now
 

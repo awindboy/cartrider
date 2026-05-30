@@ -29,17 +29,19 @@ rear 프로파일은 `docking_target=1`을 받으면 동작하지 않고 `rear_r
 
 비전이 주는 `x, y, theta`는 `base_link` 중심 기준입니다. 내부에서는 다음 순서로 가공합니다.
 
-1. `base_link -> 구동축 중심` 변환
+1. front만 카메라 기준 `x, y`를 로봇 진행방향 기준으로 변환
+   - `x_robot = -x_camera`
+   - `y_robot = -y_camera`
+2. `base_link -> 구동축 중심` 변환
    - rear: `x_axle = x_base - base_link_to_axle_center_x_m`
    - front: `x_axle = x_base + base_link_to_axle_center_x_m`
-2. 카트 표면 offset 적용
+3. 카트 표면 offset 적용
    - `x_target = x_axle - target_x_offset_m * cos(theta_vision)`
    - `y_target = y_axle - target_x_offset_m * sin(theta_vision)`
-3. policy yaw 입력
+4. policy yaw 입력
    - `heading_error = wrap_to_pi(-theta_vision)`
-4. front만 policy 입력 직전에 `x_target`, `y_target`에 `-1`을 곱함
 
-즉 target 가공 자체는 front/rear가 거의 동일하고, front는 policy 입력 관점에서만 x/y를 뒤집습니다.
+즉 front는 target 입력 좌표를 먼저 로봇 진행방향 기준으로 바꾸고, 그 뒤의 가공 체인은 rear와 동일합니다.
 
 idle 중에도 최신 비전 target은 계속 캐시됩니다.  
 명령이 들어오면 이 캐시를 바로 사용할 수 있고, 캐시가 stale이면 새 비전 입력을 기다립니다.
@@ -166,7 +168,7 @@ calibration 중 비전이 다시 들어와도 즉시 정책을 재개하지 않�
   - robot docking: `/front/robot_docking`
   - cart docking: `/front/cart_docking`
 - `base_link_to_axle_center_x_sign = +1.0`
-- `invert_target_xy_for_policy = true`
+- `invert_target_xy_for_policy = false`
 - `final_docking_motion_sign = -1.0`
 - `calibration_escape_motion_sign = +1.0`
 - `external_reduction = 1.0`
@@ -192,7 +194,6 @@ calibration 중 비전이 다시 들어와도 즉시 정책을 재개하지 않�
 - `target_topic`
 - `motor_state_topic`
 - `cmd_vel_topic`
-- `cmd_angular_sign`
 - `robot_docking_completion_topic`
 - `cart_docking_completion_topic`
 - `linear_velocity_scale_m_s`

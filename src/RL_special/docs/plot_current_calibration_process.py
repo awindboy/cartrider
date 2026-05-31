@@ -27,7 +27,6 @@ QUADRANTS = [
     ("Q4", 0.21, -0.16, math.radians(18.0)),
 ]
 
-ESCAPE_DISTANCE_M = 0.30
 CART_LENGTH_M = 0.64
 CART_WIDTH_M = 0.42
 PANEL_W = 212
@@ -42,7 +41,7 @@ CANVAS_H = HEADER_H + PANEL_H * 4 + GAP_Y * 5
 X_MIN = -1.02
 X_MAX = 1.02
 # Keep the same metric scale on both axes so heading and motion vectors line up
-# visually. Otherwise the 30 cm straight move looks like sideways sliding.
+# visually. Otherwise the straight move looks like sideways sliding.
 Y_MIN = -1.02
 Y_MAX = 1.02
 
@@ -114,106 +113,50 @@ def target_state_after_motion(
     )
 
 
-def target_state_after_calibration_motion(
+def compute_rotate_out_and_move_distance(
     target_x_local: float,
     target_y_local: float,
     target_yaw_error_rad: float,
-    rotate_out_rad: float,
-    signed_motion_distance_m: float,
-) -> tuple[float, float, float]:
-    rotated = target_state_after_rotation(
+    calibration_axis_sign: float,
+    calibration_escape_motion_sign: float,
+    ) -> tuple[float, float]:
+    (
+        robot_x_target_frame_m,
+        robot_y_target_frame_m,
+        robot_heading_target_frame_rad,
+    ) = robot_pose_in_target_frame(
         target_x_local,
         target_y_local,
         target_yaw_error_rad,
-        rotate_out_rad,
     )
-    return target_state_after_motion(*rotated, signed_motion_distance_m)
-
-
-def compute_rotate_out_target_rad(
-    target_x_local: float,
-    target_y_local: float,
-    target_yaw_error_rad: float,
-    calibration_escape_motion_sign: float,
-    calibration_escape_distance_m: float,
-) -> float:
-    signed_motion_distance_m = (
-        calibration_escape_motion_sign * calibration_escape_distance_m
+    if calibration_axis_sign > 0.0:
+        goal_x_target_frame_m = max(0.0, robot_x_target_frame_m)
+    else:
+        goal_x_target_frame_m = min(0.0, robot_x_target_frame_m)
+    delta_x_target_frame_m = goal_x_target_frame_m - robot_x_target_frame_m
+    delta_y_target_frame_m = -robot_y_target_frame_m
+    move_distance_m = math.hypot(
+        delta_x_target_frame_m,
+        delta_y_target_frame_m,
     )
-    if abs(signed_motion_distance_m) <= 1.0e-9:
-        return 0.0
-    x_axis_sign = 1.0 if calibration_escape_motion_sign > 0.0 else -1.0
-
-    def axis_error(candidate_rad: float) -> float:
-        moved_state = target_state_after_calibration_motion(
-            target_x_local,
-            target_y_local,
-            target_yaw_error_rad,
-            candidate_rad,
-            signed_motion_distance_m,
+    if move_distance_m <= 1.0e-9:
+        return 0.0, 0.0
+    move_direction_target_frame_rad = math.atan2(
+        delta_y_target_frame_m,
+        delta_x_target_frame_m,
+    )
+    commanded_heading_target_frame_rad = move_direction_target_frame_rad
+    if calibration_escape_motion_sign < 0.0:
+        commanded_heading_target_frame_rad = wrap_to_pi(
+            move_direction_target_frame_rad + math.pi
         )
-        _, robot_y_target_frame_m, _ = robot_pose_in_target_frame(*moved_state)
-        return robot_y_target_frame_m
-
-    roots: list[float] = []
-    sample_count = 1440
-    previous_angle = -math.pi
-    previous_error = axis_error(previous_angle)
-    if abs(previous_error) <= 1.0e-9:
-        roots.append(previous_angle)
-
-    for sample_idx in range(1, sample_count + 1):
-        angle = -math.pi + (2.0 * math.pi * sample_idx / sample_count)
-        error = axis_error(angle)
-        if abs(error) <= 1.0e-9:
-            roots.append(angle)
-        elif previous_error * error < 0.0:
-            low = previous_angle
-            high = angle
-            low_error = previous_error
-            for _ in range(48):
-                mid = 0.5 * (low + high)
-                mid_error = axis_error(mid)
-                if abs(mid_error) <= 1.0e-12:
-                    low = high = mid
-                    break
-                if low_error * mid_error <= 0.0:
-                    high = mid
-                else:
-                    low = mid
-                    low_error = mid_error
-            roots.append(0.5 * (low + high))
-        previous_angle = angle
-        previous_error = error
-
-    if not roots:
-        best_angle = 0.0
-        best_error = float("inf")
-        for sample_idx in range(sample_count + 1):
-            angle = -math.pi + (2.0 * math.pi * sample_idx / sample_count)
-            error = abs(axis_error(angle))
-            if error < best_error:
-                best_error = error
-                best_angle = angle
-        return wrap_to_pi(best_angle)
-
-    def root_score(candidate_rad: float) -> tuple[int, float, float]:
-        moved_state = target_state_after_calibration_motion(
-            target_x_local,
-            target_y_local,
-            target_yaw_error_rad,
-            candidate_rad,
-            signed_motion_distance_m,
-        )
-        robot_x_target_frame_m, robot_y_target_frame_m, _ = (
-            robot_pose_in_target_frame(*moved_state)
-        )
-        axis_distance = robot_x_target_frame_m * x_axis_sign
-        axis_penalty = 0 if axis_distance >= -1.0e-9 else 1
-        axis_distance_score = -axis_distance if axis_penalty == 0 else axis_distance
-        return axis_penalty, axis_distance_score, abs(robot_y_target_frame_m)
-
-    return wrap_to_pi(min(roots, key=root_score))
+    return (
+        wrap_to_pi(
+            commanded_heading_target_frame_rad
+            - robot_heading_target_frame_rad
+        ),
+        move_distance_m,
+    )
 
 
 def calibration_states(
@@ -227,12 +170,12 @@ def calibration_states(
         robot_y_target_frame_m,
         robot_heading_target_frame_rad,
     )
-    signed_distance = cfg["calibration_escape_motion_sign"] * ESCAPE_DISTANCE_M
-    rotate_out = compute_rotate_out_target_rad(
+    rotate_out, move_distance = compute_rotate_out_and_move_distance(
         *start,
+        cfg["docking_axis_sign"],
         cfg["calibration_escape_motion_sign"],
-        ESCAPE_DISTANCE_M,
     )
+    signed_distance = cfg["calibration_escape_motion_sign"] * move_distance
     after_rotate = target_state_after_rotation(*start, rotate_out)
     after_move = target_state_after_motion(*after_rotate, signed_distance)
     rotate_back = after_move[2]
@@ -245,6 +188,7 @@ def calibration_states(
         "rotate_out": rotate_out,
         "rotate_back": rotate_back,
         "signed_distance": signed_distance,
+        "move_distance": move_distance,
     }
 
 
@@ -466,7 +410,7 @@ def draw_quadrant_row(row_idx: int, quadrant: tuple[str, float, float, float]) -
                     cfg,
                     [
                         f"turn={math.degrees(states['rotate_out']):+.1f}deg",
-                        "faint=after 30cm",
+                        f"faint=after {states['move_distance']:.2f}m",
                     ],
                     projection_state=projection_from_rotate,
                 ),
@@ -478,6 +422,7 @@ def draw_quadrant_row(row_idx: int, quadrant: tuple[str, float, float, float]) -
                     cfg,
                     [
                         "on target x-axis",
+                        f"move={states['move_distance']:.2f}m",
                         f"y_T={moved_pose[1]:+.3f}m",
                     ],
                 ),

@@ -51,7 +51,6 @@ class CartAlignSpecialistPolicyNode(Node):
         self.declare_parameter('cart_docking_final_distance_m', 0.35)
         self.declare_parameter('robot_docking_final_distance_m', 0.35)
         self.declare_parameter('final_docking_motion_sign', 1.0)
-        self.declare_parameter('calibration_escape_distance_m', 0.30)
         self.declare_parameter('calibration_escape_motion_sign', -1.0)
         self.declare_parameter('near_target_distance_m', 0.5)
         self.declare_parameter('near_target_linear_speed_limit_m_s', 0.0)
@@ -121,9 +120,6 @@ class CartAlignSpecialistPolicyNode(Node):
         self.final_docking_motion_sign = float(
             self.get_parameter('final_docking_motion_sign').value
         )
-        self.calibration_escape_distance_m = float(
-            self.get_parameter('calibration_escape_distance_m').value
-        )
         self.calibration_escape_motion_sign = float(
             self.get_parameter('calibration_escape_motion_sign').value
         )
@@ -183,6 +179,7 @@ class CartAlignSpecialistPolicyNode(Node):
         self.control_phase = 'waiting_docking_target'
         self.calibration_stage = ''
         self.calibration_distance_traveled_m = 0.0
+        self.calibration_move_distance_target_m = 0.0
         self.calibration_yaw_traveled_rad = 0.0
         self.calibration_last_update_time = None
         self.calibration_rotate_out_target_rad = 0.0
@@ -283,8 +280,6 @@ class CartAlignSpecialistPolicyNode(Node):
             raise ValueError('robot_docking_final_distance_m must be >= 0.')
         if self.final_docking_motion_sign not in (-1.0, 1.0):
             raise ValueError('final_docking_motion_sign must be -1.0 or 1.0.')
-        if self.calibration_escape_distance_m < 0.0:
-            raise ValueError('calibration_escape_distance_m must be >= 0.')
         if self.calibration_escape_motion_sign not in (-1.0, 1.0):
             raise ValueError('calibration_escape_motion_sign must be -1.0 or 1.0.')
         if self.near_target_distance_m < 0.0:
@@ -410,6 +405,7 @@ class CartAlignSpecialistPolicyNode(Node):
     def _reset_motion_state(self) -> None:
         self.calibration_stage = ''
         self.calibration_distance_traveled_m = 0.0
+        self.calibration_move_distance_target_m = 0.0
         self.calibration_yaw_traveled_rad = 0.0
         self.calibration_last_update_time = None
         self.calibration_rotate_out_target_rad = 0.0
@@ -661,25 +657,17 @@ class CartAlignSpecialistPolicyNode(Node):
         target_y_local = (
             self.target_y_local_m if self.target_y_local_m is not None else 0.0
         )
-        if (
-            abs(target_x_local) <= 1.0e-9
-            and abs(target_y_local) <= 1.0e-9
-        ):
-            self.calibration_rotate_out_target_rad = 0.0
-        else:
-            self.calibration_rotate_out_target_rad = self._compute_calibration_rotate_out_target_rad(
-                target_x_local,
-                target_y_local,
-                self.target_yaw_error_rad if self.target_yaw_error_rad is not None else 0.0,
-                self.calibration_escape_motion_sign,
-                self.calibration_escape_distance_m,
-            )
-        self.calibration_rotate_back_target_rad = 0.0
-        self.calibration_stage = (
-            'rotate_out'
-            if abs(self.calibration_rotate_out_target_rad) > 1.0e-9
-            else 'reverse_escape'
+        (
+            self.calibration_rotate_out_target_rad,
+            self.calibration_move_distance_target_m,
+        ) = self._compute_calibration_rotate_out_and_move_distance(
+            target_x_local,
+            target_y_local,
+            self.target_yaw_error_rad if self.target_yaw_error_rad is not None else 0.0,
+            self._get_calibration_axis_sign(),
+            self.calibration_escape_motion_sign,
         )
+        self.calibration_rotate_back_target_rad = 0.0
         self.calibration_distance_traveled_m = 0.0
         self.calibration_yaw_traveled_rad = 0.0
         self.calibration_last_update_time = now
@@ -689,6 +677,14 @@ class CartAlignSpecialistPolicyNode(Node):
             linear_x_m_s=0.0,
             angular_z_rad_s=0.0,
         )
+        if abs(self.calibration_rotate_out_target_rad) > 1.0e-9:
+            self.calibration_stage = 'rotate_out'
+        elif self.calibration_move_distance_target_m > 1.0e-9:
+            self.calibration_stage = 'move_to_axis'
+        else:
+            if self._start_calibration_rotate_back_or_finish():
+                return
+            self.calibration_stage = 'rotate_back'
         self._set_status(f'calibration_{self.calibration_stage}')
 
     def _run_calibration(self, now) -> None:
@@ -732,10 +728,10 @@ class CartAlignSpecialistPolicyNode(Node):
             if self.calibration_yaw_traveled_rad >= abs(
                 self.calibration_rotate_out_target_rad
             ):
-                self.calibration_stage = 'reverse_escape'
+                self.calibration_stage = 'move_to_axis'
                 self.calibration_distance_traveled_m = 0.0
                 self._publish_cmd_vel(linear_x_m_s=0.0, angular_z_rad_s=0.0)
-                self._set_status('calibration_reverse_escape')
+                self._set_status('calibration_move_to_axis')
                 return
             self._publish_cmd_vel(
                 linear_x_m_s=0.0,
@@ -748,7 +744,7 @@ class CartAlignSpecialistPolicyNode(Node):
             )
             return
 
-        if self.calibration_stage == 'reverse_escape':
+        if self.calibration_stage == 'move_to_axis':
             if self.calibration_escape_motion_sign > 0.0:
                 self.calibration_distance_traveled_m += max(
                     0.0, self.current_linear_velocity_m_s
@@ -757,20 +753,12 @@ class CartAlignSpecialistPolicyNode(Node):
                 self.calibration_distance_traveled_m += max(
                     0.0, -self.current_linear_velocity_m_s
                 ) * dt
-            if self.calibration_distance_traveled_m >= self.calibration_escape_distance_m:
-                if self.target_yaw_error_rad is None:
-                    self._publish_cmd_vel(linear_x_m_s=0.0, angular_z_rad_s=0.0)
-                    self._finish_calibration()
+            if (
+                self.calibration_distance_traveled_m
+                >= self.calibration_move_distance_target_m
+            ):
+                if self._start_calibration_rotate_back_or_finish():
                     return
-                self.calibration_rotate_back_target_rad = self.target_yaw_error_rad
-                if abs(self.calibration_rotate_back_target_rad) <= 1.0e-9:
-                    self._publish_cmd_vel(linear_x_m_s=0.0, angular_z_rad_s=0.0)
-                    self._finish_calibration()
-                    return
-                self.calibration_stage = 'rotate_back'
-                self.calibration_yaw_traveled_rad = 0.0
-                self._publish_cmd_vel(linear_x_m_s=0.0, angular_z_rad_s=0.0)
-                self._set_status('calibration_rotate_back')
                 return
             self._publish_cmd_vel(
                 linear_x_m_s=self.calibration_escape_motion_sign * linear_limit,
@@ -809,6 +797,7 @@ class CartAlignSpecialistPolicyNode(Node):
         self.control_phase = 'align'
         self.calibration_stage = ''
         self.calibration_distance_traveled_m = 0.0
+        self.calibration_move_distance_target_m = 0.0
         self.calibration_yaw_traveled_rad = 0.0
         self.calibration_last_update_time = None
         self.calibration_rotate_out_target_rad = 0.0
@@ -972,6 +961,25 @@ class CartAlignSpecialistPolicyNode(Node):
             and abs(target_yaw_error_rad) <= yaw_tolerance_rad
         )
 
+    def _get_calibration_axis_sign(self) -> float:
+        return 1.0 if self.robot_type == 'front' else -1.0
+
+    def _start_calibration_rotate_back_or_finish(self) -> bool:
+        if self.target_yaw_error_rad is None:
+            self._publish_cmd_vel(linear_x_m_s=0.0, angular_z_rad_s=0.0)
+            self._finish_calibration()
+            return True
+        self.calibration_rotate_back_target_rad = self.target_yaw_error_rad
+        if abs(self.calibration_rotate_back_target_rad) <= 1.0e-9:
+            self._publish_cmd_vel(linear_x_m_s=0.0, angular_z_rad_s=0.0)
+            self._finish_calibration()
+            return True
+        self.calibration_stage = 'rotate_back'
+        self.calibration_yaw_traveled_rad = 0.0
+        self._publish_cmd_vel(linear_x_m_s=0.0, angular_z_rad_s=0.0)
+        self._set_status('calibration_rotate_back')
+        return True
+
     @staticmethod
     def _canonical_target_from_pose(
         robot_type: str,
@@ -1011,135 +1019,52 @@ class CartAlignSpecialistPolicyNode(Node):
         )
 
     @staticmethod
-    def _compute_calibration_rotate_out_target_rad(
+    def _compute_calibration_rotate_out_and_move_distance(
         target_x_local: float,
         target_y_local: float,
         target_yaw_error_rad: float,
+        calibration_axis_sign: float,
         calibration_escape_motion_sign: float,
-        calibration_escape_distance_m: float,
-    ) -> float:
-        signed_motion_distance_m = (
-            calibration_escape_motion_sign * calibration_escape_distance_m
+    ) -> tuple[float, float]:
+        (
+            robot_x_target_frame_m,
+            robot_y_target_frame_m,
+            robot_heading_target_frame_rad,
+        ) = CartAlignSpecialistPolicyNode._robot_pose_in_target_frame(
+            target_x_local,
+            target_y_local,
+            target_yaw_error_rad,
         )
-        if abs(signed_motion_distance_m) <= 1.0e-9:
-            return 0.0
-        x_axis_sign = 1.0 if calibration_escape_motion_sign > 0.0 else -1.0
-
-        def axis_error(candidate_rad: float) -> float:
-            moved_state = (
-                CartAlignSpecialistPolicyNode._target_state_after_calibration_motion(
-                    target_x_local,
-                    target_y_local,
-                    target_yaw_error_rad,
-                    candidate_rad,
-                    signed_motion_distance_m,
+        if calibration_axis_sign > 0.0:
+            goal_x_target_frame_m = max(0.0, robot_x_target_frame_m)
+        else:
+            goal_x_target_frame_m = min(0.0, robot_x_target_frame_m)
+        delta_x_target_frame_m = (
+            goal_x_target_frame_m - robot_x_target_frame_m
+        )
+        delta_y_target_frame_m = -robot_y_target_frame_m
+        move_distance_m = math.hypot(
+            delta_x_target_frame_m,
+            delta_y_target_frame_m,
+        )
+        if move_distance_m <= 1.0e-9:
+            return 0.0, 0.0
+        move_direction_target_frame_rad = math.atan2(
+            delta_y_target_frame_m,
+            delta_x_target_frame_m,
+        )
+        commanded_heading_target_frame_rad = move_direction_target_frame_rad
+        if calibration_escape_motion_sign < 0.0:
+            commanded_heading_target_frame_rad = (
+                CartAlignSpecialistPolicyNode._wrap_to_pi(
+                    move_direction_target_frame_rad + math.pi
                 )
             )
-            _, robot_y_target_frame_m, _ = (
-                CartAlignSpecialistPolicyNode._robot_pose_in_target_frame(
-                    *moved_state
-                )
-            )
-            return robot_y_target_frame_m
-
-        roots: list[float] = []
-        sample_count = 1440
-        previous_angle = -math.pi
-        previous_error = axis_error(previous_angle)
-        if abs(previous_error) <= 1.0e-9:
-            roots.append(previous_angle)
-
-        for sample_idx in range(1, sample_count + 1):
-            angle = -math.pi + (2.0 * math.pi * sample_idx / sample_count)
-            error = axis_error(angle)
-            if abs(error) <= 1.0e-9:
-                roots.append(angle)
-            elif previous_error * error < 0.0:
-                low = previous_angle
-                high = angle
-                low_error = previous_error
-                for _ in range(48):
-                    mid = 0.5 * (low + high)
-                    mid_error = axis_error(mid)
-                    if abs(mid_error) <= 1.0e-12:
-                        low = high = mid
-                        break
-                    if low_error * mid_error <= 0.0:
-                        high = mid
-                    else:
-                        low = mid
-                        low_error = mid_error
-                roots.append(0.5 * (low + high))
-            previous_angle = angle
-            previous_error = error
-
-        if not roots:
-            best_angle = 0.0
-            best_error = float('inf')
-            for sample_idx in range(sample_count + 1):
-                angle = -math.pi + (2.0 * math.pi * sample_idx / sample_count)
-                error = abs(axis_error(angle))
-                if error < best_error:
-                    best_error = error
-                    best_angle = angle
-            return CartAlignSpecialistPolicyNode._wrap_to_pi(best_angle)
-
-        def root_score(candidate_rad: float) -> tuple[int, float, float]:
-            moved_state = (
-                CartAlignSpecialistPolicyNode._target_state_after_calibration_motion(
-                    target_x_local,
-                    target_y_local,
-                    target_yaw_error_rad,
-                    candidate_rad,
-                    signed_motion_distance_m,
-                )
-            )
-            robot_x_target_frame_m, robot_y_target_frame_m, _ = (
-                CartAlignSpecialistPolicyNode._robot_pose_in_target_frame(
-                    *moved_state
-                )
-            )
-            axis_distance = robot_x_target_frame_m * x_axis_sign
-            axis_penalty = 0 if axis_distance >= -1.0e-9 else 1
-            if axis_penalty == 0:
-                axis_distance_score = -axis_distance
-            else:
-                axis_distance_score = axis_distance
-            return (
-                axis_penalty,
-                axis_distance_score,
-                abs(robot_y_target_frame_m),
-            )
-
-        return CartAlignSpecialistPolicyNode._wrap_to_pi(
-            min(roots, key=root_score)
+        rotate_out_target_rad = CartAlignSpecialistPolicyNode._wrap_to_pi(
+            commanded_heading_target_frame_rad
+            - robot_heading_target_frame_rad
         )
-
-    @staticmethod
-    def _target_state_after_calibration_motion(
-        target_x_local: float,
-        target_y_local: float,
-        target_yaw_error_rad: float,
-        rotate_out_rad: float,
-        signed_motion_distance_m: float,
-    ) -> tuple[float, float, float]:
-        cos_yaw = math.cos(rotate_out_rad)
-        sin_yaw = math.sin(rotate_out_rad)
-        rotated_x = (
-            cos_yaw * target_x_local
-            + sin_yaw * target_y_local
-        )
-        rotated_y = (
-            -sin_yaw * target_x_local
-            + cos_yaw * target_y_local
-        )
-        return (
-            rotated_x - signed_motion_distance_m,
-            rotated_y,
-            CartAlignSpecialistPolicyNode._wrap_to_pi(
-                target_yaw_error_rad - rotate_out_rad
-            ),
-        )
+        return rotate_out_target_rad, move_distance_m
 
     @staticmethod
     def _robot_pose_in_target_frame(

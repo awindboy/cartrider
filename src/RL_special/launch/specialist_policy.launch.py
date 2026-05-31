@@ -22,10 +22,10 @@ PROFILE_DEFAULTS = {
         'cart_docking_completion_topic': '/gripper_toggle',
         'cart_docking_final_distance_m': 0.31,
         'robot_docking_final_distance_m': 0.31,
-        'linear_velocity_scale_m_s': 0.2,
-        'angular_velocity_scale_rad_s': 0.3,
-        'near_target_linear_speed_limit_m_s': 0.06,
-        'near_target_angular_speed_limit_rad_s': 0.3,
+        'linear_velocity_scale_m_s': 0.1,
+        'angular_velocity_scale_rad_s': 0.05,
+        'near_target_linear_speed_limit_m_s': 0.05,
+        'near_target_angular_speed_limit_rad_s': 0.01,
         'near_target_distance_m': 0.3,
         'robot_docking_target_xy_stop_tolerance_m': 0.03,
         'robot_docking_target_yaw_stop_tolerance_deg': 2.0,
@@ -291,10 +291,6 @@ def _build_policy_node(context):
             ),
             'robot_docking_calibration_target_x_threshold_m',
         ),
-        'calibration_escape_distance_m': _parse_float(
-            LaunchConfiguration('calibration_escape_distance_m').perform(context),
-            'calibration_escape_distance_m',
-        ),
         'calibration_escape_motion_sign': _parse_float(
             _resolve_arg(
                 context,
@@ -541,7 +537,6 @@ def generate_launch_description() -> LaunchDescription:
                 default_value='__auto__',
                 description='Front robot docking enters calibration when canonical target_x exceeds this threshold before alignment is complete.',
             ),
-            DeclareLaunchArgument('calibration_escape_distance_m', default_value='0.30'),
             DeclareLaunchArgument(
                 'calibration_escape_motion_sign',
                 default_value='__auto__',

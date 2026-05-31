@@ -100,135 +100,131 @@ def target_state_after_rotation(node_cls, x, y, yaw, rotate_rad):
     )
 
 
-def calibration_axis_roots(
-    node_cls,
-    x_local: float,
-    y_local: float,
-    yaw_error_rad: float,
-    motion_sign: float,
-    distance_m: float,
-) -> list[tuple[float, tuple[float, float, float]]]:
-    signed_distance_m = motion_sign * distance_m
-
-    def axis_error(candidate_rad: float) -> float:
-        moved_state = node_cls._target_state_after_calibration_motion(
-            x_local,
-            y_local,
-            yaw_error_rad,
-            candidate_rad,
-            signed_distance_m,
-        )
-        _, robot_y_target_frame_m, _ = node_cls._robot_pose_in_target_frame(
-            *moved_state
-        )
-        return robot_y_target_frame_m
-
-    roots: list[tuple[float, tuple[float, float, float]]] = []
-    previous_angle = -math.pi
-    previous_error = axis_error(previous_angle)
-    for sample_idx in range(1, 1441):
-        angle = -math.pi + (2.0 * math.pi * sample_idx / 1440)
-        error = axis_error(angle)
-        if previous_error * error < 0.0:
-            low = previous_angle
-            high = angle
-            low_error = previous_error
-            for _ in range(48):
-                mid = 0.5 * (low + high)
-                mid_error = axis_error(mid)
-                if low_error * mid_error <= 0.0:
-                    high = mid
-                else:
-                    low = mid
-                    low_error = mid_error
-            root = 0.5 * (low + high)
-            moved_state = node_cls._target_state_after_calibration_motion(
-                x_local,
-                y_local,
-                yaw_error_rad,
-                root,
-                signed_distance_m,
-            )
-            roots.append((root, node_cls._robot_pose_in_target_frame(*moved_state)))
-        previous_angle = angle
-        previous_error = error
-    return roots
+def target_state_after_motion(x, y, yaw, signed_distance_m):
+    return (
+        x - signed_distance_m,
+        y,
+        yaw,
+    )
 
 
-def verify_calibration_cases(node_cls) -> tuple[int, int]:
+def expected_calibration_goal_x(robot_x_target_frame_m: float, axis_sign: float) -> float:
+    if axis_sign > 0.0:
+        return max(0.0, robot_x_target_frame_m)
+    return min(0.0, robot_x_target_frame_m)
+
+
+def verify_calibration_cases(node_cls) -> int:
     checked = 0
-    skipped_unreachable = 0
 
     scenarios = [
-        ("front", "target farther than robot", [-0.45, -0.25, -0.10]),
-        ("front", "robot between target and cart", [0.03, 0.10, 0.20]),
-        ("rear", "target farther than robot", [0.10, 0.25, 0.45]),
-        ("rear", "robot between target and cart", [-0.03, -0.10, -0.20]),
+        ("front", 1.0, 1.0, [-0.45, -0.25, -0.10, 0.03, 0.10, 0.20]),
+        ("rear", -1.0, -1.0, [-0.20, -0.10, -0.03, 0.10, 0.25, 0.45]),
     ]
 
-    for robot_type, scenario_name, x_values in scenarios:
-        motion_sign = 1.0 if robot_type == "front" else -1.0
+    for robot_type, axis_sign, motion_sign, x_values in scenarios:
         for x_local in x_values:
             for y_local in (-0.24, -0.12, -0.04, 0.04, 0.12, 0.24):
                 for yaw_deg in (-35.0, -15.0, 0.0, 15.0, 35.0):
                     yaw = math.radians(yaw_deg)
-                    axis_distance = abs(
-                        y_local * math.cos(yaw) - x_local * math.sin(yaw)
-                    )
-                    if axis_distance > 0.3000001:
-                        skipped_unreachable += 1
-                        continue
-
-                    rotate_out = node_cls._compute_calibration_rotate_out_target_rad(
+                    (
+                        robot_x_t,
+                        robot_y_t,
+                        robot_heading_t,
+                    ) = node_cls._robot_pose_in_target_frame(
                         x_local,
                         y_local,
                         yaw,
-                        motion_sign,
-                        0.30,
                     )
-                    after_move = node_cls._target_state_after_calibration_motion(
-                        x_local,
-                        y_local,
-                        yaw,
-                        rotate_out,
-                        motion_sign * 0.30,
-                    )
-                    robot_x_t, robot_y_t, _ = node_cls._robot_pose_in_target_frame(
-                        *after_move
-                    )
-                    if abs(robot_y_t) > 1.0e-7:
-                        raise AssertionError(
-                            f"{robot_type} {scenario_name}: after move y_T is "
-                            f"{robot_y_t:.12f}, state={(x_local, y_local, yaw_deg)}"
+                    rotate_out, move_distance = (
+                        node_cls._compute_calibration_rotate_out_and_move_distance(
+                            x_local,
+                            y_local,
+                            yaw,
+                            axis_sign,
+                            motion_sign,
                         )
-
-                    roots = calibration_axis_roots(
+                    )
+                    after_rotate = target_state_after_rotation(
                         node_cls,
                         x_local,
                         y_local,
                         yaw,
-                        motion_sign,
-                        0.30,
+                        rotate_out,
                     )
-                    preferred_roots = [
-                        pose for _, pose in roots
-                        if pose[0] * motion_sign >= -1.0e-7
-                    ]
-                    if preferred_roots and robot_x_t * motion_sign < -1.0e-7:
-                        raise AssertionError(
-                            f"{robot_type} {scenario_name}: wrong target axis side, "
-                            f"x_T={robot_x_t:.12f}, motion_sign={motion_sign}, "
-                            f"state={(x_local, y_local, yaw_deg)}"
+                    after_move = target_state_after_motion(
+                        *after_rotate,
+                        motion_sign * move_distance,
+                    )
+                    (
+                        moved_robot_x_t,
+                        moved_robot_y_t,
+                        moved_heading_t,
+                    ) = node_cls._robot_pose_in_target_frame(*after_move)
+
+                    goal_x_t = expected_calibration_goal_x(robot_x_t, axis_sign)
+                    assert_close(
+                        f"{robot_type} goal x",
+                        moved_robot_x_t,
+                        goal_x_t,
+                        1.0e-7,
+                    )
+                    assert_close(
+                        f"{robot_type} goal y",
+                        moved_robot_y_t,
+                        0.0,
+                        1.0e-7,
+                    )
+
+                    expected_move_distance = math.hypot(
+                        goal_x_t - robot_x_t,
+                        -robot_y_t,
+                    )
+                    assert_close(
+                        f"{robot_type} move distance",
+                        move_distance,
+                        expected_move_distance,
+                        1.0e-9,
+                    )
+
+                    dx = moved_robot_x_t - robot_x_t
+                    dy = moved_robot_y_t - robot_y_t
+                    assert_close(
+                        f"{robot_type} move norm",
+                        math.hypot(dx, dy),
+                        move_distance,
+                        1.0e-7,
+                    )
+
+                    expected_heading_t = wrap_to_pi(robot_heading_t + rotate_out)
+                    assert_close(
+                        f"{robot_type} moved heading",
+                        wrap_to_pi(moved_heading_t - expected_heading_t),
+                        0.0,
+                        1.0e-7,
+                    )
+
+                    if move_distance > 1.0e-9:
+                        along = (
+                            dx * math.cos(moved_heading_t)
+                            + dy * math.sin(moved_heading_t)
                         )
-                    if not preferred_roots:
-                        farthest_available_x = max(abs(pose[0]) for _, pose in roots)
-                        if abs(abs(robot_x_t) - farthest_available_x) > 1.0e-7:
-                            raise AssertionError(
-                                f"{robot_type} {scenario_name}: did not choose the "
-                                f"farther available x-axis intersection, "
-                                f"x_T={robot_x_t:.12f}, farthest={farthest_available_x:.12f}, "
-                                f"state={(x_local, y_local, yaw_deg)}"
-                            )
+                        cross = (
+                            dx * math.sin(moved_heading_t)
+                            - dy * math.cos(moved_heading_t)
+                        )
+                        assert_close(
+                            f"{robot_type} along heading",
+                            along,
+                            motion_sign * move_distance,
+                            1.0e-7,
+                        )
+                        assert_close(
+                            f"{robot_type} lateral heading",
+                            cross,
+                            0.0,
+                            1.0e-7,
+                        )
 
                     rotate_back = after_move[2]
                     final_state = target_state_after_rotation(
@@ -241,24 +237,23 @@ def verify_calibration_cases(node_cls) -> tuple[int, int]:
                     )
                     if abs(final_y_t) > 1.0e-7 or abs(final_heading_t) > 1.0e-7:
                         raise AssertionError(
-                            f"{robot_type} {scenario_name}: final state invalid, "
+                            f"{robot_type}: final state invalid, "
                             f"y_T={final_y_t:.12f}, heading_T={final_heading_t:.12f}, "
                             f"state={(x_local, y_local, yaw_deg)}"
                         )
                     checked += 1
 
-    return checked, skipped_unreachable
+    return checked
 
 
 def main() -> None:
     node_cls = load_node_class()
     canonical_count = verify_canonical_targets(node_cls)
-    calibration_count, skipped_count = verify_calibration_cases(node_cls)
+    calibration_count = verify_calibration_cases(node_cls)
     print(
         "OK: "
         f"canonical_cases={canonical_count}, "
-        f"calibration_cases={calibration_count}, "
-        f"skipped_unreachable={skipped_count}"
+        f"calibration_cases={calibration_count}"
     )
 
 

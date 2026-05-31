@@ -129,23 +129,23 @@ front robot docking에서는 target이 끊기지 않았더라도, align 중 cano
 현재 calibration은 가변 회전 escape 시퀀스입니다.
 
 - `rotate_out`
-- `reverse_escape`
+- `move_to_axis`
 - `rotate_back`
 
 첫 회전은 마지막으로 기억한 **오프셋 적용 완료 후의 실제 target state**에서 계산합니다.
 
 - 기준은 canonical target state와 노드 내부 odometry 모델입니다.
-- 목표는 첫 회전 후 `calibration_escape_distance_m`만큼 직선 이동했을 때, 로봇 구동축 중심이 target frame의 docking 축 위에 놓이게 하는 것입니다.
-- rear는 후진 30cm 뒤 target frame의 `x-`축 위에 놓이도록 계산합니다.
-- front는 전진 30cm 뒤 target frame의 `x+`축 위에 놓이도록 계산합니다.
-- 1차 회전각은 내부 odometry 업데이트를 그대로 시뮬레이션해 `y_T = 0`을 만족하는 해 중 docking 축 방향으로 더 먼 점을 선택합니다.
+- 목표는 로봇 구동축 중심을 target frame의 허용 반축 위 최근접점으로 보내는 것입니다.
+- rear는 target frame의 `x-`축 위 최근접점으로, front는 `x+`축 위 최근접점으로 이동합니다.
+- 따라서 고정 30cm 규칙은 없고, 필요한 만큼만 직선 이동합니다.
+- 1차 회전각은 현재 로봇 위치에서 그 최근접 축점으로 직선 이동할 수 있도록 계산합니다.
 
-이후 `calibration_escape_distance_m`만큼 직선 이동하고, 마지막 회전은 이동 중 오도메트리로 계속 적분된 현재 `target_yaw_error_rad`를 기준으로 계산합니다.
+이후 계산된 최근접 축점까지 직선 이동하고, 마지막 회전은 이동 중 오도메트리로 계속 적분된 현재 `target_yaw_error_rad`를 기준으로 계산합니다.
 
 - `rotate_back_target = target_yaw_error_rad`
 - 의미: 마지막 회전이 끝났을 때 yaw error가 0이 되도록 맞춥니다.
 
-rear는 기존처럼 후진 `calibration_escape_distance_m`, front는 기존처럼 전진 `calibration_escape_distance_m`를 유지합니다.
+rear는 기존처럼 후진, front는 기존처럼 전진으로 캘리 이동을 수행합니다.
 
 회전 각도와 이동 거리는 모두 `/rmd_state`에서 계산한 현재 속도를 적분해 측정하고, calibration 중에도 내부 target state를 계속 오도메트리로 업데이트합니다.
 
@@ -235,7 +235,6 @@ calibration 중 비전이 다시 들어와도 즉시 정책을 재개하지 않�
 - `final_docking_motion_sign`
 - `robot_docking_final_linear_speed_m_s`
 - `robot_docking_calibration_target_x_threshold_m`
-- `calibration_escape_distance_m`
 - `calibration_escape_motion_sign`
 - `wheel_radius_m`
 - `wheel_separation_m`

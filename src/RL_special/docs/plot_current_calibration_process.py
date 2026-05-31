@@ -41,8 +41,10 @@ CANVAS_W = ROW_LABEL_W + PANEL_W * 8 + GAP_X * 9
 CANVAS_H = HEADER_H + PANEL_H * 4 + GAP_Y * 5
 X_MIN = -1.02
 X_MAX = 1.02
-Y_MIN = -0.36
-Y_MAX = 0.36
+# Keep the same metric scale on both axes so heading and motion vectors line up
+# visually. Otherwise the 30 cm straight move looks like sideways sliding.
+Y_MIN = -1.02
+Y_MAX = 1.02
 
 
 def wrap_to_pi(angle_rad: float) -> float:

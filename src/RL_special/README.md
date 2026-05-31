@@ -112,6 +112,12 @@ front는 현재 `/front/rmd_state`가 이미 감속 후 속도라고 가정해�
 - `abs(target_y_local) <= target_xy_stop_tolerance_m`
 - `abs(target_yaw_error) <= target_yaw_stop_tolerance_rad`
 
+`docking_target=1` 로봇 도킹에서는 위 조건 대신 robot docking 전용 tolerance를 사용합니다.
+
+- `abs(target_x_local) <= robot_docking_target_xy_stop_tolerance_m`
+- `abs(target_y_local) <= robot_docking_target_xy_stop_tolerance_m`
+- `abs(target_yaw_error) <= robot_docking_target_yaw_stop_tolerance_rad`
+
 완료되면 `final_docking_motion`으로 넘어갑니다.
 
 ### 3. `calibration`
@@ -180,6 +186,8 @@ calibration 중 비전이 다시 들어와도 즉시 정책을 재개하지 않�
   - cart docking: `/front/cart_docking`
 - `final_docking_motion_sign = -1.0`
 - `robot_docking_final_linear_speed_m_s = 0.15`
+- `robot_docking_target_xy_stop_tolerance_m = 0.03`
+- `robot_docking_target_yaw_stop_tolerance_deg = 2.0`
 - `robot_docking_calibration_target_x_threshold_m = -0.10`
 - `calibration_escape_motion_sign = +1.0`
 - `external_reduction = 1.0`
@@ -194,6 +202,8 @@ calibration 중 비전이 다시 들어와도 즉시 정책을 재개하지 않�
   - cart docking: `/gripper_toggle`
 - `final_docking_motion_sign = +1.0`
 - `robot_docking_final_linear_speed_m_s = 0.06`
+- `robot_docking_target_xy_stop_tolerance_m = 0.03`
+- `robot_docking_target_yaw_stop_tolerance_deg = 2.0`
 - `robot_docking_calibration_target_x_threshold_m = -0.10`
 - `calibration_escape_motion_sign = -1.0`
 - `external_reduction = 1.0`
@@ -216,6 +226,8 @@ calibration 중 비전이 다시 들어와도 즉시 정책을 재개하지 않�
 - `motor_timeout_sec`
 - `target_xy_stop_tolerance_m`
 - `target_yaw_stop_tolerance_deg`
+- `robot_docking_target_xy_stop_tolerance_m`
+- `robot_docking_target_yaw_stop_tolerance_deg`
 - `base_link_to_axle_center_x_m`
 - `target_x_offset_m`
 - `cart_docking_final_distance_m`

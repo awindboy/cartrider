@@ -44,6 +44,8 @@ class CartAlignSpecialistPolicyNode(Node):
         self.declare_parameter('motor_timeout_sec', 1000.0)
         self.declare_parameter('target_xy_stop_tolerance_m', 0.05)
         self.declare_parameter('target_yaw_stop_tolerance_deg', 5.0)
+        self.declare_parameter('robot_docking_target_xy_stop_tolerance_m', 0.05)
+        self.declare_parameter('robot_docking_target_yaw_stop_tolerance_deg', 5.0)
         self.declare_parameter('base_link_to_axle_center_x_m', 0.0)
         self.declare_parameter('target_x_offset_m', 0.0)
         self.declare_parameter('cart_docking_final_distance_m', 0.35)
@@ -95,6 +97,14 @@ class CartAlignSpecialistPolicyNode(Node):
         )
         self.target_yaw_stop_tolerance_deg = float(
             self.get_parameter('target_yaw_stop_tolerance_deg').value
+        )
+        self.robot_docking_target_xy_stop_tolerance_m = float(
+            self.get_parameter('robot_docking_target_xy_stop_tolerance_m').value
+        )
+        self.robot_docking_target_yaw_stop_tolerance_deg = float(
+            self.get_parameter(
+                'robot_docking_target_yaw_stop_tolerance_deg'
+            ).value
         )
         self.base_link_to_axle_center_x_m = float(
             self.get_parameter('base_link_to_axle_center_x_m').value
@@ -156,6 +166,9 @@ class CartAlignSpecialistPolicyNode(Node):
 
         self.target_yaw_stop_tolerance_rad = math.radians(
             self.target_yaw_stop_tolerance_deg
+        )
+        self.robot_docking_target_yaw_stop_tolerance_rad = math.radians(
+            self.robot_docking_target_yaw_stop_tolerance_deg
         )
 
         self.last_target_rx_time = None
@@ -252,6 +265,14 @@ class CartAlignSpecialistPolicyNode(Node):
             raise ValueError('target_xy_stop_tolerance_m must be >= 0.')
         if self.target_yaw_stop_tolerance_deg < 0.0:
             raise ValueError('target_yaw_stop_tolerance_deg must be >= 0.')
+        if self.robot_docking_target_xy_stop_tolerance_m < 0.0:
+            raise ValueError(
+                'robot_docking_target_xy_stop_tolerance_m must be >= 0.'
+            )
+        if self.robot_docking_target_yaw_stop_tolerance_deg < 0.0:
+            raise ValueError(
+                'robot_docking_target_yaw_stop_tolerance_deg must be >= 0.'
+            )
         if self.base_link_to_axle_center_x_m < 0.0:
             raise ValueError('base_link_to_axle_center_x_m must be >= 0.')
         if self.target_x_offset_m < 0.0:
@@ -902,10 +923,22 @@ class CartAlignSpecialistPolicyNode(Node):
         target_y_local_m: float,
         target_yaw_error_rad: float,
     ) -> bool:
+        xy_tolerance_m, yaw_tolerance_rad = self._get_active_target_tolerances()
         return (
-            abs(target_x_local_m) <= self.target_xy_stop_tolerance_m
-            and abs(target_y_local_m) <= self.target_xy_stop_tolerance_m
-            and abs(target_yaw_error_rad) <= self.target_yaw_stop_tolerance_rad
+            abs(target_x_local_m) <= xy_tolerance_m
+            and abs(target_y_local_m) <= xy_tolerance_m
+            and abs(target_yaw_error_rad) <= yaw_tolerance_rad
+        )
+
+    def _get_active_target_tolerances(self) -> tuple[float, float]:
+        if self.active_docking_target == 1:
+            return (
+                self.robot_docking_target_xy_stop_tolerance_m,
+                self.robot_docking_target_yaw_stop_tolerance_rad,
+            )
+        return (
+            self.target_xy_stop_tolerance_m,
+            self.target_yaw_stop_tolerance_rad,
         )
 
     def _should_start_robot_docking_target_x_calibration(
@@ -933,9 +966,10 @@ class CartAlignSpecialistPolicyNode(Node):
         target_y_local_m: float,
         target_yaw_error_rad: float,
     ) -> bool:
+        xy_tolerance_m, yaw_tolerance_rad = self._get_active_target_tolerances()
         return (
-            abs(target_y_local_m) <= self.target_xy_stop_tolerance_m
-            and abs(target_yaw_error_rad) <= self.target_yaw_stop_tolerance_rad
+            abs(target_y_local_m) <= xy_tolerance_m
+            and abs(target_yaw_error_rad) <= yaw_tolerance_rad
         )
 
     @staticmethod

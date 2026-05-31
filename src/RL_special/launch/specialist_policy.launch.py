@@ -27,6 +27,8 @@ PROFILE_DEFAULTS = {
         'near_target_linear_speed_limit_m_s': 0.06,
         'near_target_angular_speed_limit_rad_s': 0.3,
         'near_target_distance_m': 0.3,
+        'robot_docking_target_xy_stop_tolerance_m': 0.03,
+        'robot_docking_target_yaw_stop_tolerance_deg': 2.0,
         'base_link_to_axle_center_x_m': REAR_BASE_LINK_TO_AXLE_CENTER_X_M,
         'target_x_offset_m': REAR_TARGET_X_OFFSET_M,
         'robot_docking_final_linear_speed_m_s': 0.06,
@@ -56,6 +58,8 @@ PROFILE_DEFAULTS = {
         'near_target_linear_speed_limit_m_s': 0.05,
         'near_target_angular_speed_limit_rad_s': 0.01,
         'near_target_distance_m': 0.3,
+        'robot_docking_target_xy_stop_tolerance_m': 0.03,
+        'robot_docking_target_yaw_stop_tolerance_deg': 2.0,
         'base_link_to_axle_center_x_m': FRONT_BASE_LINK_TO_AXLE_CENTER_X_M,
         'target_x_offset_m': FRONT_TARGET_X_OFFSET_M,
         'robot_docking_final_linear_speed_m_s': 0.15,
@@ -214,6 +218,22 @@ def _build_policy_node(context):
         'target_yaw_stop_tolerance_deg': _parse_float(
             LaunchConfiguration('target_yaw_stop_tolerance_deg').perform(context),
             'target_yaw_stop_tolerance_deg',
+        ),
+        'robot_docking_target_xy_stop_tolerance_m': _parse_float(
+            _resolve_arg(
+                context,
+                'robot_docking_target_xy_stop_tolerance_m',
+                profile['robot_docking_target_xy_stop_tolerance_m'],
+            ),
+            'robot_docking_target_xy_stop_tolerance_m',
+        ),
+        'robot_docking_target_yaw_stop_tolerance_deg': _parse_float(
+            _resolve_arg(
+                context,
+                'robot_docking_target_yaw_stop_tolerance_deg',
+                profile['robot_docking_target_yaw_stop_tolerance_deg'],
+            ),
+            'robot_docking_target_yaw_stop_tolerance_deg',
         ),
         'base_link_to_axle_center_x_m': _parse_float(
             _resolve_arg(
@@ -476,6 +496,16 @@ def generate_launch_description() -> LaunchDescription:
             DeclareLaunchArgument('motor_timeout_sec', default_value='1000.0'),
             DeclareLaunchArgument('target_xy_stop_tolerance_m', default_value='0.03'),
             DeclareLaunchArgument('target_yaw_stop_tolerance_deg', default_value='2.0'),
+            DeclareLaunchArgument(
+                'robot_docking_target_xy_stop_tolerance_m',
+                default_value='__auto__',
+                description='__auto__ uses profile default xy tolerance for robot docking only.',
+            ),
+            DeclareLaunchArgument(
+                'robot_docking_target_yaw_stop_tolerance_deg',
+                default_value='__auto__',
+                description='__auto__ uses profile default yaw tolerance for robot docking only.',
+            ),
             DeclareLaunchArgument(
                 'base_link_to_axle_center_x_m',
                 default_value='__auto__',

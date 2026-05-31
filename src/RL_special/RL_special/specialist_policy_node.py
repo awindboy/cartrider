@@ -547,13 +547,14 @@ class CartAlignSpecialistPolicyNode(Node):
             self._publish_zero('stale_motor_vel')
             return
 
+        self._update_target_state_from_odometry(now)
+
         dt_target = (now - self.last_target_rx_time).nanoseconds * 1e-9
         if dt_target > self.target_timeout_sec:
             self._start_calibration(now)
             self._run_calibration(now)
             return
 
-        self._update_target_state_from_odometry(now)
         if self._should_start_robot_docking_target_x_calibration(
             self.target_x_local_m,
             self.target_y_local_m,

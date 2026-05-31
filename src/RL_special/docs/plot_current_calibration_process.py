@@ -281,15 +281,21 @@ def robot_triangle(
     px = sx(panel_left, x_m)
     py = sy(panel_top, y_m)
     size = 10.0
+    nose_back = 0.35 * size
+    body_back = 1.55 * size
+    half_width = 0.62 * size
     points = [
-        (px + size * math.cos(heading_rad), py - size * math.sin(heading_rad)),
         (
-            px - 0.76 * size * math.cos(heading_rad) - 0.56 * size * math.sin(heading_rad),
-            py + 0.76 * size * math.sin(heading_rad) - 0.56 * size * math.cos(heading_rad),
+            px - nose_back * math.cos(heading_rad),
+            py + nose_back * math.sin(heading_rad),
         ),
         (
-            px - 0.76 * size * math.cos(heading_rad) + 0.56 * size * math.sin(heading_rad),
-            py + 0.76 * size * math.sin(heading_rad) + 0.56 * size * math.cos(heading_rad),
+            px - body_back * math.cos(heading_rad) - half_width * math.sin(heading_rad),
+            py + body_back * math.sin(heading_rad) - half_width * math.cos(heading_rad),
+        ),
+        (
+            px - body_back * math.cos(heading_rad) + half_width * math.sin(heading_rad),
+            py + body_back * math.sin(heading_rad) + half_width * math.cos(heading_rad),
         ),
     ]
     return polygon(points, fill=color, stroke=color, width=1, opacity=opacity)

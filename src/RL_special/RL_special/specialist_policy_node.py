@@ -424,7 +424,7 @@ class CartAlignSpecialistPolicyNode(Node):
         target_x_local_m, target_y_local_m = self._apply_target_offset(
             target_x_axle_m,
             target_y_axle_m,
-            target_pose_theta_rad,
+            target_yaw_error_rad,
         )
         self.target_x_local_m = target_x_local_m
         self.target_y_local_m = target_y_local_m
@@ -860,18 +860,18 @@ class CartAlignSpecialistPolicyNode(Node):
         self,
         axle_target_x_local: float,
         axle_target_y_local: float,
-        target_pose_theta_rad: float,
+        target_yaw_error_rad: float,
     ) -> tuple[float, float]:
         cart_offset_sign = 1.0 if self.robot_type == 'front' else -1.0
         offset_x_local = (
             cart_offset_sign
             * self.target_x_offset_m
-            * math.cos(target_pose_theta_rad)
+            * math.cos(target_yaw_error_rad)
         )
         offset_y_local = (
             cart_offset_sign
             * self.target_x_offset_m
-            * math.sin(target_pose_theta_rad)
+            * math.sin(target_yaw_error_rad)
         )
         return (
             axle_target_x_local + offset_x_local,

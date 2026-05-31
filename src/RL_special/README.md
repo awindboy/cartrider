@@ -34,11 +34,11 @@ rear 프로파일은 `docking_target=1`을 받으면 동작하지 않고 `rear_r
    - `y_robot = -y_camera`
 2. `base_link -> 구동축 중심` 변환
    - front/rear 공통: `x_axle = x_base - base_link_to_axle_center_x_m`
-3. 카트 표면 offset 적용
-   - rear: `x_target = x_axle - target_x_offset_m * cos(theta)`, `y_target = y_axle - target_x_offset_m * sin(theta)`
-   - front: `x_target = x_axle + target_x_offset_m * cos(theta)`, `y_target = y_axle + target_x_offset_m * sin(theta)`
-4. policy yaw 입력
+3. policy/target yaw 기준 생성
    - `target_yaw_error = wrap_to_pi(-theta)`
+4. 카트 표면 offset 적용
+   - rear: `x_target = x_axle - target_x_offset_m * cos(target_yaw_error)`, `y_target = y_axle - target_x_offset_m * sin(target_yaw_error)`
+   - front: `x_target = x_axle + target_x_offset_m * cos(target_yaw_error)`, `y_target = y_axle + target_x_offset_m * sin(target_yaw_error)`
 
 즉 front는 target 입력 좌표를 먼저 로봇 진행방향 기준으로 바꾸고, 그 뒤의 가공 체인은 rear와 동일합니다. 정책 입력도 canonical target인 `[x_target, y_target, target_yaw_error, current_v, current_omega]`를 그대로 사용합니다.
 

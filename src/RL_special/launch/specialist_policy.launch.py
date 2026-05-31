@@ -454,7 +454,7 @@ def generate_launch_description() -> LaunchDescription:
             DeclareLaunchArgument('control_rate_hz', default_value='30.0'),
             DeclareLaunchArgument('target_timeout_sec', default_value='0.3'),
             DeclareLaunchArgument('motor_timeout_sec', default_value='1000.0'),
-            DeclareLaunchArgument('target_xy_stop_tolerance_m', default_value='0.05'),
+            DeclareLaunchArgument('target_xy_stop_tolerance_m', default_value='0.03'),
             DeclareLaunchArgument('target_yaw_stop_tolerance_deg', default_value='2.0'),
             DeclareLaunchArgument(
                 'base_link_to_axle_center_x_m',

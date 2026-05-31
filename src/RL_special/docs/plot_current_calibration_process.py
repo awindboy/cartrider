@@ -8,8 +8,8 @@ PROFILES = {
         "color": "#d62728",
         "base_link_to_axle_center_x_m": 0.120,
         "target_x_offset_m": 0.50,
-        "raw_target_x_m": 0.85,
-        "raw_target_y_m": 0.22,
+        "raw_target_x_m": 0.30,
+        "raw_target_y_m": 0.35,
         "theta_deg": -25.0,
         "calibration_escape_motion_sign": -1.0,
     },
@@ -17,8 +17,8 @@ PROFILES = {
         "color": "#1f77b4",
         "base_link_to_axle_center_x_m": 0.095,
         "target_x_offset_m": 0.55,
-        "raw_target_x_m": 0.85,
-        "raw_target_y_m": 0.22,
+        "raw_target_x_m": 0.30,
+        "raw_target_y_m": 0.05,
         "theta_deg": 25.0,
         "calibration_escape_motion_sign": 1.0,
     },
@@ -203,16 +203,16 @@ def canonical_target_state(name: str, cfg: dict) -> tuple[float, float, float]:
 
     axle_x = base_x - cfg["base_link_to_axle_center_x_m"]
     axle_y = base_y
+    yaw_error = wrap_to_pi(-theta)
     cart_offset_sign = 1.0 if name == "front" else -1.0
     target_x = (
         axle_x
-        + cart_offset_sign * cfg["target_x_offset_m"] * math.cos(theta)
+        + cart_offset_sign * cfg["target_x_offset_m"] * math.cos(yaw_error)
     )
     target_y = (
         axle_y
-        + cart_offset_sign * cfg["target_x_offset_m"] * math.sin(theta)
+        + cart_offset_sign * cfg["target_x_offset_m"] * math.sin(yaw_error)
     )
-    yaw_error = wrap_to_pi(-theta)
     return target_x, target_y, yaw_error
 
 

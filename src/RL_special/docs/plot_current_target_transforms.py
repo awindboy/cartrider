@@ -149,16 +149,16 @@ def canonical_values(name: str, cfg: dict) -> dict:
 
     axle_x = base_x - cfg["base_link_to_axle_center_x_m"]
     axle_y = base_y
+    yaw_error = math.atan2(math.sin(-theta), math.cos(-theta))
     cart_offset_sign = 1.0 if name == "front" else -1.0
     target_x = (
         axle_x
-        + cart_offset_sign * cfg["target_x_offset_m"] * math.cos(theta)
+        + cart_offset_sign * cfg["target_x_offset_m"] * math.cos(yaw_error)
     )
     target_y = (
         axle_y
-        + cart_offset_sign * cfg["target_x_offset_m"] * math.sin(theta)
+        + cart_offset_sign * cfg["target_x_offset_m"] * math.sin(yaw_error)
     )
-    yaw_error = math.atan2(math.sin(-theta), math.cos(-theta))
 
     return {
         "theta": theta,
@@ -207,7 +207,7 @@ def profile_row(row_idx: int, name: str, cfg: dict) -> str:
     parts.extend(panel_frame(panel2_left, panel_top, f"{name.capitalize()} 2/3", "Canonical robot-local target before cart offset"))
     parts.append(circle(sx(panel2_left, 0.0), sy(panel_top, 0.0), 6, "#000000"))
     parts.append(text(sx(panel2_left, 0.0), sy(panel_top, 0.0) - 12, "axle origin", size=12, anchor="middle"))
-    parts.extend(target_marker(panel2_left, panel_top, values["axle_x"], values["axle_y"], values["theta"], "#2ca02c", "axle target"))
+    parts.extend(target_marker(panel2_left, panel_top, values["axle_x"], values["axle_y"], values["yaw_error"], "#2ca02c", "axle target"))
     parts.append(
         multiline_text(
             panel2_left + 18,
@@ -226,8 +226,8 @@ def profile_row(row_idx: int, name: str, cfg: dict) -> str:
     parts.extend(panel_frame(panel3_left, panel_top, f"{name.capitalize()} 3/3", "Canonical policy/align/calibration target"))
     parts.append(circle(sx(panel3_left, 0.0), sy(panel_top, 0.0), 6, "#000000"))
     parts.append(text(sx(panel3_left, 0.0), sy(panel_top, 0.0) - 12, "axle origin", size=12, anchor="middle"))
-    parts.extend(target_marker(panel3_left, panel_top, values["axle_x"], values["axle_y"], values["theta"], "#aaaaaa", "axle target"))
-    parts.extend(target_marker(panel3_left, panel_top, values["target_x"], values["target_y"], values["theta"], "#ff7f0e", "canonical target"))
+    parts.extend(target_marker(panel3_left, panel_top, values["axle_x"], values["axle_y"], values["yaw_error"], "#aaaaaa", "axle target"))
+    parts.extend(target_marker(panel3_left, panel_top, values["target_x"], values["target_y"], values["yaw_error"], "#ff7f0e", "canonical target"))
     parts.append(
         line(
             sx(panel3_left, values["axle_x"]),
@@ -247,14 +247,14 @@ def profile_row(row_idx: int, name: str, cfg: dict) -> str:
             [
                 "Shared canonical state",
                 (
-                    "x_target = x_axle + d cos(theta)"
+                    "x_target = x_axle + d cos(yaw_error)"
                     if values["cart_offset_sign"] > 0.0
-                    else "x_target = x_axle - d cos(theta)"
+                    else "x_target = x_axle - d cos(yaw_error)"
                 ),
                 (
-                    "y_target = y_axle + d sin(theta)"
+                    "y_target = y_axle + d sin(yaw_error)"
                     if values["cart_offset_sign"] > 0.0
-                    else "y_target = y_axle - d sin(theta)"
+                    else "y_target = y_axle - d sin(yaw_error)"
                 ),
                 "yaw_error = wrap_to_pi(-theta)",
                 f"x_target = {values['target_x']:.3f} m",

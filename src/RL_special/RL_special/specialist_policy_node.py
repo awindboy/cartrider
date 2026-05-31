@@ -357,6 +357,10 @@ class CartAlignSpecialistPolicyNode(Node):
             return
 
         if docking_target == 1 and self.robot_type == 'rear':
+            self._publish_completion_signal(
+                docking_target=2,
+                enabled=True,
+            )
             self._enter_waiting_mode('rear_robot_docking_idle')
             return
 

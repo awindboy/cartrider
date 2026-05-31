@@ -17,7 +17,7 @@
 
 중간에 값이 바뀌면 현재 align/calibration/final 단계는 즉시 취소되고, 새 target 기준으로 다시 시작합니다.
 
-rear 프로파일은 `docking_target=1`을 받으면 동작하지 않고 `rear_robot_docking_idle` 상태로 대기합니다.
+rear 프로파일은 `docking_target=1`을 받으면 주행은 하지 않고 `/gripper_toggle`을 1회 publish한 뒤 `rear_robot_docking_idle` 상태로 복귀합니다.
 
 front의 `docking_target=1` 로봇 도킹에서는 아루코마커가 작아 카트 도킹보다 target loss가 늦게 감지될 수 있습니다.
 
@@ -86,7 +86,7 @@ front는 현재 `/front/rmd_state`가 이미 감속 후 속도라고 가정해�
 - front + `docking_target=1`: `/front/robot_docking`에 `Bool(true)` 1회
 - front + `docking_target=2`: `/front/cart_docking`에 `Bool(true)` 1회
 - rear + `docking_target=2`: `/gripper_toggle`에 `Bool(true)` 1회
-- rear + `docking_target=1`: publish 없음
+- rear + `docking_target=1`: `/gripper_toggle`에 `Bool(true)` 1회
 
 ## 상태 머신
 
@@ -199,7 +199,7 @@ calibration 중 비전이 다시 들어와도 즉시 정책을 재개하지 않�
 - `final_docking_motion_sign = +1.0`
 - `external_reduction = 1.0`
 
-rear는 `docking_target=1`에서 즉시 idle로 빠지므로, `robot_docking_*` 파라미터와 robot-docking completion publisher는 front 전용으로만 실제 사용됩니다.
+rear는 `docking_target=1`에서 주행 없이 `/gripper_toggle`만 1회 publish한 뒤 idle로 빠지므로, `robot_docking_*` 파라미터와 robot-docking completion publisher는 front 전용으로만 실제 사용됩니다.
 
 ## 주요 파라미터
 

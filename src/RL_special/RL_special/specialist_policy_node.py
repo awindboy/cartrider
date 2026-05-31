@@ -57,6 +57,8 @@ class CartAlignSpecialistPolicyNode(Node):
         self.declare_parameter('wheel_radius_m', 0.0)
         self.declare_parameter('wheel_separation_m', 0.0)
         self.declare_parameter('external_reduction', 1.0)
+        self.declare_parameter('linear_odometry_scale', 1.0)
+        self.declare_parameter('angular_odometry_scale', 1.0)
         self.declare_parameter('state_invert_left', False)
         self.declare_parameter('state_invert_right', False)
         self.declare_parameter('left_motor_id', 1)
@@ -128,6 +130,12 @@ class CartAlignSpecialistPolicyNode(Node):
         )
         self.external_reduction = float(
             self.get_parameter('external_reduction').value
+        )
+        self.linear_odometry_scale = float(
+            self.get_parameter('linear_odometry_scale').value
+        )
+        self.angular_odometry_scale = float(
+            self.get_parameter('angular_odometry_scale').value
         )
         self.state_invert_left = bool(self.get_parameter('state_invert_left').value)
         self.state_invert_right = bool(self.get_parameter('state_invert_right').value)
@@ -264,6 +272,10 @@ class CartAlignSpecialistPolicyNode(Node):
             raise ValueError('wheel_separation_m must be > 0.')
         if self.external_reduction <= 0.0:
             raise ValueError('external_reduction must be > 0.')
+        if self.linear_odometry_scale <= 0.0:
+            raise ValueError('linear_odometry_scale must be > 0.')
+        if self.angular_odometry_scale <= 0.0:
+            raise ValueError('angular_odometry_scale must be > 0.')
     def _load_model(self) -> None:
         if not os.path.isfile(self.model_path):
             raise FileNotFoundError(f'ONNX model not found: {self.model_path}')
@@ -450,10 +462,16 @@ class CartAlignSpecialistPolicyNode(Node):
         left_linear_m_s = left_wheel_angular_rad_s * self.wheel_radius_m
         right_linear_m_s = right_wheel_angular_rad_s * self.wheel_radius_m
 
-        self.current_linear_velocity_m_s = 0.5 * (left_linear_m_s + right_linear_m_s)
+        self.current_linear_velocity_m_s = (
+            0.5
+            * (left_linear_m_s + right_linear_m_s)
+            * self.linear_odometry_scale
+        )
         self.current_angular_velocity_rad_s = (
-            right_linear_m_s - left_linear_m_s
-        ) / self.wheel_separation_m
+            (right_linear_m_s - left_linear_m_s)
+            / self.wheel_separation_m
+            * self.angular_odometry_scale
+        )
         self.last_motor_rx_time = self.get_clock().now()
 
     def _control_callback(self) -> None:

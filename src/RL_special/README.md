@@ -57,10 +57,14 @@ idle 중에도 최신 비전 target은 계속 캐시됩니다.
 - `external_reduction`
 - `wheel_radius_m`
 - `wheel_separation_m`
+- `linear_odometry_scale`
+- `angular_odometry_scale`
 
 를 적용해 현재 로봇의 `linear_velocity_m_s`, `angular_velocity_rad_s`를 계산합니다.
 
 front는 현재 `/front/rmd_state`가 이미 감속 후 속도라고 가정해서 기본 `external_reduction=1.0`을 사용합니다.
+
+실제 로봇이 캘리/최종 이동에서 살짝 덜 가거나 덜 돌면 odometry scale을 낮춰 보정합니다. 예를 들어 3% 덜 이동하면 `linear_odometry_scale:=0.97`, 회전이 3% 부족하면 `angular_odometry_scale:=0.97`처럼 시작합니다.
 
 ### cmd_vel 출력
 
@@ -210,6 +214,8 @@ calibration 중 비전이 다시 들어와도 즉시 정책을 재개하지 않�
 - `wheel_radius_m`
 - `wheel_separation_m`
 - `external_reduction`
+- `linear_odometry_scale`
+- `angular_odometry_scale`
 - `state_invert_left`
 - `state_invert_right`
 

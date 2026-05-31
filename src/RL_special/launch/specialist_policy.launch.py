@@ -38,6 +38,8 @@ PROFILE_DEFAULTS = {
         'wheel_radius_m': 0.1100,
         'wheel_separation_m': 0.3000,
         'external_reduction': 1.0,
+        'linear_odometry_scale': 1.0,
+        'angular_odometry_scale': 1.0,
     },
     'front': {
         'model_file': 'front_specialist_policy.onnx',
@@ -63,6 +65,8 @@ PROFILE_DEFAULTS = {
         'wheel_radius_m': 0.0635,
         'wheel_separation_m': 0.2460,
         'external_reduction': 1.0,
+        'linear_odometry_scale': 1.0,
+        'angular_odometry_scale': 1.0,
     },
 }
 
@@ -286,6 +290,22 @@ def _build_policy_node(context):
         'wheel_radius_m': wheel_radius_m,
         'wheel_separation_m': wheel_separation_m,
         'external_reduction': external_reduction,
+        'linear_odometry_scale': _parse_float(
+            _resolve_arg(
+                context,
+                'linear_odometry_scale',
+                profile['linear_odometry_scale'],
+            ),
+            'linear_odometry_scale',
+        ),
+        'angular_odometry_scale': _parse_float(
+            _resolve_arg(
+                context,
+                'angular_odometry_scale',
+                profile['angular_odometry_scale'],
+            ),
+            'angular_odometry_scale',
+        ),
         'state_invert_left': _parse_bool(
             _resolve_arg(
                 context,
@@ -410,6 +430,16 @@ def generate_launch_description() -> LaunchDescription:
                 'external_reduction',
                 default_value='__auto__',
                 description='External motor-to-wheel reduction ratio. __auto__ uses profile default.',
+            ),
+            DeclareLaunchArgument(
+                'linear_odometry_scale',
+                default_value='__auto__',
+                description='Multiplier applied to odometry linear velocity. Use < 1.0 if the robot stops short.',
+            ),
+            DeclareLaunchArgument(
+                'angular_odometry_scale',
+                default_value='__auto__',
+                description='Multiplier applied to odometry angular velocity. Use < 1.0 if the robot under-rotates.',
             ),
             DeclareLaunchArgument(
                 'state_invert_left',

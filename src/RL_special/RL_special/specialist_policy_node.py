@@ -54,6 +54,7 @@ class CartAlignSpecialistPolicyNode(Node):
         self.declare_parameter('near_target_distance_m', 0.5)
         self.declare_parameter('near_target_linear_speed_limit_m_s', 0.0)
         self.declare_parameter('robot_docking_final_linear_speed_m_s', 0.0)
+        self.declare_parameter('robot_docking_calibration_target_x_threshold_m', -0.10)
         self.declare_parameter('near_target_angular_speed_limit_rad_s', 0.0)
         self.declare_parameter('wheel_radius_m', 0.0)
         self.declare_parameter('wheel_separation_m', 0.0)
@@ -124,6 +125,11 @@ class CartAlignSpecialistPolicyNode(Node):
         )
         self.robot_docking_final_linear_speed_m_s = float(
             self.get_parameter('robot_docking_final_linear_speed_m_s').value
+        )
+        self.robot_docking_calibration_target_x_threshold_m = float(
+            self.get_parameter(
+                'robot_docking_calibration_target_x_threshold_m'
+            ).value
         )
         self.near_target_angular_speed_limit_rad_s = float(
             self.get_parameter('near_target_angular_speed_limit_rad_s').value
@@ -416,7 +422,6 @@ class CartAlignSpecialistPolicyNode(Node):
         self._apply_canonical_target_measurement(msg, now)
 
     def _apply_canonical_target_measurement(self, msg: Pose2D, now) -> None:
-        previous_target_x_local_m = self.target_x_local_m
         target_x_local_m, target_y_local_m, target_yaw_error_rad = (
             self._canonical_target_from_pose(
                 self.robot_type,
@@ -427,9 +432,8 @@ class CartAlignSpecialistPolicyNode(Node):
                 self.target_x_offset_m,
             )
         )
-        should_calibrate_for_x_crossing = (
-            self._should_start_robot_docking_x_crossing_calibration(
-                previous_target_x_local_m,
+        should_calibrate_for_target_x = (
+            self._should_start_robot_docking_target_x_calibration(
                 target_x_local_m,
                 target_y_local_m,
                 target_yaw_error_rad,
@@ -440,7 +444,7 @@ class CartAlignSpecialistPolicyNode(Node):
         self.target_yaw_error_rad = target_yaw_error_rad
         self.last_target_rx_time = now
         self.last_target_state_update_time = now
-        if should_calibrate_for_x_crossing:
+        if should_calibrate_for_target_x:
             self._start_calibration(now)
 
     def _motor_state_callback(self, msg) -> None:
@@ -536,10 +540,8 @@ class CartAlignSpecialistPolicyNode(Node):
             self._run_calibration(now)
             return
 
-        previous_target_x_local_m = self.target_x_local_m
         self._update_target_state_from_odometry(now)
-        if self._should_start_robot_docking_x_crossing_calibration(
-            previous_target_x_local_m,
+        if self._should_start_robot_docking_target_x_calibration(
             self.target_x_local_m,
             self.target_y_local_m,
             self.target_yaw_error_rad,
@@ -906,9 +908,8 @@ class CartAlignSpecialistPolicyNode(Node):
             and abs(target_yaw_error_rad) <= self.target_yaw_stop_tolerance_rad
         )
 
-    def _should_start_robot_docking_x_crossing_calibration(
+    def _should_start_robot_docking_target_x_calibration(
         self,
-        previous_target_x_local_m: Optional[float],
         target_x_local_m: float,
         target_y_local_m: float,
         target_yaw_error_rad: float,
@@ -917,31 +918,16 @@ class CartAlignSpecialistPolicyNode(Node):
             return False
         if self.control_phase != 'align':
             return False
-        if previous_target_x_local_m is None:
-            return False
         if self._target_is_aligned(
             target_x_local_m,
             target_y_local_m,
             target_yaw_error_rad,
         ):
             return False
-        return self._target_x_sign_changed(
-            previous_target_x_local_m,
-            target_x_local_m,
+        return (
+            target_x_local_m
+            > self.robot_docking_calibration_target_x_threshold_m
         )
-
-    @staticmethod
-    def _target_x_sign_changed(
-        previous_target_x_local_m: float,
-        target_x_local_m: float,
-    ) -> bool:
-        sign_epsilon_m = 1.0e-4
-        if (
-            abs(previous_target_x_local_m) <= sign_epsilon_m
-            or abs(target_x_local_m) <= sign_epsilon_m
-        ):
-            return False
-        return previous_target_x_local_m * target_x_local_m < 0.0
 
     @staticmethod
     def _canonical_target_from_pose(

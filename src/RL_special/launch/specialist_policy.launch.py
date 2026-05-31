@@ -30,6 +30,7 @@ PROFILE_DEFAULTS = {
         'base_link_to_axle_center_x_m': REAR_BASE_LINK_TO_AXLE_CENTER_X_M,
         'target_x_offset_m': REAR_TARGET_X_OFFSET_M,
         'robot_docking_final_linear_speed_m_s': 0.06,
+        'robot_docking_calibration_target_x_threshold_m': -0.10,
         'final_docking_motion_sign': 1.0,
         'calibration_escape_motion_sign': -1.0,
         'motor_state_topic': '/rmd_state',
@@ -58,6 +59,7 @@ PROFILE_DEFAULTS = {
         'base_link_to_axle_center_x_m': FRONT_BASE_LINK_TO_AXLE_CENTER_X_M,
         'target_x_offset_m': FRONT_TARGET_X_OFFSET_M,
         'robot_docking_final_linear_speed_m_s': 0.08,
+        'robot_docking_calibration_target_x_threshold_m': -0.10,
         'final_docking_motion_sign': -1.0,
         'calibration_escape_motion_sign': 1.0,
         'motor_state_topic': '/front/rmd_state',
@@ -260,6 +262,14 @@ def _build_policy_node(context):
                 profile['robot_docking_final_linear_speed_m_s'],
             ),
             'robot_docking_final_linear_speed_m_s',
+        ),
+        'robot_docking_calibration_target_x_threshold_m': _parse_float(
+            _resolve_arg(
+                context,
+                'robot_docking_calibration_target_x_threshold_m',
+                profile['robot_docking_calibration_target_x_threshold_m'],
+            ),
+            'robot_docking_calibration_target_x_threshold_m',
         ),
         'calibration_escape_distance_m': _parse_float(
             LaunchConfiguration('calibration_escape_distance_m').perform(context),
@@ -495,6 +505,11 @@ def generate_launch_description() -> LaunchDescription:
                 'robot_docking_final_linear_speed_m_s',
                 default_value='__auto__',
                 description='__auto__ uses profile default final linear speed for robot docking only.',
+            ),
+            DeclareLaunchArgument(
+                'robot_docking_calibration_target_x_threshold_m',
+                default_value='__auto__',
+                description='Front robot docking enters calibration when canonical target_x exceeds this threshold before alignment is complete.',
             ),
             DeclareLaunchArgument('calibration_escape_distance_m', default_value='0.30'),
             DeclareLaunchArgument(

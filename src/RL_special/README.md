@@ -21,7 +21,7 @@ rear 프로파일은 `docking_target=1`을 받으면 동작하지 않고 `rear_r
 
 front의 `docking_target=1` 로봇 도킹에서는 아루코마커가 작아 카트 도킹보다 target loss가 늦게 감지될 수 있습니다.
 
-따라서 정렬 완료 조건이 아직 만족되지 않았는데 canonical `target_x_local`의 부호가 바뀌면, 로봇이 offset target을 지나쳐 너무 가까워진 것으로 보고 그 순간의 target을 고정한 뒤 calibration으로 진입합니다.
+따라서 정렬 완료 조건이 아직 만족되지 않았는데 canonical `target_x_local`이 `robot_docking_calibration_target_x_threshold_m`보다 커지면, 로봇이 offset target에 너무 가까워진 것으로 보고 그 순간의 target을 고정한 뒤 calibration으로 진입합니다.
 
 ## 토픽 구성
 
@@ -118,7 +118,7 @@ front는 현재 `/front/rmd_state`가 이미 감속 후 속도라고 가정해�
 
 비전 target이 `target_timeout_sec` 이상 끊기면 calibration으로 들어갑니다.
 
-front robot docking에서는 target이 끊기지 않았더라도, align 중 canonical `target_x_local` 부호가 바뀌고 아직 정렬 완료가 아니면 calibration으로 들어갑니다.
+front robot docking에서는 target이 끊기지 않았더라도, align 중 canonical `target_x_local > robot_docking_calibration_target_x_threshold_m`이고 아직 정렬 완료가 아니면 calibration으로 들어갑니다.
 
 현재 calibration은 가변 회전 escape 시퀀스입니다.
 
@@ -180,6 +180,7 @@ calibration 중 비전이 다시 들어와도 즉시 정책을 재개하지 않�
   - cart docking: `/front/cart_docking`
 - `final_docking_motion_sign = -1.0`
 - `robot_docking_final_linear_speed_m_s = 0.08`
+- `robot_docking_calibration_target_x_threshold_m = -0.10`
 - `calibration_escape_motion_sign = +1.0`
 - `external_reduction = 1.0`
 
@@ -193,6 +194,7 @@ calibration 중 비전이 다시 들어와도 즉시 정책을 재개하지 않�
   - cart docking: `/gripper_toggle`
 - `final_docking_motion_sign = +1.0`
 - `robot_docking_final_linear_speed_m_s = 0.06`
+- `robot_docking_calibration_target_x_threshold_m = -0.10`
 - `calibration_escape_motion_sign = -1.0`
 - `external_reduction = 1.0`
 
@@ -220,6 +222,7 @@ calibration 중 비전이 다시 들어와도 즉시 정책을 재개하지 않�
 - `robot_docking_final_distance_m`
 - `final_docking_motion_sign`
 - `robot_docking_final_linear_speed_m_s`
+- `robot_docking_calibration_target_x_threshold_m`
 - `calibration_escape_distance_m`
 - `calibration_escape_motion_sign`
 - `wheel_radius_m`

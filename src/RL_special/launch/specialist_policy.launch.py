@@ -50,7 +50,7 @@ PROFILE_DEFAULTS = {
         'robot_docking_completion_topic': '/front/robot_docking',
         'cart_docking_completion_topic': '/front/cart_docking',
         'cart_docking_final_distance_m': 0.12,
-        'robot_docking_final_distance_m': 0.31,
+        'robot_docking_final_distance_m': 0.25,
         'linear_velocity_scale_m_s': 0.1,
         'angular_velocity_scale_rad_s': 0.05,
         'near_target_linear_speed_limit_m_s': 0.05,
@@ -58,7 +58,7 @@ PROFILE_DEFAULTS = {
         'near_target_distance_m': 0.3,
         'base_link_to_axle_center_x_m': FRONT_BASE_LINK_TO_AXLE_CENTER_X_M,
         'target_x_offset_m': FRONT_TARGET_X_OFFSET_M,
-        'robot_docking_final_linear_speed_m_s': 0.08,
+        'robot_docking_final_linear_speed_m_s': 0.15,
         'robot_docking_calibration_target_x_threshold_m': -0.10,
         'final_docking_motion_sign': -1.0,
         'calibration_escape_motion_sign': 1.0,
@@ -69,8 +69,8 @@ PROFILE_DEFAULTS = {
         'wheel_radius_m': 0.0635,
         'wheel_separation_m': 0.2460,
         'external_reduction': 1.0,
-        'linear_odometry_scale': 1.0,
-        'angular_odometry_scale': 1.0,
+        'linear_odometry_scale': 1.05,
+        'angular_odometry_scale': 0.93,
     },
 }
 

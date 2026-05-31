@@ -918,8 +918,7 @@ class CartAlignSpecialistPolicyNode(Node):
             return False
         if self.control_phase != 'align':
             return False
-        if self._target_is_aligned(
-            target_x_local_m,
+        if self._target_y_or_yaw_is_aligned(
             target_y_local_m,
             target_yaw_error_rad,
         ):
@@ -927,6 +926,16 @@ class CartAlignSpecialistPolicyNode(Node):
         return (
             target_x_local_m
             > self.robot_docking_calibration_target_x_threshold_m
+        )
+
+    def _target_y_or_yaw_is_aligned(
+        self,
+        target_y_local_m: float,
+        target_yaw_error_rad: float,
+    ) -> bool:
+        return (
+            abs(target_y_local_m) <= self.target_xy_stop_tolerance_m
+            and abs(target_yaw_error_rad) <= self.target_yaw_stop_tolerance_rad
         )
 
     @staticmethod

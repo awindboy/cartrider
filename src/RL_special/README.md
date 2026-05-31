@@ -230,6 +230,12 @@ colcon build --packages-select RL_special
 source install/setup.bash
 ```
 
+canonical target과 calibration 기하 조건은 아래 스크립트로 재검증할 수 있습니다.
+
+```bash
+python3 src/RL_special/docs/verify_target_calibration_geometry.py
+```
+
 ## 실행
 
 front:

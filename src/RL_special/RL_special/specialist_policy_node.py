@@ -410,21 +410,15 @@ class CartAlignSpecialistPolicyNode(Node):
         self._apply_canonical_target_measurement(msg, now)
 
     def _apply_canonical_target_measurement(self, msg: Pose2D, now) -> None:
-        target_pose_theta_rad = self._wrap_to_pi(float(msg.theta))
-        target_yaw_error_rad = self._wrap_to_pi(-target_pose_theta_rad)
-        base_target_x_local = float(msg.x)
-        base_target_y_local = float(msg.y)
-        if self.robot_type == 'front':
-            base_target_x_local *= -1.0
-            base_target_y_local *= -1.0
-        target_x_axle_m, target_y_axle_m = self._shift_target_to_axle_center(
-            base_target_x_local,
-            base_target_y_local,
-        )
-        target_x_local_m, target_y_local_m = self._apply_target_offset(
-            target_x_axle_m,
-            target_y_axle_m,
-            target_yaw_error_rad,
+        target_x_local_m, target_y_local_m, target_yaw_error_rad = (
+            self._canonical_target_from_pose(
+                self.robot_type,
+                float(msg.x),
+                float(msg.y),
+                float(msg.theta),
+                self.base_link_to_axle_center_x_m,
+                self.target_x_offset_m,
+            )
         )
         self.target_x_local_m = target_x_local_m
         self.target_y_local_m = target_y_local_m
@@ -856,26 +850,42 @@ class CartAlignSpecialistPolicyNode(Node):
             return self.robot_docking_final_distance_m
         return self.cart_docking_final_distance_m
 
-    def _apply_target_offset(
-        self,
-        axle_target_x_local: float,
-        axle_target_y_local: float,
-        target_yaw_error_rad: float,
-    ) -> tuple[float, float]:
-        cart_offset_sign = 1.0 if self.robot_type == 'front' else -1.0
-        offset_x_local = (
-            cart_offset_sign
-            * self.target_x_offset_m
-            * math.cos(target_yaw_error_rad)
+    @staticmethod
+    def _canonical_target_from_pose(
+        robot_type: str,
+        pose_x_m: float,
+        pose_y_m: float,
+        pose_theta_rad: float,
+        base_link_to_axle_center_x_m: float,
+        target_x_offset_m: float,
+    ) -> tuple[float, float, float]:
+        target_pose_theta_rad = CartAlignSpecialistPolicyNode._wrap_to_pi(
+            pose_theta_rad
         )
-        offset_y_local = (
-            cart_offset_sign
-            * self.target_x_offset_m
-            * math.sin(target_yaw_error_rad)
+        target_yaw_error_rad = CartAlignSpecialistPolicyNode._wrap_to_pi(
+            -target_pose_theta_rad
         )
+        base_target_x_local = pose_x_m
+        base_target_y_local = pose_y_m
+        if robot_type == 'front':
+            base_target_x_local *= -1.0
+            base_target_y_local *= -1.0
+
+        axle_target_x_local = (
+            base_target_x_local - base_link_to_axle_center_x_m
+        )
+        axle_target_y_local = base_target_y_local
+        cart_offset_sign = 1.0 if robot_type == 'front' else -1.0
         return (
-            axle_target_x_local + offset_x_local,
-            axle_target_y_local + offset_y_local,
+            axle_target_x_local
+            + cart_offset_sign
+            * target_x_offset_m
+            * math.cos(target_yaw_error_rad),
+            axle_target_y_local
+            + cart_offset_sign
+            * target_x_offset_m
+            * math.sin(target_yaw_error_rad),
+            target_yaw_error_rad,
         )
 
     @staticmethod
@@ -969,9 +979,13 @@ class CartAlignSpecialistPolicyNode(Node):
             )
             axis_distance = robot_x_target_frame_m * x_axis_sign
             axis_penalty = 0 if axis_distance >= -1.0e-9 else 1
+            if axis_penalty == 0:
+                axis_distance_score = -axis_distance
+            else:
+                axis_distance_score = axis_distance
             return (
                 axis_penalty,
-                -axis_distance,
+                axis_distance_score,
                 abs(robot_y_target_frame_m),
             )
 
@@ -1064,16 +1078,6 @@ class CartAlignSpecialistPolicyNode(Node):
             self.target_yaw_error_rad - delta_yaw
         )
         self.last_target_state_update_time = now
-
-    def _shift_target_to_axle_center(
-        self,
-        raw_target_x_local: float,
-        raw_target_y_local: float,
-    ) -> tuple[float, float]:
-        return (
-            raw_target_x_local - self.base_link_to_axle_center_x_m,
-            raw_target_y_local,
-        )
 
     def _set_status(self, status: str) -> None:
         if self.current_status == status:

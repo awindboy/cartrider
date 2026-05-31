@@ -188,7 +188,11 @@ def compute_rotate_out_target_rad(
         )
         axis_distance = robot_x_target_frame_m * x_axis_sign
         axis_penalty = 0 if axis_distance >= -1.0e-9 else 1
-        return axis_penalty, -axis_distance, abs(robot_y_target_frame_m)
+        if axis_penalty == 0:
+            axis_distance_score = -axis_distance
+        else:
+            axis_distance_score = axis_distance
+        return axis_penalty, axis_distance_score, abs(robot_y_target_frame_m)
 
     return wrap_to_pi(min(roots, key=root_score))
 

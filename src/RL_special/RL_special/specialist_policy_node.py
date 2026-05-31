@@ -153,14 +153,20 @@ class CartAlignSpecialistPolicyNode(Node):
         self.state_invert_right = bool(self.get_parameter('state_invert_right').value)
         self.left_motor_id = int(self.get_parameter('left_motor_id').value)
         self.right_motor_id = int(self.get_parameter('right_motor_id').value)
+        self.robot_docking_enabled = self.robot_type == 'front'
+
+        if not self.robot_docking_enabled:
+            self.robot_docking_completion_topic = ''
 
         self._validate_parameters()
 
         self.target_yaw_stop_tolerance_rad = math.radians(
             self.target_yaw_stop_tolerance_deg
         )
-        self.robot_docking_target_yaw_stop_tolerance_rad = math.radians(
-            self.robot_docking_target_yaw_stop_tolerance_deg
+        self.robot_docking_target_yaw_stop_tolerance_rad = (
+            math.radians(self.robot_docking_target_yaw_stop_tolerance_deg)
+            if self.robot_docking_enabled
+            else 0.0
         )
 
         self.last_target_rx_time = None
@@ -214,11 +220,13 @@ class CartAlignSpecialistPolicyNode(Node):
             self.cmd_vel_topic,
             10,
         )
-        self.robot_docking_completion_pub = self.create_publisher(
-            Bool,
-            self.robot_docking_completion_topic,
-            10,
-        )
+        self.robot_docking_completion_pub = None
+        if self.robot_docking_enabled and self.robot_docking_completion_topic:
+            self.robot_docking_completion_pub = self.create_publisher(
+                Bool,
+                self.robot_docking_completion_topic,
+                10,
+            )
         self.cart_docking_completion_pub = self.create_publisher(
             Bool,
             self.cart_docking_completion_topic,
@@ -259,30 +267,18 @@ class CartAlignSpecialistPolicyNode(Node):
             raise ValueError('target_xy_stop_tolerance_m must be >= 0.')
         if self.target_yaw_stop_tolerance_deg < 0.0:
             raise ValueError('target_yaw_stop_tolerance_deg must be >= 0.')
-        if self.robot_docking_target_xy_stop_tolerance_m < 0.0:
-            raise ValueError(
-                'robot_docking_target_xy_stop_tolerance_m must be >= 0.'
-            )
-        if self.robot_docking_target_yaw_stop_tolerance_deg < 0.0:
-            raise ValueError(
-                'robot_docking_target_yaw_stop_tolerance_deg must be >= 0.'
-            )
         if self.base_link_to_axle_center_x_m < 0.0:
             raise ValueError('base_link_to_axle_center_x_m must be >= 0.')
         if self.target_x_offset_m < 0.0:
             raise ValueError('target_x_offset_m must be >= 0.')
         if self.cart_docking_final_distance_m < 0.0:
             raise ValueError('cart_docking_final_distance_m must be >= 0.')
-        if self.robot_docking_final_distance_m < 0.0:
-            raise ValueError('robot_docking_final_distance_m must be >= 0.')
         if self.final_docking_motion_sign not in (-1.0, 1.0):
             raise ValueError('final_docking_motion_sign must be -1.0 or 1.0.')
         if self.near_target_distance_m < 0.0:
             raise ValueError('near_target_distance_m must be >= 0.')
         if self.near_target_linear_speed_limit_m_s <= 0.0:
             raise ValueError('near_target_linear_speed_limit_m_s must be > 0.')
-        if self.robot_docking_final_linear_speed_m_s <= 0.0:
-            raise ValueError('robot_docking_final_linear_speed_m_s must be > 0.')
         if self.near_target_angular_speed_limit_rad_s <= 0.0:
             raise ValueError('near_target_angular_speed_limit_rad_s must be > 0.')
         if self.linear_velocity_scale_m_s <= 0.0:
@@ -299,6 +295,19 @@ class CartAlignSpecialistPolicyNode(Node):
             raise ValueError('linear_odometry_scale must be > 0.')
         if self.angular_odometry_scale <= 0.0:
             raise ValueError('angular_odometry_scale must be > 0.')
+        if self.robot_docking_enabled:
+            if self.robot_docking_target_xy_stop_tolerance_m < 0.0:
+                raise ValueError(
+                    'robot_docking_target_xy_stop_tolerance_m must be >= 0.'
+                )
+            if self.robot_docking_target_yaw_stop_tolerance_deg < 0.0:
+                raise ValueError(
+                    'robot_docking_target_yaw_stop_tolerance_deg must be >= 0.'
+                )
+            if self.robot_docking_final_distance_m < 0.0:
+                raise ValueError('robot_docking_final_distance_m must be >= 0.')
+            if self.robot_docking_final_linear_speed_m_s <= 0.0:
+                raise ValueError('robot_docking_final_linear_speed_m_s must be > 0.')
     def _load_model(self) -> None:
         if not os.path.isfile(self.model_path):
             raise FileNotFoundError(f'ONNX model not found: {self.model_path}')
@@ -889,7 +898,7 @@ class CartAlignSpecialistPolicyNode(Node):
     ) -> None:
         msg = Bool()
         msg.data = bool(enabled)
-        if docking_target == 1:
+        if docking_target == 1 and self.robot_docking_completion_pub is not None:
             self.robot_docking_completion_pub.publish(msg)
         elif docking_target == 2:
             self.cart_docking_completion_pub.publish(msg)

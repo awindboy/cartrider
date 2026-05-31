@@ -195,15 +195,11 @@ calibration 중 비전이 다시 들어와도 즉시 정책을 재개하지 않�
 - target topic: `/rear/target_pose`
 - motor state topic: `/rmd_state`
 - cmd_vel topic: `/cmd_vel`
-- completion topic
-  - robot docking: `/gripper_toggle` but runtime no-op
-  - cart docking: `/gripper_toggle`
+- cart docking completion topic: `/gripper_toggle`
 - `final_docking_motion_sign = +1.0`
-- `robot_docking_final_linear_speed_m_s = 0.06`
-- `robot_docking_target_xy_stop_tolerance_m = 0.03`
-- `robot_docking_target_yaw_stop_tolerance_deg = 2.0`
-- `robot_docking_calibration_target_x_threshold_m = -0.10`
 - `external_reduction = 1.0`
+
+rear는 `docking_target=1`에서 즉시 idle로 빠지므로, `robot_docking_*` 파라미터와 robot-docking completion publisher는 front 전용으로만 실제 사용됩니다.
 
 ## 주요 파라미터
 
@@ -212,7 +208,7 @@ calibration 중 비전이 다시 들어와도 즉시 정책을 재개하지 않�
 - `target_topic`
 - `motor_state_topic`
 - `cmd_vel_topic`
-- `robot_docking_completion_topic`
+- `robot_docking_completion_topic` : front only
 - `cart_docking_completion_topic`
 - `linear_velocity_scale_m_s`
 - `angular_velocity_scale_rad_s`
@@ -223,15 +219,15 @@ calibration 중 비전이 다시 들어와도 즉시 정책을 재개하지 않�
 - `motor_timeout_sec`
 - `target_xy_stop_tolerance_m`
 - `target_yaw_stop_tolerance_deg`
-- `robot_docking_target_xy_stop_tolerance_m`
-- `robot_docking_target_yaw_stop_tolerance_deg`
+- `robot_docking_target_xy_stop_tolerance_m` : front only
+- `robot_docking_target_yaw_stop_tolerance_deg` : front only
 - `base_link_to_axle_center_x_m`
 - `target_x_offset_m`
 - `cart_docking_final_distance_m`
-- `robot_docking_final_distance_m`
+- `robot_docking_final_distance_m` : front only
 - `final_docking_motion_sign`
-- `robot_docking_final_linear_speed_m_s`
-- `robot_docking_calibration_target_x_threshold_m`
+- `robot_docking_final_linear_speed_m_s` : front only
+- `robot_docking_calibration_target_x_threshold_m` : front only
 - `wheel_radius_m`
 - `wheel_separation_m`
 - `external_reduction`

@@ -44,6 +44,7 @@ setup(
     entry_points={
         'console_scripts': [
             'specialist_policy_node = RL_special.specialist_policy_node:main',
+            'debug_odometry_keyboard_node = RL_special.debug_odometry_keyboard_node:main',
         ],
     },
 )

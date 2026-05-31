@@ -253,3 +253,24 @@ ros2 topic pub /docking_target std_msgs/msg/Int32 "{data: 2}" -1
 - `0`: 대기
 - `1`: robot docking
 - `2`: cart docking
+
+## 오도메트리 키보드 디버그
+
+정책과 비전 없이 `/rmd_state` 오도메트리 적분만으로 정해진 거리/각도를 움직이는 디버그 런치입니다.
+
+```bash
+ros2 launch RL_special debug_odometry.launch.py robot_type:=front
+ros2 launch RL_special debug_odometry.launch.py robot_type:=rear
+```
+
+키 입력:
+
+- `↑` 또는 `w`: 로봇 로컬 `+x` 방향 30cm
+- `↓` 또는 `s`: 로봇 로컬 `-x` 방향 30cm
+- `←` 또는 `a`: `+yaw` 방향 90도 좌회전
+- `→` 또는 `d`: `-yaw` 방향 90도 우회전
+- `space`: 즉시 정지
+- `q`: 정지 후 종료
+
+기본값은 profile별 `cmd_vel`, `rmd_state`, 바퀴 반지름, 트랙 폭, 모터 부호 보정을 사용합니다.
+진행률은 명령 시간이 아니라 `/rmd_state`에서 계산한 실제 `current_v/current_omega`를 적분해 판단합니다.

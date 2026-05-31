@@ -672,7 +672,13 @@ class CartAlignSpecialistPolicyNode(Node):
         linear_limit = self.near_target_linear_speed_limit_m_s
 
         if self.calibration_stage == 'rotate_out':
-            self.calibration_yaw_traveled_rad += abs(self.current_angular_velocity_rad_s) * dt
+            self.calibration_yaw_traveled_rad += (
+                self._integrate_directed_yaw_progress(
+                    self.calibration_rotate_out_target_rad,
+                    self.current_angular_velocity_rad_s,
+                    dt,
+                )
+            )
             if self.calibration_yaw_traveled_rad >= abs(
                 self.calibration_rotate_out_target_rad
             ):
@@ -723,7 +729,13 @@ class CartAlignSpecialistPolicyNode(Node):
             return
 
         if self.calibration_stage == 'rotate_back':
-            self.calibration_yaw_traveled_rad += abs(self.current_angular_velocity_rad_s) * dt
+            self.calibration_yaw_traveled_rad += (
+                self._integrate_directed_yaw_progress(
+                    self.calibration_rotate_back_target_rad,
+                    self.current_angular_velocity_rad_s,
+                    dt,
+                )
+            )
             if self.calibration_yaw_traveled_rad >= abs(
                 self.calibration_rotate_back_target_rad
             ):
@@ -1078,6 +1090,17 @@ class CartAlignSpecialistPolicyNode(Node):
             self.target_yaw_error_rad - delta_yaw
         )
         self.last_target_state_update_time = now
+
+    @staticmethod
+    def _integrate_directed_yaw_progress(
+        target_angle_rad: float,
+        angular_velocity_rad_s: float,
+        dt_sec: float,
+    ) -> float:
+        if dt_sec <= 0.0 or abs(target_angle_rad) <= 1.0e-9:
+            return 0.0
+        target_direction = math.copysign(1.0, target_angle_rad)
+        return max(0.0, target_direction * angular_velocity_rad_s * dt_sec)
 
     def _set_status(self, status: str) -> None:
         if self.current_status == status:

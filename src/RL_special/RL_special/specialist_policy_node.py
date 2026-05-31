@@ -53,6 +53,7 @@ class CartAlignSpecialistPolicyNode(Node):
         self.declare_parameter('calibration_escape_motion_sign', -1.0)
         self.declare_parameter('near_target_distance_m', 0.5)
         self.declare_parameter('near_target_linear_speed_limit_m_s', 0.0)
+        self.declare_parameter('robot_docking_final_linear_speed_m_s', 0.0)
         self.declare_parameter('near_target_angular_speed_limit_rad_s', 0.0)
         self.declare_parameter('wheel_radius_m', 0.0)
         self.declare_parameter('wheel_separation_m', 0.0)
@@ -120,6 +121,9 @@ class CartAlignSpecialistPolicyNode(Node):
         )
         self.near_target_linear_speed_limit_m_s = float(
             self.get_parameter('near_target_linear_speed_limit_m_s').value
+        )
+        self.robot_docking_final_linear_speed_m_s = float(
+            self.get_parameter('robot_docking_final_linear_speed_m_s').value
         )
         self.near_target_angular_speed_limit_rad_s = float(
             self.get_parameter('near_target_angular_speed_limit_rad_s').value
@@ -260,6 +264,8 @@ class CartAlignSpecialistPolicyNode(Node):
             raise ValueError('near_target_distance_m must be >= 0.')
         if self.near_target_linear_speed_limit_m_s <= 0.0:
             raise ValueError('near_target_linear_speed_limit_m_s must be > 0.')
+        if self.robot_docking_final_linear_speed_m_s <= 0.0:
+            raise ValueError('robot_docking_final_linear_speed_m_s must be > 0.')
         if self.near_target_angular_speed_limit_rad_s <= 0.0:
             raise ValueError('near_target_angular_speed_limit_rad_s must be > 0.')
         if self.linear_velocity_scale_m_s <= 0.0:
@@ -844,7 +850,7 @@ class CartAlignSpecialistPolicyNode(Node):
         self._publish_cmd_vel(
             linear_x_m_s=(
                 self.final_docking_motion_sign
-                * self.near_target_linear_speed_limit_m_s
+                * self._get_active_final_linear_speed_m_s()
             ),
             angular_z_rad_s=0.0,
         )
@@ -882,6 +888,11 @@ class CartAlignSpecialistPolicyNode(Node):
         if self.active_docking_target == 1:
             return self.robot_docking_final_distance_m
         return self.cart_docking_final_distance_m
+
+    def _get_active_final_linear_speed_m_s(self) -> float:
+        if self.active_docking_target == 1:
+            return self.robot_docking_final_linear_speed_m_s
+        return self.near_target_linear_speed_limit_m_s
 
     def _target_is_aligned(
         self,

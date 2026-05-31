@@ -157,6 +157,8 @@ calibration 중 비전이 다시 들어와도 즉시 정책을 재개하지 않�
 - front 기본값: `-1.0` (후진)
 - rear 기본값: `+1.0` (전진)
 
+최종 이동 속도는 기본적으로 `near_target_linear_speed_limit_m_s`를 사용하지만, `docking_target=1` 로봇 도킹만 `robot_docking_final_linear_speed_m_s`를 따로 사용합니다.
+
 거리 적분은 현재 선속도를 사용합니다.
 
 완료되면:
@@ -177,6 +179,7 @@ calibration 중 비전이 다시 들어와도 즉시 정책을 재개하지 않�
   - robot docking: `/front/robot_docking`
   - cart docking: `/front/cart_docking`
 - `final_docking_motion_sign = -1.0`
+- `robot_docking_final_linear_speed_m_s = 0.08`
 - `calibration_escape_motion_sign = +1.0`
 - `external_reduction = 1.0`
 
@@ -189,6 +192,7 @@ calibration 중 비전이 다시 들어와도 즉시 정책을 재개하지 않�
   - robot docking: `/gripper_toggle` but runtime no-op
   - cart docking: `/gripper_toggle`
 - `final_docking_motion_sign = +1.0`
+- `robot_docking_final_linear_speed_m_s = 0.06`
 - `calibration_escape_motion_sign = -1.0`
 - `external_reduction = 1.0`
 
@@ -215,6 +219,7 @@ calibration 중 비전이 다시 들어와도 즉시 정책을 재개하지 않�
 - `cart_docking_final_distance_m`
 - `robot_docking_final_distance_m`
 - `final_docking_motion_sign`
+- `robot_docking_final_linear_speed_m_s`
 - `calibration_escape_distance_m`
 - `calibration_escape_motion_sign`
 - `wheel_radius_m`

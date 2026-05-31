@@ -29,6 +29,7 @@ PROFILE_DEFAULTS = {
         'near_target_distance_m': 0.3,
         'base_link_to_axle_center_x_m': REAR_BASE_LINK_TO_AXLE_CENTER_X_M,
         'target_x_offset_m': REAR_TARGET_X_OFFSET_M,
+        'robot_docking_final_linear_speed_m_s': 0.06,
         'final_docking_motion_sign': 1.0,
         'calibration_escape_motion_sign': -1.0,
         'motor_state_topic': '/rmd_state',
@@ -56,6 +57,7 @@ PROFILE_DEFAULTS = {
         'near_target_distance_m': 0.3,
         'base_link_to_axle_center_x_m': FRONT_BASE_LINK_TO_AXLE_CENTER_X_M,
         'target_x_offset_m': FRONT_TARGET_X_OFFSET_M,
+        'robot_docking_final_linear_speed_m_s': 0.08,
         'final_docking_motion_sign': -1.0,
         'calibration_escape_motion_sign': 1.0,
         'motor_state_topic': '/front/rmd_state',
@@ -250,6 +252,14 @@ def _build_policy_node(context):
                 profile['final_docking_motion_sign'],
             ),
             'final_docking_motion_sign',
+        ),
+        'robot_docking_final_linear_speed_m_s': _parse_float(
+            _resolve_arg(
+                context,
+                'robot_docking_final_linear_speed_m_s',
+                profile['robot_docking_final_linear_speed_m_s'],
+            ),
+            'robot_docking_final_linear_speed_m_s',
         ),
         'calibration_escape_distance_m': _parse_float(
             LaunchConfiguration('calibration_escape_distance_m').perform(context),
@@ -480,6 +490,11 @@ def generate_launch_description() -> LaunchDescription:
                 'final_docking_motion_sign',
                 default_value='__auto__',
                 description='__auto__ uses profile default final motion direction: +1 forward, -1 reverse.',
+            ),
+            DeclareLaunchArgument(
+                'robot_docking_final_linear_speed_m_s',
+                default_value='__auto__',
+                description='__auto__ uses profile default final linear speed for robot docking only.',
             ),
             DeclareLaunchArgument('calibration_escape_distance_m', default_value='0.30'),
             DeclareLaunchArgument(

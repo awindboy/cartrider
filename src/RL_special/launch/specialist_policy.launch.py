@@ -34,7 +34,6 @@ PROFILE_DEFAULTS = {
         'robot_docking_final_linear_speed_m_s': 0.06,
         'robot_docking_calibration_target_x_threshold_m': -0.10,
         'final_docking_motion_sign': 1.0,
-        'calibration_escape_motion_sign': -1.0,
         'motor_state_topic': '/rmd_state',
         'cmd_vel_topic': '/cmd_vel',
         'state_invert_left': True,
@@ -65,7 +64,6 @@ PROFILE_DEFAULTS = {
         'robot_docking_final_linear_speed_m_s': 0.15,
         'robot_docking_calibration_target_x_threshold_m': -0.10,
         'final_docking_motion_sign': -1.0,
-        'calibration_escape_motion_sign': 1.0,
         'motor_state_topic': '/front/rmd_state',
         'cmd_vel_topic': '/front/cmd_vel',
         'state_invert_left': False,
@@ -290,14 +288,6 @@ def _build_policy_node(context):
                 profile['robot_docking_calibration_target_x_threshold_m'],
             ),
             'robot_docking_calibration_target_x_threshold_m',
-        ),
-        'calibration_escape_motion_sign': _parse_float(
-            _resolve_arg(
-                context,
-                'calibration_escape_motion_sign',
-                profile['calibration_escape_motion_sign'],
-            ),
-            'calibration_escape_motion_sign',
         ),
         'near_target_distance_m': _parse_float(
             _resolve_arg(
@@ -536,11 +526,6 @@ def generate_launch_description() -> LaunchDescription:
                 'robot_docking_calibration_target_x_threshold_m',
                 default_value='__auto__',
                 description='Front robot docking enters calibration when canonical target_x exceeds this threshold before alignment is complete.',
-            ),
-            DeclareLaunchArgument(
-                'calibration_escape_motion_sign',
-                default_value='__auto__',
-                description='__auto__ uses profile default calibration travel direction: -1 reverse, +1 forward.',
             ),
             DeclareLaunchArgument('left_motor_id', default_value='1'),
             DeclareLaunchArgument('right_motor_id', default_value='2'),

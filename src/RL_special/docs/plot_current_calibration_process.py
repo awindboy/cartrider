@@ -8,14 +8,12 @@ PROFILES = {
         "color": "#d62728",
         "cart_fill": "#f7d7d4",
         "target_x_offset_m": 0.50,
-        "calibration_escape_motion_sign": -1.0,
         "docking_axis_sign": -1.0,
     },
     "front": {
         "color": "#1f77b4",
         "cart_fill": "#d8e7fb",
         "target_x_offset_m": 0.55,
-        "calibration_escape_motion_sign": 1.0,
         "docking_axis_sign": 1.0,
     },
 }
@@ -118,8 +116,7 @@ def compute_rotate_out_and_move_distance(
     target_y_local: float,
     target_yaw_error_rad: float,
     calibration_axis_sign: float,
-    calibration_escape_motion_sign: float,
-    ) -> tuple[float, float]:
+) -> tuple[float, float, float]:
     (
         robot_x_target_frame_m,
         robot_y_target_frame_m,
@@ -140,22 +137,30 @@ def compute_rotate_out_and_move_distance(
         delta_y_target_frame_m,
     )
     if move_distance_m <= 1.0e-9:
-        return 0.0, 0.0
+        return 0.0, 0.0, 1.0
     move_direction_target_frame_rad = math.atan2(
         delta_y_target_frame_m,
         delta_x_target_frame_m,
     )
-    commanded_heading_target_frame_rad = move_direction_target_frame_rad
-    if calibration_escape_motion_sign < 0.0:
-        commanded_heading_target_frame_rad = wrap_to_pi(
-            move_direction_target_frame_rad + math.pi
+    forward_rotate_out_target_rad = wrap_to_pi(
+        move_direction_target_frame_rad
+        - robot_heading_target_frame_rad
+    )
+    reverse_rotate_out_target_rad = wrap_to_pi(
+        move_direction_target_frame_rad
+        + math.pi
+        - robot_heading_target_frame_rad
+    )
+    if abs(forward_rotate_out_target_rad) <= abs(reverse_rotate_out_target_rad):
+        return (
+            forward_rotate_out_target_rad,
+            move_distance_m,
+            1.0,
         )
     return (
-        wrap_to_pi(
-            commanded_heading_target_frame_rad
-            - robot_heading_target_frame_rad
-        ),
+        reverse_rotate_out_target_rad,
         move_distance_m,
+        -1.0,
     )
 
 
@@ -170,12 +175,11 @@ def calibration_states(
         robot_y_target_frame_m,
         robot_heading_target_frame_rad,
     )
-    rotate_out, move_distance = compute_rotate_out_and_move_distance(
+    rotate_out, move_distance, move_motion_sign = compute_rotate_out_and_move_distance(
         *start,
         cfg["docking_axis_sign"],
-        cfg["calibration_escape_motion_sign"],
     )
-    signed_distance = cfg["calibration_escape_motion_sign"] * move_distance
+    signed_distance = move_motion_sign * move_distance
     after_rotate = target_state_after_rotation(*start, rotate_out)
     after_move = target_state_after_motion(*after_rotate, signed_distance)
     rotate_back = after_move[2]
@@ -189,6 +193,7 @@ def calibration_states(
         "rotate_back": rotate_back,
         "signed_distance": signed_distance,
         "move_distance": move_distance,
+        "move_motion_sign": move_motion_sign,
     }
 
 

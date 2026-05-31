@@ -112,10 +112,10 @@
 <line x1="426.2" y1="476.0" x2="386.0" y2="476.0" stroke="#777777" stroke-width="1.2" fill="none" stroke-dasharray="4 4" />
 <circle cx="386.0" cy="476.0" r="5" fill="#ff7f0e" stroke="#ffffff" stroke-width="2" opacity="1.0" />
 <line x1="369.1" y1="463.1" x2="369.1" y2="476.0" stroke="#d62728" stroke-width="1.8" fill="none" stroke-dasharray="6 4" />
-<polygon points="369.1,466.0 363.5,483.6 374.7,483.6" fill="#d62728" stroke="#d62728" stroke-width="1" opacity="0.28" />
-<polygon points="369.1,453.1 363.5,470.7 374.7,470.7" fill="#d62728" stroke="#d62728" stroke-width="1" opacity="1.0" />
+<polygon points="369.1,486.0 374.7,468.4 363.5,468.4" fill="#d62728" stroke="#d62728" stroke-width="1" opacity="0.28" />
+<polygon points="369.1,473.1 374.7,455.5 363.5,455.5" fill="#d62728" stroke="#d62728" stroke-width="1" opacity="1.0" />
 <circle cx="369.1" cy="463.1" r="2.5" fill="#111111" stroke="#111111" stroke-width="1" opacity="1.0" />
-<text x="290.0" y="546.0" font-size="8.4" fill="#333333" font-family="Courier New" xml:space="preserve"><tspan x="290.0" dy="0">turn=+108.0deg</tspan><tspan x="290.0" dy="11">faint=after 0.16m</tspan></text>
+<text x="290.0" y="546.0" font-size="8.4" fill="#333333" font-family="Courier New" xml:space="preserve"><tspan x="290.0" dy="0">turn=-72.0deg</tspan><tspan x="290.0" dy="11">faint=after 0.16m</tspan></text>
 <rect x="504.0" y="370.0" width="212.0" height="212.0" rx="6" ry="6" fill="#fcfcfb" stroke="#dddddd" stroke-width="1" opacity="1.0" />
 <text x="610.0" y="388.0" font-size="11" fill="#000" text-anchor="middle" font-weight="bold" font-family="Arial">rear 3 move</text>
 <line x1="528.0" y1="476.0" x2="692.0" y2="476.0" stroke="#d9d9d9" stroke-width="0.8" fill="none" />
@@ -123,9 +123,9 @@
 <rect x="650.2" y="459.1" width="51.5" height="33.8" rx="2" ry="2" fill="#f7d7d4" stroke="#777777" stroke-width="1" opacity="0.58" />
 <line x1="650.2" y1="476.0" x2="610.0" y2="476.0" stroke="#777777" stroke-width="1.2" fill="none" stroke-dasharray="4 4" />
 <circle cx="610.0" cy="476.0" r="5" fill="#ff7f0e" stroke="#ffffff" stroke-width="2" opacity="1.0" />
-<polygon points="593.1,466.0 587.5,483.6 598.7,483.6" fill="#d62728" stroke="#d62728" stroke-width="1" opacity="1.0" />
+<polygon points="593.1,486.0 598.7,468.4 587.5,468.4" fill="#d62728" stroke="#d62728" stroke-width="1" opacity="1.0" />
 <circle cx="593.1" cy="476.0" r="2.5" fill="#111111" stroke="#111111" stroke-width="1" opacity="1.0" />
-<text x="514.0" y="546.0" font-size="8.4" fill="#333333" font-family="Courier New" xml:space="preserve"><tspan x="514.0" dy="0">on target x-axis</tspan><tspan x="514.0" dy="11">move=0.16m</tspan><tspan x="514.0" dy="11">y_T=-0.000m</tspan></text>
+<text x="514.0" y="546.0" font-size="8.4" fill="#333333" font-family="Courier New" xml:space="preserve"><tspan x="514.0" dy="0">on target x-axis</tspan><tspan x="514.0" dy="11">move=0.16m</tspan><tspan x="514.0" dy="11">y_T=+0.000m</tspan></text>
 <rect x="728.0" y="370.0" width="212.0" height="212.0" rx="6" ry="6" fill="#fcfcfb" stroke="#dddddd" stroke-width="1" opacity="1.0" />
 <text x="834.0" y="388.0" font-size="11" fill="#000" text-anchor="middle" font-weight="bold" font-family="Arial">rear 4 yaw</text>
 <line x1="752.0" y1="476.0" x2="916.0" y2="476.0" stroke="#d9d9d9" stroke-width="0.8" fill="none" />
@@ -135,7 +135,7 @@
 <circle cx="834.0" cy="476.0" r="5" fill="#ff7f0e" stroke="#ffffff" stroke-width="2" opacity="1.0" />
 <polygon points="827.1,476.0 809.5,470.4 809.5,481.6" fill="#d62728" stroke="#d62728" stroke-width="1" opacity="1.0" />
 <circle cx="817.1" cy="476.0" r="2.5" fill="#111111" stroke="#111111" stroke-width="1" opacity="1.0" />
-<text x="738.0" y="546.0" font-size="8.4" fill="#333333" font-family="Courier New" xml:space="preserve"><tspan x="738.0" dy="0">turn=-90.0deg</tspan><tspan x="738.0" dy="11">final yaw=+0deg</tspan></text>
+<text x="738.0" y="546.0" font-size="8.4" fill="#333333" font-family="Courier New" xml:space="preserve"><tspan x="738.0" dy="0">turn=+90.0deg</tspan><tspan x="738.0" dy="11">final yaw=+0deg</tspan></text>
 <line x1="946.0" y1="380.0" x2="946.0" y2="572.0" stroke="#eeeeee" stroke-width="1" fill="none" />
 <rect x="952.0" y="370.0" width="212.0" height="212.0" rx="6" ry="6" fill="#fcfcfb" stroke="#dddddd" stroke-width="1" opacity="1.0" />
 <text x="1058.0" y="388.0" font-size="11" fill="#000" text-anchor="middle" font-weight="bold" font-family="Arial">front 1 start</text>
@@ -201,10 +201,10 @@
 <line x1="426.2" y1="732.0" x2="386.0" y2="732.0" stroke="#777777" stroke-width="1.2" fill="none" stroke-dasharray="4 4" />
 <circle cx="386.0" cy="732.0" r="5" fill="#ff7f0e" stroke="#ffffff" stroke-width="2" opacity="1.0" />
 <line x1="369.1" y1="744.9" x2="369.1" y2="732.0" stroke="#d62728" stroke-width="1.8" fill="none" stroke-dasharray="6 4" />
-<polygon points="369.1,742.0 374.7,724.4 363.5,724.4" fill="#d62728" stroke="#d62728" stroke-width="1" opacity="0.28" />
-<polygon points="369.1,754.9 374.7,737.3 363.5,737.3" fill="#d62728" stroke="#d62728" stroke-width="1" opacity="1.0" />
+<polygon points="369.1,722.0 363.5,739.6 374.7,739.6" fill="#d62728" stroke="#d62728" stroke-width="1" opacity="0.28" />
+<polygon points="369.1,734.9 363.5,752.5 374.7,752.5" fill="#d62728" stroke="#d62728" stroke-width="1" opacity="1.0" />
 <circle cx="369.1" cy="744.9" r="2.5" fill="#111111" stroke="#111111" stroke-width="1" opacity="1.0" />
-<text x="290.0" y="802.0" font-size="8.4" fill="#333333" font-family="Courier New" xml:space="preserve"><tspan x="290.0" dy="0">turn=-108.0deg</tspan><tspan x="290.0" dy="11">faint=after 0.16m</tspan></text>
+<text x="290.0" y="802.0" font-size="8.4" fill="#333333" font-family="Courier New" xml:space="preserve"><tspan x="290.0" dy="0">turn=+72.0deg</tspan><tspan x="290.0" dy="11">faint=after 0.16m</tspan></text>
 <rect x="504.0" y="626.0" width="212.0" height="212.0" rx="6" ry="6" fill="#fcfcfb" stroke="#dddddd" stroke-width="1" opacity="1.0" />
 <text x="610.0" y="644.0" font-size="11" fill="#000" text-anchor="middle" font-weight="bold" font-family="Arial">rear 3 move</text>
 <line x1="528.0" y1="732.0" x2="692.0" y2="732.0" stroke="#d9d9d9" stroke-width="0.8" fill="none" />
@@ -212,9 +212,9 @@
 <rect x="650.2" y="715.1" width="51.5" height="33.8" rx="2" ry="2" fill="#f7d7d4" stroke="#777777" stroke-width="1" opacity="0.58" />
 <line x1="650.2" y1="732.0" x2="610.0" y2="732.0" stroke="#777777" stroke-width="1.2" fill="none" stroke-dasharray="4 4" />
 <circle cx="610.0" cy="732.0" r="5" fill="#ff7f0e" stroke="#ffffff" stroke-width="2" opacity="1.0" />
-<polygon points="593.1,742.0 598.7,724.4 587.5,724.4" fill="#d62728" stroke="#d62728" stroke-width="1" opacity="1.0" />
+<polygon points="593.1,722.0 587.5,739.6 598.7,739.6" fill="#d62728" stroke="#d62728" stroke-width="1" opacity="1.0" />
 <circle cx="593.1" cy="732.0" r="2.5" fill="#111111" stroke="#111111" stroke-width="1" opacity="1.0" />
-<text x="514.0" y="802.0" font-size="8.4" fill="#333333" font-family="Courier New" xml:space="preserve"><tspan x="514.0" dy="0">on target x-axis</tspan><tspan x="514.0" dy="11">move=0.16m</tspan><tspan x="514.0" dy="11">y_T=+0.000m</tspan></text>
+<text x="514.0" y="802.0" font-size="8.4" fill="#333333" font-family="Courier New" xml:space="preserve"><tspan x="514.0" dy="0">on target x-axis</tspan><tspan x="514.0" dy="11">move=0.16m</tspan><tspan x="514.0" dy="11">y_T=-0.000m</tspan></text>
 <rect x="728.0" y="626.0" width="212.0" height="212.0" rx="6" ry="6" fill="#fcfcfb" stroke="#dddddd" stroke-width="1" opacity="1.0" />
 <text x="834.0" y="644.0" font-size="11" fill="#000" text-anchor="middle" font-weight="bold" font-family="Arial">rear 4 yaw</text>
 <line x1="752.0" y1="732.0" x2="916.0" y2="732.0" stroke="#d9d9d9" stroke-width="0.8" fill="none" />
@@ -224,7 +224,7 @@
 <circle cx="834.0" cy="732.0" r="5" fill="#ff7f0e" stroke="#ffffff" stroke-width="2" opacity="1.0" />
 <polygon points="827.1,732.0 809.5,726.4 809.5,737.6" fill="#d62728" stroke="#d62728" stroke-width="1" opacity="1.0" />
 <circle cx="817.1" cy="732.0" r="2.5" fill="#111111" stroke="#111111" stroke-width="1" opacity="1.0" />
-<text x="738.0" y="802.0" font-size="8.4" fill="#333333" font-family="Courier New" xml:space="preserve"><tspan x="738.0" dy="0">turn=+90.0deg</tspan><tspan x="738.0" dy="11">final yaw=+0deg</tspan></text>
+<text x="738.0" y="802.0" font-size="8.4" fill="#333333" font-family="Courier New" xml:space="preserve"><tspan x="738.0" dy="0">turn=-90.0deg</tspan><tspan x="738.0" dy="11">final yaw=+0deg</tspan></text>
 <line x1="946.0" y1="636.0" x2="946.0" y2="828.0" stroke="#eeeeee" stroke-width="1" fill="none" />
 <rect x="952.0" y="626.0" width="212.0" height="212.0" rx="6" ry="6" fill="#fcfcfb" stroke="#dddddd" stroke-width="1" opacity="1.0" />
 <text x="1058.0" y="644.0" font-size="11" fill="#000" text-anchor="middle" font-weight="bold" font-family="Arial">front 1 start</text>

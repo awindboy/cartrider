@@ -118,11 +118,11 @@ def verify_calibration_cases(node_cls) -> int:
     checked = 0
 
     scenarios = [
-        ("front", 1.0, 1.0, [-0.45, -0.25, -0.10, 0.03, 0.10, 0.20]),
-        ("rear", -1.0, -1.0, [-0.20, -0.10, -0.03, 0.10, 0.25, 0.45]),
+        ("front", 1.0, [-0.45, -0.25, -0.10, 0.03, 0.10, 0.20]),
+        ("rear", -1.0, [-0.20, -0.10, -0.03, 0.10, 0.25, 0.45]),
     ]
 
-    for robot_type, axis_sign, motion_sign, x_values in scenarios:
+    for robot_type, axis_sign, x_values in scenarios:
         for x_local in x_values:
             for y_local in (-0.24, -0.12, -0.04, 0.04, 0.12, 0.24):
                 for yaw_deg in (-35.0, -15.0, 0.0, 15.0, 35.0):
@@ -136,13 +136,12 @@ def verify_calibration_cases(node_cls) -> int:
                         y_local,
                         yaw,
                     )
-                    rotate_out, move_distance = (
+                    rotate_out, move_distance, move_motion_sign = (
                         node_cls._compute_calibration_rotate_out_and_move_distance(
                             x_local,
                             y_local,
                             yaw,
                             axis_sign,
-                            motion_sign,
                         )
                     )
                     after_rotate = target_state_after_rotation(
@@ -154,7 +153,7 @@ def verify_calibration_cases(node_cls) -> int:
                     )
                     after_move = target_state_after_motion(
                         *after_rotate,
-                        motion_sign * move_distance,
+                        move_motion_sign * move_distance,
                     )
                     (
                         moved_robot_x_t,
@@ -216,7 +215,7 @@ def verify_calibration_cases(node_cls) -> int:
                         assert_close(
                             f"{robot_type} along heading",
                             along,
-                            motion_sign * move_distance,
+                            move_motion_sign * move_distance,
                             1.0e-7,
                         )
                         assert_close(

@@ -96,7 +96,8 @@ class OdometryKeyboardDebugNode(Node):
         self.active_progress = 0.0
         self.current_status = ''
 
-        self.stdin_fd: Optional[int] = None
+        self.keyboard_input = None
+        self.keyboard_fd: Optional[int] = None
         self.original_terminal_settings = None
         self._configure_terminal()
 
@@ -135,25 +136,47 @@ class OdometryKeyboardDebugNode(Node):
             raise ValueError('status_period_sec must be >= 0.')
 
     def _configure_terminal(self) -> None:
-        if not sys.stdin.isatty():
+        if sys.stdin.isatty():
+            self.keyboard_input = sys.stdin
+        else:
+            try:
+                self.keyboard_input = open('/dev/tty', 'r', encoding='utf-8')
+                self.get_logger().info(
+                    'stdin is not a TTY; reading keyboard input from /dev/tty.'
+                )
+            except OSError as exc:
+                self.keyboard_input = None
+                self.get_logger().warning(
+                    'No keyboard TTY is available. Run this launch from an '
+                    f'interactive terminal. error={exc}'
+                )
+                return
+
+        self.keyboard_fd = self.keyboard_input.fileno()
+        if not self.keyboard_input.isatty():
             self.get_logger().warning(
-                'stdin is not a TTY. Keyboard input may not work from this launch context.'
+                'keyboard input is not a TTY. Keyboard input is disabled.'
             )
             return
-        self.stdin_fd = sys.stdin.fileno()
-        self.original_terminal_settings = termios.tcgetattr(self.stdin_fd)
-        tty.setcbreak(self.stdin_fd)
+        self.original_terminal_settings = termios.tcgetattr(self.keyboard_fd)
+        tty.setcbreak(self.keyboard_fd)
 
     def destroy_node(self) -> bool:
         self._publish_zero()
-        if self.stdin_fd is not None and self.original_terminal_settings is not None:
+        if (
+            self.keyboard_fd is not None
+            and self.original_terminal_settings is not None
+        ):
             termios.tcsetattr(
-                self.stdin_fd,
+                self.keyboard_fd,
                 termios.TCSADRAIN,
                 self.original_terminal_settings,
             )
-            self.stdin_fd = None
+            self.keyboard_fd = None
             self.original_terminal_settings = None
+        if self.keyboard_input is not None and self.keyboard_input is not sys.stdin:
+            self.keyboard_input.close()
+        self.keyboard_input = None
         return super().destroy_node()
 
     def _print_help(self) -> None:
@@ -233,20 +256,20 @@ class OdometryKeyboardDebugNode(Node):
             rclpy.shutdown()
 
     def _read_key(self) -> str:
-        if self.stdin_fd is None:
+        if self.keyboard_input is None or self.keyboard_fd is None:
             return ''
-        readable, _, _ = select.select([sys.stdin], [], [], 0.0)
+        readable, _, _ = select.select([self.keyboard_input], [], [], 0.0)
         if not readable:
             return ''
-        char = sys.stdin.read(1)
+        char = self.keyboard_input.read(1)
         if char != '\x1b':
             return char
         suffix = ''
         while True:
-            readable, _, _ = select.select([sys.stdin], [], [], 0.01)
+            readable, _, _ = select.select([self.keyboard_input], [], [], 0.01)
             if not readable:
                 break
-            suffix += sys.stdin.read(1)
+            suffix += self.keyboard_input.read(1)
             if len(suffix) >= 2:
                 break
         return {

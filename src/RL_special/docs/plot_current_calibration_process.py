@@ -9,12 +9,14 @@ PROFILES = {
         "cart_fill": "#f7d7d4",
         "target_x_offset_m": 0.50,
         "docking_axis_sign": -1.0,
+        "front_calibration_safe_axis_x_m": 0.0,
     },
     "front": {
         "color": "#1f77b4",
         "cart_fill": "#d8e7fb",
         "target_x_offset_m": 0.55,
         "docking_axis_sign": 1.0,
+        "front_calibration_safe_axis_x_m": 0.15,
     },
 }
 
@@ -116,6 +118,7 @@ def compute_rotate_out_and_move_distance(
     target_y_local: float,
     target_yaw_error_rad: float,
     calibration_axis_sign: float,
+    front_calibration_safe_axis_x_m: float,
 ) -> tuple[float, float, float]:
     (
         robot_x_target_frame_m,
@@ -127,7 +130,10 @@ def compute_rotate_out_and_move_distance(
         target_yaw_error_rad,
     )
     if calibration_axis_sign > 0.0:
-        goal_x_target_frame_m = max(0.0, robot_x_target_frame_m)
+        goal_x_target_frame_m = max(
+            front_calibration_safe_axis_x_m,
+            robot_x_target_frame_m,
+        )
     else:
         goal_x_target_frame_m = min(0.0, robot_x_target_frame_m)
     delta_x_target_frame_m = goal_x_target_frame_m - robot_x_target_frame_m
@@ -178,6 +184,7 @@ def calibration_states(
     rotate_out, move_distance, move_motion_sign = compute_rotate_out_and_move_distance(
         *start,
         cfg["docking_axis_sign"],
+        cfg["front_calibration_safe_axis_x_m"],
     )
     signed_distance = move_motion_sign * move_distance
     after_rotate = target_state_after_rotation(*start, rotate_out)

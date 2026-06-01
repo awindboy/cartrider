@@ -108,9 +108,13 @@ def target_state_after_motion(x, y, yaw, signed_distance_m):
     )
 
 
-def expected_calibration_goal_x(robot_x_target_frame_m: float, axis_sign: float) -> float:
+def expected_calibration_goal_x(
+    robot_x_target_frame_m: float,
+    axis_sign: float,
+    front_safe_axis_x_m: float,
+) -> float:
     if axis_sign > 0.0:
-        return max(0.0, robot_x_target_frame_m)
+        return max(front_safe_axis_x_m, robot_x_target_frame_m)
     return min(0.0, robot_x_target_frame_m)
 
 
@@ -118,11 +122,11 @@ def verify_calibration_cases(node_cls) -> int:
     checked = 0
 
     scenarios = [
-        ("front", 1.0, [-0.45, -0.25, -0.10, 0.03, 0.10, 0.20]),
-        ("rear", -1.0, [-0.20, -0.10, -0.03, 0.10, 0.25, 0.45]),
+        ("front", 1.0, 0.15, [-0.45, -0.25, -0.10, 0.03, 0.10, 0.20]),
+        ("rear", -1.0, 0.0, [-0.20, -0.10, -0.03, 0.10, 0.25, 0.45]),
     ]
 
-    for robot_type, axis_sign, x_values in scenarios:
+    for robot_type, axis_sign, front_safe_axis_x_m, x_values in scenarios:
         for x_local in x_values:
             for y_local in (-0.24, -0.12, -0.04, 0.04, 0.12, 0.24):
                 for yaw_deg in (-35.0, -15.0, 0.0, 15.0, 35.0):
@@ -142,6 +146,7 @@ def verify_calibration_cases(node_cls) -> int:
                             y_local,
                             yaw,
                             axis_sign,
+                            front_safe_axis_x_m,
                         )
                     )
                     after_rotate = target_state_after_rotation(
@@ -161,7 +166,11 @@ def verify_calibration_cases(node_cls) -> int:
                         moved_heading_t,
                     ) = node_cls._robot_pose_in_target_frame(*after_move)
 
-                    goal_x_t = expected_calibration_goal_x(robot_x_t, axis_sign)
+                    goal_x_t = expected_calibration_goal_x(
+                        robot_x_t,
+                        axis_sign,
+                        front_safe_axis_x_m,
+                    )
                     assert_close(
                         f"{robot_type} goal x",
                         moved_robot_x_t,

@@ -48,6 +48,7 @@ class CartAlignSpecialistPolicyNode(Node):
         self.declare_parameter('robot_docking_target_yaw_stop_tolerance_deg', 5.0)
         self.declare_parameter('base_link_to_axle_center_x_m', 0.0)
         self.declare_parameter('target_x_offset_m', 0.0)
+        self.declare_parameter('front_calibration_safe_axis_x_m', 0.0)
         self.declare_parameter('cart_docking_final_distance_m', 0.35)
         self.declare_parameter('robot_docking_final_distance_m', 0.35)
         self.declare_parameter('final_docking_motion_sign', 1.0)
@@ -109,6 +110,9 @@ class CartAlignSpecialistPolicyNode(Node):
         )
         self.target_x_offset_m = float(
             self.get_parameter('target_x_offset_m').value
+        )
+        self.front_calibration_safe_axis_x_m = float(
+            self.get_parameter('front_calibration_safe_axis_x_m').value
         )
         self.cart_docking_final_distance_m = float(
             self.get_parameter('cart_docking_final_distance_m').value
@@ -272,6 +276,8 @@ class CartAlignSpecialistPolicyNode(Node):
             raise ValueError('base_link_to_axle_center_x_m must be >= 0.')
         if self.target_x_offset_m < 0.0:
             raise ValueError('target_x_offset_m must be >= 0.')
+        if self.front_calibration_safe_axis_x_m < 0.0:
+            raise ValueError('front_calibration_safe_axis_x_m must be >= 0.')
         if self.cart_docking_final_distance_m < 0.0:
             raise ValueError('cart_docking_final_distance_m must be >= 0.')
         if self.final_docking_motion_sign not in (-1.0, 1.0):
@@ -679,6 +685,7 @@ class CartAlignSpecialistPolicyNode(Node):
             target_y_local,
             self.target_yaw_error_rad if self.target_yaw_error_rad is not None else 0.0,
             self._get_calibration_axis_sign(),
+            self.front_calibration_safe_axis_x_m,
         )
         self.calibration_rotate_back_target_rad = 0.0
         self.calibration_distance_traveled_m = 0.0
@@ -1041,6 +1048,7 @@ class CartAlignSpecialistPolicyNode(Node):
         target_y_local: float,
         target_yaw_error_rad: float,
         calibration_axis_sign: float,
+        front_calibration_safe_axis_x_m: float,
     ) -> tuple[float, float, float]:
         (
             robot_x_target_frame_m,
@@ -1052,7 +1060,10 @@ class CartAlignSpecialistPolicyNode(Node):
             target_yaw_error_rad,
         )
         if calibration_axis_sign > 0.0:
-            goal_x_target_frame_m = max(0.0, robot_x_target_frame_m)
+            goal_x_target_frame_m = max(
+                front_calibration_safe_axis_x_m,
+                robot_x_target_frame_m,
+            )
         else:
             goal_x_target_frame_m = min(0.0, robot_x_target_frame_m)
         delta_x_target_frame_m = (

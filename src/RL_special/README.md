@@ -137,6 +137,7 @@ front robot docking에서는 target이 끊기지 않았더라도, align 중 cano
 - 기준은 canonical target state와 노드 내부 odometry 모델입니다.
 - 목표는 로봇 구동축 중심을 target frame의 허용 반축 위 최근접점으로 보내는 것입니다.
 - rear는 target frame의 `x-`축 위 최근접점으로, front는 `x+`축 위 최근접점으로 이동합니다.
+- front는 target에 너무 붙은 상태에서 캘리가 시작되면, 안전을 위해 최소 `front_calibration_safe_axis_x_m`만큼 앞쪽의 `x+` 위치를 목표로 사용합니다.
 - 따라서 고정 30cm 규칙은 없고, 필요한 만큼만 직선 이동합니다.
 - 1차 회전각은 현재 로봇 위치에서 그 최근접 축점으로 직선 이동할 수 있도록 계산합니다.
 - 이때 전진/후진을 미리 고정하지 않고, 더 적은 회전으로 갈 수 있는 방향을 선택합니다.
@@ -223,6 +224,7 @@ rear는 `docking_target=1`에서 주행 없이 `/gripper_toggle`만 1회 publish
 - `robot_docking_target_yaw_stop_tolerance_deg` : front only
 - `base_link_to_axle_center_x_m`
 - `target_x_offset_m`
+- `front_calibration_safe_axis_x_m` : front only
 - `cart_docking_final_distance_m`
 - `robot_docking_final_distance_m` : front only
 - `final_docking_motion_sign`

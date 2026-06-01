@@ -55,6 +55,7 @@ PROFILE_DEFAULTS = {
         'robot_docking_target_yaw_stop_tolerance_deg': 2.0,
         'base_link_to_axle_center_x_m': FRONT_BASE_LINK_TO_AXLE_CENTER_X_M,
         'target_x_offset_m': FRONT_TARGET_X_OFFSET_M,
+        'front_calibration_safe_axis_x_m': 0.15,
         'robot_docking_final_linear_speed_m_s': 0.15,
         'robot_docking_calibration_target_x_threshold_m': -0.10,
         'final_docking_motion_sign': -1.0,
@@ -242,6 +243,14 @@ def _build_policy_node(context):
                 profile['target_x_offset_m'],
             ),
             'target_x_offset_m',
+        ),
+        'front_calibration_safe_axis_x_m': _parse_float(
+            _resolve_arg(
+                context,
+                'front_calibration_safe_axis_x_m',
+                profile.get('front_calibration_safe_axis_x_m', 0.0),
+            ),
+            'front_calibration_safe_axis_x_m',
         ),
         'cart_docking_final_distance_m': _parse_float(
             _resolve_arg(
@@ -495,6 +504,11 @@ def generate_launch_description() -> LaunchDescription:
                 'target_x_offset_m',
                 default_value='__auto__',
                 description='Longitudinal cart-surface offset applied after shifting the frame origin from base_link center to drive axle center.',
+            ),
+            DeclareLaunchArgument(
+                'front_calibration_safe_axis_x_m',
+                default_value='__auto__',
+                description='Front-only calibration axis target. When front calibration starts too close to the target, it will move to at least this x+ position in the target frame.',
             ),
             DeclareLaunchArgument(
                 'cart_docking_final_distance_m',

@@ -8,6 +8,7 @@ import onnxruntime as ort
 import rclpy
 from ament_index_python.packages import get_package_share_directory
 from geometry_msgs.msg import Pose2D, Twist
+from rclpy.duration import Duration
 from rclpy.executors import ExternalShutdownException
 from rclpy.node import Node
 from rclpy.qos import qos_profile_sensor_data
@@ -42,6 +43,7 @@ class CartAlignSpecialistPolicyNode(Node):
         self.declare_parameter('control_rate_hz', 30.0)
         self.declare_parameter('target_timeout_sec', 0.3)
         self.declare_parameter('motor_timeout_sec', 1000.0)
+        self.declare_parameter('calibration_resume_delay_sec', 0.5)
         self.declare_parameter('target_xy_stop_tolerance_m', 0.05)
         self.declare_parameter('target_yaw_stop_tolerance_deg', 5.0)
         self.declare_parameter('robot_docking_target_xy_stop_tolerance_m', 0.05)
@@ -91,6 +93,9 @@ class CartAlignSpecialistPolicyNode(Node):
         self.control_rate_hz = float(self.get_parameter('control_rate_hz').value)
         self.target_timeout_sec = float(self.get_parameter('target_timeout_sec').value)
         self.motor_timeout_sec = float(self.get_parameter('motor_timeout_sec').value)
+        self.calibration_resume_delay_sec = float(
+            self.get_parameter('calibration_resume_delay_sec').value
+        )
         self.target_xy_stop_tolerance_m = float(
             self.get_parameter('target_xy_stop_tolerance_m').value
         )
@@ -194,6 +199,7 @@ class CartAlignSpecialistPolicyNode(Node):
         self.final_docking_distance_traveled_m = 0.0
         self.final_docking_distance_target_m = 0.0
         self.final_docking_last_update_time = None
+        self.calibration_resume_time = None
         self.current_status = ''
         self.pending_target_msg: Optional[Pose2D] = None
         self.pending_target_rx_time = None
@@ -268,6 +274,8 @@ class CartAlignSpecialistPolicyNode(Node):
             raise ValueError('target_timeout_sec must be > 0.')
         if self.motor_timeout_sec <= 0.0:
             raise ValueError('motor_timeout_sec must be > 0.')
+        if self.calibration_resume_delay_sec < 0.0:
+            raise ValueError('calibration_resume_delay_sec must be >= 0.')
         if self.target_xy_stop_tolerance_m < 0.0:
             raise ValueError('target_xy_stop_tolerance_m must be >= 0.')
         if self.target_yaw_stop_tolerance_deg < 0.0:
@@ -429,6 +437,7 @@ class CartAlignSpecialistPolicyNode(Node):
         self.final_docking_distance_traveled_m = 0.0
         self.final_docking_distance_target_m = 0.0
         self.final_docking_last_update_time = None
+        self.calibration_resume_time = None
         self.pending_target_msg = None
         self.pending_target_rx_time = None
         self.suppress_robot_docking_target_x_calibration = False
@@ -535,6 +544,10 @@ class CartAlignSpecialistPolicyNode(Node):
 
         if self.control_phase == 'calibration':
             self._run_calibration(now)
+            return
+
+        if self.control_phase == 'post_calibration_pause':
+            self._run_post_calibration_pause(now)
             return
 
         if self.control_phase == 'final_docking_motion':
@@ -814,7 +827,7 @@ class CartAlignSpecialistPolicyNode(Node):
         self._publish_zero('invalid_calibration_state')
 
     def _finish_calibration(self) -> None:
-        self.control_phase = 'align'
+        self.control_phase = 'post_calibration_pause'
         self.calibration_stage = ''
         self.calibration_distance_traveled_m = 0.0
         self.calibration_move_distance_target_m = 0.0
@@ -823,7 +836,12 @@ class CartAlignSpecialistPolicyNode(Node):
         self.calibration_last_update_time = None
         self.calibration_rotate_out_target_rad = 0.0
         self.calibration_rotate_back_target_rad = 0.0
-        self._set_status('calibration_done')
+        self.calibration_resume_time = (
+            self.get_clock().now()
+            + Duration(seconds=self.calibration_resume_delay_sec)
+        )
+        self._publish_cmd_vel(linear_x_m_s=0.0, angular_z_rad_s=0.0)
+        self._set_status('post_calibration_pause')
         self.suppress_robot_docking_target_x_calibration = True
         if self.pending_target_msg is not None and self.pending_target_rx_time is not None:
             self._apply_canonical_target_measurement(
@@ -835,6 +853,13 @@ class CartAlignSpecialistPolicyNode(Node):
         else:
             self.last_target_rx_time = None
             self.last_target_state_update_time = None
+
+    def _run_post_calibration_pause(self, now) -> None:
+        self._publish_cmd_vel(linear_x_m_s=0.0, angular_z_rad_s=0.0)
+        if self.calibration_resume_time is None or now >= self.calibration_resume_time:
+            self.calibration_resume_time = None
+            self.control_phase = 'align'
+            self._set_status('align')
 
     def _run_final_docking_motion(self, now) -> None:
         if (

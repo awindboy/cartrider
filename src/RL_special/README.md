@@ -151,6 +151,8 @@ front robot docking에서는 target이 끊기지 않았더라도, align 중 cano
 
 calibration 중 비전이 다시 들어와도 즉시 정책을 재개하지 않습니다. 새 측정은 보류해두고, calibration이 끝난 다음에만 다시 align에 반영합니다.
 
+calibration이 끝나면 front/rear 공통으로 `0.5초` 동안 `cmd_vel=0`으로 정지한 뒤 다시 `align`을 시작합니다.
+
 ### 4. `final_docking_motion`
 
 정렬 완료 후에는 타겟과 무관하게 지정 거리만큼 직선 이동합니다.

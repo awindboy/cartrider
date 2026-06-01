@@ -193,6 +193,7 @@ class CartAlignSpecialistPolicyNode(Node):
         self.current_status = ''
         self.pending_target_msg: Optional[Pose2D] = None
         self.pending_target_rx_time = None
+        self.suppress_robot_docking_target_x_calibration = False
 
         self._load_model()
         self._load_motor_state_type()
@@ -424,6 +425,7 @@ class CartAlignSpecialistPolicyNode(Node):
         self.final_docking_last_update_time = None
         self.pending_target_msg = None
         self.pending_target_rx_time = None
+        self.suppress_robot_docking_target_x_calibration = False
 
     def _clear_target_state(self) -> None:
         self.last_target_rx_time = None
@@ -564,6 +566,7 @@ class CartAlignSpecialistPolicyNode(Node):
 
         dt_target = (now - self.last_target_rx_time).nanoseconds * 1e-9
         if dt_target > self.target_timeout_sec:
+            self.suppress_robot_docking_target_x_calibration = False
             self._start_calibration(now)
             self._run_calibration(now)
             return
@@ -814,6 +817,7 @@ class CartAlignSpecialistPolicyNode(Node):
         self.calibration_rotate_out_target_rad = 0.0
         self.calibration_rotate_back_target_rad = 0.0
         self._set_status('calibration_done')
+        self.suppress_robot_docking_target_x_calibration = True
         if self.pending_target_msg is not None and self.pending_target_rx_time is not None:
             self._apply_canonical_target_measurement(
                 self.pending_target_msg,
@@ -948,6 +952,8 @@ class CartAlignSpecialistPolicyNode(Node):
         target_yaw_error_rad: float,
     ) -> bool:
         if self.robot_type != 'front' or self.active_docking_target != 1:
+            return False
+        if self.suppress_robot_docking_target_x_calibration:
             return False
         if self.control_phase != 'align':
             return False

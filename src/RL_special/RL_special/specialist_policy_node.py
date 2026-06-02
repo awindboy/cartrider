@@ -594,6 +594,8 @@ class CartAlignSpecialistPolicyNode(Node):
 
     def _control_callback(self) -> None:
         now = self.get_clock().now()
+        if self.rl_docking_done_active:
+            self._publish_rl_docking_done(enabled=True)
 
         if self.control_phase == 'waiting_docking_target':
             return

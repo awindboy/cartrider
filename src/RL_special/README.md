@@ -95,11 +95,11 @@ front는 현재 `/front/rmd_state`가 이미 감속 후 속도라고 가정해�
 - front + `docking_target=2`: `/front/cart_docking`에 `Bool(true)` 1회
 - rear + `docking_target=2`: `/gripper_toggle`에 `Bool(true)` 1회
 - rear + `docking_target=1`: `/gripper_toggle`에 `Bool(true)` 1회
-- rear 도킹 성공시: `/rl_docking_done`에 `Bool(true)` 1회
-- front 도킹 성공시: `/front/rl_docking_done`에 `Bool(true)` 1회
+- rear 도킹 성공시: `/rl_docking_done`에 `Bool(true)`를 반복 publish
+- front 도킹 성공시: `/front/rl_docking_done`에 `Bool(true)`를 반복 publish
 
 외부 `Bool` 토픽 `/docking_state`를 구독합니다.
-`/docking_state == true`가 들어오면 내부 `rl_docking_done` 상태를 초기화해서 다음 성공 이벤트를 다시 publish할 수 있게 합니다.
+`/docking_state == true`가 들어오면 내부 `rl_docking_done` 상태를 초기화해서 반복 publish를 멈추고, 다음 성공 이벤트를 다시 publish할 수 있게 합니다.
 
 ## 상태 머신
 

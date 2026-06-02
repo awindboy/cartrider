@@ -53,6 +53,7 @@ class CartAlignSpecialistPolicyNode(Node):
         self.declare_parameter('robot_docking_target_yaw_stop_tolerance_deg', 5.0)
         self.declare_parameter('base_link_to_axle_center_x_m', 0.0)
         self.declare_parameter('target_x_offset_m', 0.0)
+        self.declare_parameter('rear_target_y_offset_m', 0.0)
         self.declare_parameter('front_calibration_safe_axis_x_m', 0.0)
         self.declare_parameter('rear_calibration_safe_axis_x_m', 0.0)
         self.declare_parameter('cart_docking_final_distance_m', 0.35)
@@ -126,6 +127,9 @@ class CartAlignSpecialistPolicyNode(Node):
         )
         self.target_x_offset_m = float(
             self.get_parameter('target_x_offset_m').value
+        )
+        self.rear_target_y_offset_m = float(
+            self.get_parameter('rear_target_y_offset_m').value
         )
         self.front_calibration_safe_axis_x_m = float(
             self.get_parameter('front_calibration_safe_axis_x_m').value
@@ -514,6 +518,7 @@ class CartAlignSpecialistPolicyNode(Node):
                 float(msg.point.z),
                 self.base_link_to_axle_center_x_m,
                 self.target_x_offset_m,
+                self.rear_target_y_offset_m,
             )
         )
         should_calibrate_for_target_x = (
@@ -1119,6 +1124,7 @@ class CartAlignSpecialistPolicyNode(Node):
         pose_theta_rad: float,
         base_link_to_axle_center_x_m: float,
         target_x_offset_m: float,
+        rear_target_y_offset_m: float,
     ) -> tuple[float, float, float]:
         target_pose_theta_rad = CartAlignSpecialistPolicyNode._wrap_to_pi(
             pose_theta_rad
@@ -1145,7 +1151,8 @@ class CartAlignSpecialistPolicyNode(Node):
             axle_target_y_local
             + cart_offset_sign
             * target_x_offset_m
-            * math.sin(target_yaw_error_rad),
+            * math.sin(target_yaw_error_rad)
+            + (rear_target_y_offset_m if robot_type == 'rear' else 0.0),
             target_yaw_error_rad,
         )
 

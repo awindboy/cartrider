@@ -52,6 +52,8 @@ front와 rear 모두 target이 아직 보이더라도, canonical `target_x_local
 4. 카트 표면 offset 적용
    - rear: `x_target = x_axle - target_x_offset_m * cos(target_yaw_error)`, `y_target = y_axle - target_x_offset_m * sin(target_yaw_error)`
    - front: `x_target = x_axle + target_x_offset_m * cos(target_yaw_error)`, `y_target = y_axle + target_x_offset_m * sin(target_yaw_error)`
+5. rear 전용 y offset 적용
+   - rear만 `y_target += rear_target_y_offset_m`
 
 즉 front는 target 입력 좌표를 먼저 로봇 진행방향 기준으로 바꾸고, 그 뒤의 가공 체인은 rear와 동일합니다. 정책 입력도 canonical target인 `[x_target, y_target, target_yaw_error, current_v, current_omega]`를 그대로 사용합니다.
 
@@ -248,6 +250,7 @@ rear는 `docking_target=1`에서 주행 없이 `/gripper_toggle`만 1회 publish
 - `robot_docking_target_yaw_stop_tolerance_deg` : front only
 - `base_link_to_axle_center_x_m`
 - `target_x_offset_m`
+- `rear_target_y_offset_m` : rear only
 - `front_calibration_safe_axis_x_m` : front only
 - `rear_calibration_safe_axis_x_m` : rear only
 - `cart_docking_final_distance_m`

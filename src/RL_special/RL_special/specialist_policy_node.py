@@ -1,13 +1,14 @@
 #!/usr/bin/env python3
 import math
 import os
+import re
 from typing import Optional
 
 import numpy as np
 import onnxruntime as ort
 import rclpy
 from ament_index_python.packages import get_package_share_directory
-from geometry_msgs.msg import Pose2D, Twist
+from geometry_msgs.msg import PointStamped, Twist
 from rclpy.duration import Duration
 from rclpy.executors import ExternalShutdownException
 from rclpy.node import Node
@@ -24,6 +25,7 @@ class CartAlignSpecialistPolicyNode(Node):
         self.declare_parameter('model_path', self._default_model_path())
         self.declare_parameter('docking_target_topic', '/docking_target')
         self.declare_parameter('target_topic', '/target_pose')
+        self.declare_parameter('docking_state_topic', '/docking_state')
         self.declare_parameter('motor_state_topic', '/rmd_state')
         self.declare_parameter(
             'motor_state_type',
@@ -38,6 +40,7 @@ class CartAlignSpecialistPolicyNode(Node):
             'cart_docking_completion_topic',
             '/gripper_toggle',
         )
+        self.declare_parameter('rl_docking_done_topic', '/rl_docking_done')
         self.declare_parameter('linear_velocity_scale_m_s', 0.0)
         self.declare_parameter('angular_velocity_scale_rad_s', 0.0)
         self.declare_parameter('control_rate_hz', 30.0)
@@ -75,6 +78,9 @@ class CartAlignSpecialistPolicyNode(Node):
             self.get_parameter('docking_target_topic').value
         )
         self.target_topic = str(self.get_parameter('target_topic').value)
+        self.docking_state_topic = str(
+            self.get_parameter('docking_state_topic').value
+        )
         self.motor_state_topic = str(self.get_parameter('motor_state_topic').value)
         self.motor_state_type = str(self.get_parameter('motor_state_type').value)
         self.cmd_vel_topic = str(self.get_parameter('cmd_vel_topic').value)
@@ -83,6 +89,9 @@ class CartAlignSpecialistPolicyNode(Node):
         )
         self.cart_docking_completion_topic = str(
             self.get_parameter('cart_docking_completion_topic').value
+        )
+        self.rl_docking_done_topic = str(
+            self.get_parameter('rl_docking_done_topic').value
         )
         self.linear_velocity_scale_m_s = float(
             self.get_parameter('linear_velocity_scale_m_s').value
@@ -163,6 +172,7 @@ class CartAlignSpecialistPolicyNode(Node):
         self.left_motor_id = int(self.get_parameter('left_motor_id').value)
         self.right_motor_id = int(self.get_parameter('right_motor_id').value)
         self.robot_docking_enabled = self.robot_type == 'front'
+        self.expected_target_marker_id = 0 if self.robot_type == 'front' else 1
 
         if not self.robot_docking_enabled:
             self.robot_docking_completion_topic = ''
@@ -201,9 +211,10 @@ class CartAlignSpecialistPolicyNode(Node):
         self.final_docking_last_update_time = None
         self.calibration_resume_time = None
         self.current_status = ''
-        self.pending_target_msg: Optional[Pose2D] = None
+        self.pending_target_msg: Optional[PointStamped] = None
         self.pending_target_rx_time = None
         self.suppress_robot_docking_target_x_calibration = False
+        self.rl_docking_done_active = False
 
         self._load_model()
         self._load_motor_state_type()
@@ -215,10 +226,16 @@ class CartAlignSpecialistPolicyNode(Node):
             10,
         )
         self.target_sub = self.create_subscription(
-            Pose2D,
+            PointStamped,
             self.target_topic,
             self._target_callback,
             qos_profile_sensor_data,
+        )
+        self.docking_state_sub = self.create_subscription(
+            Bool,
+            self.docking_state_topic,
+            self._docking_state_callback,
+            10,
         )
         self.motor_state_sub = self.create_subscription(
             self.motor_state_msg_cls,
@@ -241,6 +258,11 @@ class CartAlignSpecialistPolicyNode(Node):
         self.cart_docking_completion_pub = self.create_publisher(
             Bool,
             self.cart_docking_completion_topic,
+            10,
+        )
+        self.rl_docking_done_pub = self.create_publisher(
+            Bool,
+            self.rl_docking_done_topic,
             10,
         )
 
@@ -376,6 +398,7 @@ class CartAlignSpecialistPolicyNode(Node):
                 docking_target=2,
                 enabled=True,
             )
+            self._publish_rl_docking_done(enabled=True)
             self._enter_waiting_mode('rear_robot_docking_idle')
             return
 
@@ -455,8 +478,16 @@ class CartAlignSpecialistPolicyNode(Node):
         dt_target = (now - self.last_target_rx_time).nanoseconds * 1e-9
         return dt_target > self.target_timeout_sec
 
-    def _target_callback(self, msg: Pose2D) -> None:
+    def _docking_state_callback(self, msg: Bool) -> None:
+        if bool(msg.data):
+            self.rl_docking_done_active = False
+
+    def _target_callback(self, msg: PointStamped) -> None:
         now = self.get_clock().now()
+        marker_id = self._extract_marker_id(msg)
+        if marker_id != self.expected_target_marker_id:
+            self._handle_invalid_target_marker_id(now)
+            return
         if self.control_phase == 'calibration':
             self.pending_target_msg = msg
             self.pending_target_rx_time = now
@@ -464,13 +495,13 @@ class CartAlignSpecialistPolicyNode(Node):
 
         self._apply_canonical_target_measurement(msg, now)
 
-    def _apply_canonical_target_measurement(self, msg: Pose2D, now) -> None:
+    def _apply_canonical_target_measurement(self, msg: PointStamped, now) -> None:
         target_x_local_m, target_y_local_m, target_yaw_error_rad = (
             self._canonical_target_from_pose(
                 self.robot_type,
-                float(msg.x),
-                float(msg.y),
-                float(msg.theta),
+                float(msg.point.x),
+                float(msg.point.y),
+                float(msg.point.z),
                 self.base_link_to_axle_center_x_m,
                 self.target_x_offset_m,
             )
@@ -489,6 +520,35 @@ class CartAlignSpecialistPolicyNode(Node):
         self.last_target_state_update_time = now
         if should_calibrate_for_target_x:
             self._start_calibration(now)
+
+    def _handle_invalid_target_marker_id(self, now) -> None:
+        if self.control_phase == 'calibration':
+            return
+        if self.control_phase == 'post_calibration_pause':
+            self.calibration_resume_time = now
+            self._set_status('post_calibration_pause')
+            return
+        if (
+            self.active_docking_target in (1, 2)
+            and self.control_phase == 'align'
+            and self.target_x_local_m is not None
+            and self.target_y_local_m is not None
+            and self.target_yaw_error_rad is not None
+        ):
+            self._start_calibration(now)
+
+    @staticmethod
+    def _extract_marker_id(msg: PointStamped) -> Optional[int]:
+        frame_id = msg.header.frame_id.strip()
+        if not frame_id:
+            return None
+        match = re.search(r'-?\d+', frame_id)
+        if match is None:
+            return None
+        try:
+            return int(match.group(0))
+        except ValueError:
+            return None
 
     def _motor_state_callback(self, msg) -> None:
         if not hasattr(msg, 'states'):
@@ -536,10 +596,6 @@ class CartAlignSpecialistPolicyNode(Node):
         now = self.get_clock().now()
 
         if self.control_phase == 'waiting_docking_target':
-            self._publish_cmd_vel(
-                linear_x_m_s=0.0,
-                angular_z_rad_s=0.0,
-            )
             return
 
         if self.control_phase == 'calibration':
@@ -903,6 +959,7 @@ class CartAlignSpecialistPolicyNode(Node):
                 docking_target=self.active_docking_target,
                 enabled=True,
             )
+            self._publish_rl_docking_done(enabled=True)
             self._enter_waiting_mode('waiting_docking_target')
             return
 
@@ -942,6 +999,12 @@ class CartAlignSpecialistPolicyNode(Node):
             self.robot_docking_completion_pub.publish(msg)
         elif docking_target == 2:
             self.cart_docking_completion_pub.publish(msg)
+
+    def _publish_rl_docking_done(self, enabled: bool) -> None:
+        msg = Bool()
+        msg.data = bool(enabled)
+        self.rl_docking_done_active = msg.data
+        self.rl_docking_done_pub.publish(msg)
 
     def _get_active_final_distance_m(self) -> float:
         if self.active_docking_target == 1:

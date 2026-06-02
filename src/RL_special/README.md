@@ -5,7 +5,8 @@
 
 ## 도킹 타겟 입력
 
-- Topic: `/docking_target`
+- rear Topic: `/docking_target`
+- front Topic: `/front/docking_target`
 - Type: `std_msgs/msg/Int32`
 - 의미
   - `0`: 대기
@@ -27,9 +28,16 @@ front의 `docking_target=1` 로봇 도킹에서는 아루코마커가 작아 카
 
 ### Vision target 입력
 
-- Type: `geometry_msgs/msg/Pose2D`
+- Type: `geometry_msgs/msg/PointStamped`
 - front 기본값: `/front/target_pose`
 - rear 기본값: `/rear/target_pose`
+
+`point.x`, `point.y`, `point.z`를 각각 기존의 `x`, `y`, `theta(rad)`로 사용합니다.
+아루코 ID는 `header.frame_id`의 정수값으로 읽습니다.
+
+- front는 ID `0`일 때만 유효 타겟으로 사용
+- rear는 ID `1`일 때만 유효 타겟으로 사용
+- 다른 ID가 들어오면 해당 측정은 무시하고, 현재 active docking 중이면 마지막으로 기억한 canonical target 기준으로 calibration으로 진입합니다.
 
 비전이 주는 `x, y, theta`는 `base_link` 중심 기준입니다. 내부에서는 수신 즉시 “구동축 중앙 기준 로봇 로컬 프레임”의 canonical target으로 변환하고, 이후 policy/align/calibration/odometry는 모두 이 값만 사용합니다.
 
@@ -87,13 +95,19 @@ front는 현재 `/front/rmd_state`가 이미 감속 후 속도라고 가정해�
 - front + `docking_target=2`: `/front/cart_docking`에 `Bool(true)` 1회
 - rear + `docking_target=2`: `/gripper_toggle`에 `Bool(true)` 1회
 - rear + `docking_target=1`: `/gripper_toggle`에 `Bool(true)` 1회
+- rear 도킹 성공시: `/rl_docking_done`에 `Bool(true)` 1회
+- front 도킹 성공시: `/front/rl_docking_done`에 `Bool(true)` 1회
+
+외부 `Bool` 토픽 `/docking_state`를 구독합니다.
+`/docking_state == true`가 들어오면 내부 `rl_docking_done` 상태를 초기화해서 다음 성공 이벤트를 다시 publish할 수 있게 합니다.
 
 ## 상태 머신
 
 ### 1. `waiting_docking_target`
 
 - 기본 대기 상태
-- 항상 `cmd_vel=0`
+- 상태 진입 시 1회 `cmd_vel=0`
+- 대기 중에는 `cmd_vel`을 계속 publish하지 않음
 - 최신 비전 target은 계속 캐시
 
 ### 2. `align`
@@ -180,12 +194,14 @@ calibration이 끝나면 front/rear 공통으로 `0.5초` 동안 `cmd_vel=0`으�
 
 ### front
 
+- docking_target topic: `/front/docking_target`
 - target topic: `/front/target_pose`
 - motor state topic: `/front/rmd_state`
 - cmd_vel topic: `/front/cmd_vel`
 - completion topic
   - robot docking: `/front/robot_docking`
   - cart docking: `/front/cart_docking`
+- rl docking done topic: `/front/rl_docking_done`
 - `final_docking_motion_sign = -1.0`
 - `robot_docking_final_linear_speed_m_s = 0.15`
 - `robot_docking_target_xy_stop_tolerance_m = 0.03`
@@ -195,10 +211,12 @@ calibration이 끝나면 front/rear 공통으로 `0.5초` 동안 `cmd_vel=0`으�
 
 ### rear
 
+- docking_target topic: `/docking_target`
 - target topic: `/rear/target_pose`
 - motor state topic: `/rmd_state`
 - cmd_vel topic: `/cmd_vel`
 - cart docking completion topic: `/gripper_toggle`
+- rl docking done topic: `/rl_docking_done`
 - `final_docking_motion_sign = +1.0`
 - `external_reduction = 1.0`
 
@@ -209,10 +227,12 @@ rear는 `docking_target=1`에서 주행 없이 `/gripper_toggle`만 1회 publish
 - `robot_type` (`front` or `rear`)
 - `docking_target_topic`
 - `target_topic`
+- `docking_state_topic`
 - `motor_state_topic`
 - `cmd_vel_topic`
 - `robot_docking_completion_topic` : front only
 - `cart_docking_completion_topic`
+- `rl_docking_done_topic`
 - `linear_velocity_scale_m_s`
 - `angular_velocity_scale_rad_s`
 - `near_target_distance_m`

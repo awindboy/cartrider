@@ -36,7 +36,7 @@ front와 rear 모두 target이 아직 보이더라도, canonical `target_x_local
 `point.x`, `point.y`, `point.z`를 각각 기존의 `x`, `y`, `theta(rad)`로 사용합니다.
 아루코 ID는 `header.frame_id`의 정수값으로 읽습니다.
 
-- front는 ID `0`일 때만 유효 타겟으로 사용
+- front는 cart docking에서 ID `0`, robot docking에서 ID `4`일 때만 유효 타겟으로 사용
 - rear는 ID `1`일 때만 유효 타겟으로 사용
 - 다른 ID가 들어오면 해당 측정은 무시하고, 현재 active docking 중이면 마지막으로 기억한 canonical target 기준으로 calibration으로 진입합니다.
 
@@ -139,7 +139,7 @@ front는 현재 `/front/rmd_state`가 이미 감속 후 속도라고 가정해�
 
 ### 3. `calibration`
 
-비전 target이 `target_timeout_sec` 이상 끊기면 calibration으로 들어갑니다.
+비전 target이 `target_timeout_sec` 이상 끊기면 먼저 로봇을 정지시키고, 같은 시간만큼 한 번 더 기다린 뒤에도 target이 복구되지 않으면 calibration으로 들어갑니다.
 
 target이 끊기지 않았더라도, align 중 canonical `target_x_local`이 로봇별 캘리 진입 거리 조건을 넘었고 `y` 또는 `yaw`가 아직 tolerance 밖이면 calibration으로 들어갑니다.
 

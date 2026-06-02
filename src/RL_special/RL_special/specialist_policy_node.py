@@ -184,7 +184,6 @@ class CartAlignSpecialistPolicyNode(Node):
         self.left_motor_id = int(self.get_parameter('left_motor_id').value)
         self.right_motor_id = int(self.get_parameter('right_motor_id').value)
         self.robot_docking_enabled = self.robot_type == 'front'
-        self.expected_target_marker_id = 0 if self.robot_type == 'front' else 1
 
         if not self.robot_docking_enabled:
             self.robot_docking_completion_topic = ''
@@ -222,6 +221,7 @@ class CartAlignSpecialistPolicyNode(Node):
         self.final_docking_distance_target_m = 0.0
         self.final_docking_last_update_time = None
         self.calibration_resume_time = None
+        self.target_loss_wait_start_time = None
         self.current_status = ''
         self.pending_target_msg: Optional[PointStamped] = None
         self.pending_target_rx_time = None
@@ -440,7 +440,11 @@ class CartAlignSpecialistPolicyNode(Node):
     ) -> None:
         self.active_docking_target = docking_target
         self._reset_motion_state()
-        if clear_target_state or self._is_target_cache_stale(now):
+        if (
+            clear_target_state
+            or self._is_target_cache_stale(now)
+            or self._should_clear_target_state_for_new_marker_context(docking_target)
+        ):
             self._clear_target_state()
         self.control_phase = 'align'
         self._publish_cmd_vel(
@@ -475,6 +479,7 @@ class CartAlignSpecialistPolicyNode(Node):
         self.final_docking_distance_target_m = 0.0
         self.final_docking_last_update_time = None
         self.calibration_resume_time = None
+        self.target_loss_wait_start_time = None
         self.pending_target_msg = None
         self.pending_target_rx_time = None
         self.suppress_robot_docking_target_x_calibration = False
@@ -492,6 +497,12 @@ class CartAlignSpecialistPolicyNode(Node):
         dt_target = (now - self.last_target_rx_time).nanoseconds * 1e-9
         return dt_target > self.target_timeout_sec
 
+    def _should_clear_target_state_for_new_marker_context(
+        self,
+        docking_target: int,
+    ) -> bool:
+        return self.robot_type == 'front' and docking_target == 1
+
     def _docking_state_callback(self, msg: Bool) -> None:
         if bool(msg.data):
             self.rl_docking_done_active = False
@@ -499,7 +510,7 @@ class CartAlignSpecialistPolicyNode(Node):
     def _target_callback(self, msg: PointStamped) -> None:
         now = self.get_clock().now()
         marker_id = self._extract_marker_id(msg)
-        if marker_id != self.expected_target_marker_id:
+        if marker_id != self._get_expected_target_marker_id():
             self._handle_invalid_target_marker_id(now)
             return
         if self.control_phase == 'calibration':
@@ -508,6 +519,10 @@ class CartAlignSpecialistPolicyNode(Node):
             return
 
         self._apply_canonical_target_measurement(msg, now)
+        if self.control_phase == 'target_loss_pause':
+            self.target_loss_wait_start_time = None
+            self.control_phase = 'align'
+            self._set_status('align')
 
     def _apply_canonical_target_measurement(self, msg: PointStamped, now) -> None:
         target_x_local_m, target_y_local_m, target_yaw_error_rad = (
@@ -564,6 +579,13 @@ class CartAlignSpecialistPolicyNode(Node):
             return int(match.group(0))
         except ValueError:
             return None
+
+    def _get_expected_target_marker_id(self) -> int:
+        if self.robot_type == 'rear':
+            return 1
+        if self.active_docking_target == 1:
+            return 4
+        return 0
 
     def _motor_state_callback(self, msg) -> None:
         if not hasattr(msg, 'states'):
@@ -623,6 +645,10 @@ class CartAlignSpecialistPolicyNode(Node):
             self._run_post_calibration_pause(now)
             return
 
+        if self.control_phase == 'target_loss_pause':
+            self._run_target_loss_pause(now)
+            return
+
         if self.control_phase == 'final_docking_motion':
             self._run_final_docking_motion(now)
             return
@@ -659,8 +685,7 @@ class CartAlignSpecialistPolicyNode(Node):
         dt_target = (now - self.last_target_rx_time).nanoseconds * 1e-9
         if dt_target > self.target_timeout_sec:
             self.suppress_robot_docking_target_x_calibration = False
-            self._start_calibration(now)
-            self._run_calibration(now)
+            self._start_target_loss_pause(now)
             return
 
         if self._should_start_target_x_calibration(
@@ -926,6 +951,33 @@ class CartAlignSpecialistPolicyNode(Node):
         else:
             self.last_target_rx_time = None
             self.last_target_state_update_time = None
+
+    def _start_target_loss_pause(self, now) -> None:
+        if self.control_phase == 'target_loss_pause':
+            return
+        self.control_phase = 'target_loss_pause'
+        self.target_loss_wait_start_time = now
+        self._publish_cmd_vel(linear_x_m_s=0.0, angular_z_rad_s=0.0)
+        self._set_status('target_loss_pause')
+
+    def _run_target_loss_pause(self, now) -> None:
+        self._publish_cmd_vel(linear_x_m_s=0.0, angular_z_rad_s=0.0)
+        if self.target_loss_wait_start_time is None:
+            self.target_loss_wait_start_time = now
+            return
+        wait_dt = (now - self.target_loss_wait_start_time).nanoseconds * 1e-9
+        if wait_dt <= self.target_timeout_sec:
+            return
+        if self.last_target_rx_time is not None:
+            dt_target = (now - self.last_target_rx_time).nanoseconds * 1e-9
+            if dt_target <= self.target_timeout_sec:
+                self.target_loss_wait_start_time = None
+                self.control_phase = 'align'
+                self._set_status('align')
+                return
+        self.target_loss_wait_start_time = None
+        self._start_calibration(now)
+        self._run_calibration(now)
 
     def _run_post_calibration_pause(self, now) -> None:
         self._publish_cmd_vel(linear_x_m_s=0.0, angular_z_rad_s=0.0)

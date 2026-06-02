@@ -54,6 +54,7 @@ class CartAlignSpecialistPolicyNode(Node):
         self.declare_parameter('base_link_to_axle_center_x_m', 0.0)
         self.declare_parameter('target_x_offset_m', 0.0)
         self.declare_parameter('front_calibration_safe_axis_x_m', 0.0)
+        self.declare_parameter('rear_calibration_safe_axis_x_m', 0.0)
         self.declare_parameter('cart_docking_final_distance_m', 0.35)
         self.declare_parameter('robot_docking_final_distance_m', 0.35)
         self.declare_parameter('final_docking_motion_sign', 1.0)
@@ -61,6 +62,7 @@ class CartAlignSpecialistPolicyNode(Node):
         self.declare_parameter('near_target_linear_speed_limit_m_s', 0.0)
         self.declare_parameter('robot_docking_final_linear_speed_m_s', 0.0)
         self.declare_parameter('robot_docking_calibration_target_x_threshold_m', -0.10)
+        self.declare_parameter('rear_calibration_target_x_threshold_m', 0.10)
         self.declare_parameter('near_target_angular_speed_limit_rad_s', 0.0)
         self.declare_parameter('wheel_radius_m', 0.0)
         self.declare_parameter('wheel_separation_m', 0.0)
@@ -128,6 +130,9 @@ class CartAlignSpecialistPolicyNode(Node):
         self.front_calibration_safe_axis_x_m = float(
             self.get_parameter('front_calibration_safe_axis_x_m').value
         )
+        self.rear_calibration_safe_axis_x_m = float(
+            self.get_parameter('rear_calibration_safe_axis_x_m').value
+        )
         self.cart_docking_final_distance_m = float(
             self.get_parameter('cart_docking_final_distance_m').value
         )
@@ -150,6 +155,9 @@ class CartAlignSpecialistPolicyNode(Node):
             self.get_parameter(
                 'robot_docking_calibration_target_x_threshold_m'
             ).value
+        )
+        self.rear_calibration_target_x_threshold_m = float(
+            self.get_parameter('rear_calibration_target_x_threshold_m').value
         )
         self.near_target_angular_speed_limit_rad_s = float(
             self.get_parameter('near_target_angular_speed_limit_rad_s').value
@@ -308,6 +316,8 @@ class CartAlignSpecialistPolicyNode(Node):
             raise ValueError('target_x_offset_m must be >= 0.')
         if self.front_calibration_safe_axis_x_m < 0.0:
             raise ValueError('front_calibration_safe_axis_x_m must be >= 0.')
+        if self.rear_calibration_safe_axis_x_m < 0.0:
+            raise ValueError('rear_calibration_safe_axis_x_m must be >= 0.')
         if self.cart_docking_final_distance_m < 0.0:
             raise ValueError('cart_docking_final_distance_m must be >= 0.')
         if self.final_docking_motion_sign not in (-1.0, 1.0):
@@ -507,7 +517,7 @@ class CartAlignSpecialistPolicyNode(Node):
             )
         )
         should_calibrate_for_target_x = (
-            self._should_start_robot_docking_target_x_calibration(
+            self._should_start_target_x_calibration(
                 target_x_local_m,
                 target_y_local_m,
                 target_yaw_error_rad,
@@ -648,7 +658,7 @@ class CartAlignSpecialistPolicyNode(Node):
             self._run_calibration(now)
             return
 
-        if self._should_start_robot_docking_target_x_calibration(
+        if self._should_start_target_x_calibration(
             self.target_x_local_m,
             self.target_y_local_m,
             self.target_yaw_error_rad,
@@ -756,7 +766,7 @@ class CartAlignSpecialistPolicyNode(Node):
             target_y_local,
             self.target_yaw_error_rad if self.target_yaw_error_rad is not None else 0.0,
             self._get_calibration_axis_sign(),
-            self.front_calibration_safe_axis_x_m,
+            self._get_calibration_safe_axis_x_m(),
         )
         self.calibration_rotate_back_target_rad = 0.0
         self.calibration_distance_traveled_m = 0.0
@@ -1042,13 +1052,13 @@ class CartAlignSpecialistPolicyNode(Node):
             self.target_yaw_stop_tolerance_rad,
         )
 
-    def _should_start_robot_docking_target_x_calibration(
+    def _should_start_target_x_calibration(
         self,
         target_x_local_m: float,
         target_y_local_m: float,
         target_yaw_error_rad: float,
     ) -> bool:
-        if self.robot_type != 'front' or self.active_docking_target != 1:
+        if self.active_docking_target not in (1, 2):
             return False
         if self.suppress_robot_docking_target_x_calibration:
             return False
@@ -1059,10 +1069,12 @@ class CartAlignSpecialistPolicyNode(Node):
             target_yaw_error_rad,
         ):
             return False
-        return (
-            target_x_local_m
-            > self.robot_docking_calibration_target_x_threshold_m
-        )
+        if self.robot_type == 'front':
+            return (
+                target_x_local_m
+                > self.robot_docking_calibration_target_x_threshold_m
+            )
+        return target_x_local_m < self.rear_calibration_target_x_threshold_m
 
     def _target_y_or_yaw_is_aligned(
         self,
@@ -1077,6 +1089,11 @@ class CartAlignSpecialistPolicyNode(Node):
 
     def _get_calibration_axis_sign(self) -> float:
         return 1.0 if self.robot_type == 'front' else -1.0
+
+    def _get_calibration_safe_axis_x_m(self) -> float:
+        if self.robot_type == 'front':
+            return self.front_calibration_safe_axis_x_m
+        return self.rear_calibration_safe_axis_x_m
 
     def _start_calibration_rotate_back_or_finish(self) -> bool:
         if self.target_yaw_error_rad is None:
@@ -1138,7 +1155,7 @@ class CartAlignSpecialistPolicyNode(Node):
         target_y_local: float,
         target_yaw_error_rad: float,
         calibration_axis_sign: float,
-        front_calibration_safe_axis_x_m: float,
+        calibration_safe_axis_x_m: float,
     ) -> tuple[float, float, float]:
         (
             robot_x_target_frame_m,
@@ -1151,11 +1168,14 @@ class CartAlignSpecialistPolicyNode(Node):
         )
         if calibration_axis_sign > 0.0:
             goal_x_target_frame_m = max(
-                front_calibration_safe_axis_x_m,
+                calibration_safe_axis_x_m,
                 robot_x_target_frame_m,
             )
         else:
-            goal_x_target_frame_m = min(0.0, robot_x_target_frame_m)
+            goal_x_target_frame_m = min(
+                -calibration_safe_axis_x_m,
+                robot_x_target_frame_m,
+            )
         delta_x_target_frame_m = (
             goal_x_target_frame_m - robot_x_target_frame_m
         )

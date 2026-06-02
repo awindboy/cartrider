@@ -29,6 +29,8 @@ PROFILE_DEFAULTS = {
         'near_target_distance_m': 0.3,
         'base_link_to_axle_center_x_m': REAR_BASE_LINK_TO_AXLE_CENTER_X_M,
         'target_x_offset_m': REAR_TARGET_X_OFFSET_M,
+        'rear_calibration_safe_axis_x_m': 0.15,
+        'rear_calibration_target_x_threshold_m': 0.10,
         'final_docking_motion_sign': 1.0,
         'motor_state_topic': '/rmd_state',
         'cmd_vel_topic': '/cmd_vel',
@@ -266,6 +268,14 @@ def _build_policy_node(context):
             ),
             'front_calibration_safe_axis_x_m',
         ),
+        'rear_calibration_safe_axis_x_m': _parse_float(
+            _resolve_arg(
+                context,
+                'rear_calibration_safe_axis_x_m',
+                profile.get('rear_calibration_safe_axis_x_m', 0.0),
+            ),
+            'rear_calibration_safe_axis_x_m',
+        ),
         'cart_docking_final_distance_m': _parse_float(
             _resolve_arg(
                 context,
@@ -305,6 +315,14 @@ def _build_policy_node(context):
                 profile.get('robot_docking_calibration_target_x_threshold_m', 0.0),
             ),
             'robot_docking_calibration_target_x_threshold_m',
+        ),
+        'rear_calibration_target_x_threshold_m': _parse_float(
+            _resolve_arg(
+                context,
+                'rear_calibration_target_x_threshold_m',
+                profile.get('rear_calibration_target_x_threshold_m', 0.0),
+            ),
+            'rear_calibration_target_x_threshold_m',
         ),
         'near_target_distance_m': _parse_float(
             _resolve_arg(
@@ -535,6 +553,11 @@ def generate_launch_description() -> LaunchDescription:
                 description='Front-only calibration axis target. When front calibration starts too close to the target, it will move to at least this x+ position in the target frame.',
             ),
             DeclareLaunchArgument(
+                'rear_calibration_safe_axis_x_m',
+                default_value='__auto__',
+                description='Rear-only calibration axis target. When rear calibration starts too close to the target, it will move to at least this x- safety position in the target frame.',
+            ),
+            DeclareLaunchArgument(
                 'cart_docking_final_distance_m',
                 default_value='__auto__',
                 description='__auto__ uses profile default final distance for cart docking.',
@@ -558,6 +581,11 @@ def generate_launch_description() -> LaunchDescription:
                 'robot_docking_calibration_target_x_threshold_m',
                 default_value='__auto__',
                 description='Front robot docking enters calibration when canonical target_x exceeds this threshold before alignment is complete.',
+            ),
+            DeclareLaunchArgument(
+                'rear_calibration_target_x_threshold_m',
+                default_value='__auto__',
+                description='Rear docking enters calibration when canonical target_x drops below this threshold before y/yaw alignment is complete.',
             ),
             DeclareLaunchArgument('left_motor_id', default_value='1'),
             DeclareLaunchArgument('right_motor_id', default_value='2'),

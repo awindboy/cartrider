@@ -20,9 +20,10 @@
 
 rear 프로파일은 `docking_target=1`을 받으면 주행은 하지 않고 `/gripper_toggle`을 1회 publish한 뒤 `rear_robot_docking_idle` 상태로 복귀합니다.
 
-front의 `docking_target=1` 로봇 도킹에서는 아루코마커가 작아 카트 도킹보다 target loss가 늦게 감지될 수 있습니다.
+front와 rear 모두 target이 아직 보이더라도, canonical `target_x_local`이 각 로봇의 캘리 진입 거리 조건을 넘었고 `y` 또는 `yaw`가 아직 tolerance 밖이면 로봇이 offset target에 너무 가까워진 것으로 보고 그 순간의 target을 고정한 뒤 calibration으로 진입합니다.
 
-따라서 canonical `target_x_local`이 `robot_docking_calibration_target_x_threshold_m`보다 커졌고, `y` 또는 `yaw`가 아직 tolerance 밖이면 로봇이 offset target에 너무 가까워진 것으로 보고 그 순간의 target을 고정한 뒤 calibration으로 진입합니다.
+- front: `target_x_local > robot_docking_calibration_target_x_threshold_m`
+- rear: `target_x_local < rear_calibration_target_x_threshold_m`
 
 ## 토픽 구성
 
@@ -138,7 +139,7 @@ front는 현재 `/front/rmd_state`가 이미 감속 후 속도라고 가정해�
 
 비전 target이 `target_timeout_sec` 이상 끊기면 calibration으로 들어갑니다.
 
-front robot docking에서는 target이 끊기지 않았더라도, align 중 canonical `target_x_local > robot_docking_calibration_target_x_threshold_m`이고 `y` 또는 `yaw`가 아직 tolerance 밖이면 calibration으로 들어갑니다.
+target이 끊기지 않았더라도, align 중 canonical `target_x_local`이 로봇별 캘리 진입 거리 조건을 넘었고 `y` 또는 `yaw`가 아직 tolerance 밖이면 calibration으로 들어갑니다.
 
 현재 calibration은 가변 회전 escape 시퀀스입니다.
 
@@ -152,6 +153,7 @@ front robot docking에서는 target이 끊기지 않았더라도, align 중 cano
 - 목표는 로봇 구동축 중심을 target frame의 허용 반축 위 최근접점으로 보내는 것입니다.
 - rear는 target frame의 `x-`축 위 최근접점으로, front는 `x+`축 위 최근접점으로 이동합니다.
 - front는 target에 너무 붙은 상태에서 캘리가 시작되면, 안전을 위해 최소 `front_calibration_safe_axis_x_m`만큼 앞쪽의 `x+` 위치를 목표로 사용합니다.
+- rear도 target에 너무 붙은 상태에서 캘리가 시작되면, 안전을 위해 최소 `rear_calibration_safe_axis_x_m`만큼 뒤쪽의 `x-` 위치를 목표로 사용합니다.
 - 따라서 고정 30cm 규칙은 없고, 필요한 만큼만 직선 이동합니다.
 - 1차 회전각은 현재 로봇 위치에서 그 최근접 축점으로 직선 이동할 수 있도록 계산합니다.
 - 이때 전진/후진을 미리 고정하지 않고, 더 적은 회전으로 갈 수 있는 방향을 선택합니다.
@@ -247,11 +249,13 @@ rear는 `docking_target=1`에서 주행 없이 `/gripper_toggle`만 1회 publish
 - `base_link_to_axle_center_x_m`
 - `target_x_offset_m`
 - `front_calibration_safe_axis_x_m` : front only
+- `rear_calibration_safe_axis_x_m` : rear only
 - `cart_docking_final_distance_m`
 - `robot_docking_final_distance_m` : front only
 - `final_docking_motion_sign`
 - `robot_docking_final_linear_speed_m_s` : front only
 - `robot_docking_calibration_target_x_threshold_m` : front only
+- `rear_calibration_target_x_threshold_m` : rear only
 - `wheel_radius_m`
 - `wheel_separation_m`
 - `external_reduction`

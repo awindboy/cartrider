@@ -18,6 +18,8 @@
 
 중간에 값이 바뀌면 현재 align/calibration/final 단계는 즉시 취소되고, 새 target 기준으로 다시 시작합니다.
 
+정렬 시작 후 `scan_no_target_timeout_sec` 동안 유효 타겟을 한 번도 보지 못하면 `scan` 모드로 들어갑니다.
+
 rear 프로파일은 `docking_target=1`을 받으면 주행은 하지 않고 `/gripper_toggle`을 1회 publish한 뒤 `rear_robot_docking_idle` 상태로 복귀합니다.
 
 front와 rear 모두 target이 아직 보이더라도, canonical `target_x_local`이 각 로봇의 캘리 진입 거리 조건을 넘었고 `y` 또는 `yaw`가 아직 tolerance 밖이면 로봇이 offset target에 너무 가까워진 것으로 보고 그 순간의 target을 고정한 뒤 calibration으로 진입합니다.
@@ -137,6 +139,23 @@ front는 현재 `/front/rmd_state`가 이미 감속 후 속도라고 가정해�
 
 완료되면 `final_docking_motion`으로 넘어갑니다.
 
+### 2-1. `scan`
+
+정렬을 시작했는데 `scan_no_target_timeout_sec` 동안 유효 타겟이 한 번도 보이지 않으면 scan으로 들어갑니다.
+
+- 현재 자세를 기준으로 `±scan_half_sweep_deg` 범위를 왕복 회전
+- 회전 속도는 calibration 회전과 동일
+- 유효 타겟이 보이면 `scan_settle`로 전환
+
+### 2-2. `scan_settle`
+
+scan 중 타겟을 다시 인식하면 `scan_settle_sec` 동안 정지해서 비전 정보를 안정화합니다.
+
+- 이 동안 `cmd_vel=0`
+- 최신 비전 target은 계속 갱신
+- `scan_settle_sec`가 지나면 `align` 복귀
+- 안정화 중 다시 타겟을 놓치면 scan으로 복귀
+
 ### 3. `calibration`
 
 비전 target이 `target_timeout_sec` 이상 끊기면 먼저 로봇을 정지시키고, 같은 시간만큼 한 번 더 기다린 뒤에도 target이 복구되지 않으면 calibration으로 들어갑니다.
@@ -243,6 +262,9 @@ rear는 `docking_target=1`에서 주행 없이 `/gripper_toggle`만 1회 publish
 - `near_target_linear_speed_limit_m_s`
 - `near_target_angular_speed_limit_rad_s`
 - `target_timeout_sec`
+- `scan_no_target_timeout_sec`
+- `scan_settle_sec`
+- `scan_half_sweep_deg`
 - `motor_timeout_sec`
 - `target_xy_stop_tolerance_m`
 - `target_yaw_stop_tolerance_deg`

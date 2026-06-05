@@ -45,6 +45,9 @@ class CartAlignSpecialistPolicyNode(Node):
         self.declare_parameter('angular_velocity_scale_rad_s', 0.0)
         self.declare_parameter('control_rate_hz', 30.0)
         self.declare_parameter('target_timeout_sec', 0.3)
+        self.declare_parameter('scan_no_target_timeout_sec', 3.0)
+        self.declare_parameter('scan_settle_sec', 1.0)
+        self.declare_parameter('scan_half_sweep_deg', 45.0)
         self.declare_parameter('motor_timeout_sec', 1000.0)
         self.declare_parameter('calibration_resume_delay_sec', 0.5)
         self.declare_parameter('target_xy_stop_tolerance_m', 0.05)
@@ -104,6 +107,13 @@ class CartAlignSpecialistPolicyNode(Node):
         )
         self.control_rate_hz = float(self.get_parameter('control_rate_hz').value)
         self.target_timeout_sec = float(self.get_parameter('target_timeout_sec').value)
+        self.scan_no_target_timeout_sec = float(
+            self.get_parameter('scan_no_target_timeout_sec').value
+        )
+        self.scan_settle_sec = float(self.get_parameter('scan_settle_sec').value)
+        self.scan_half_sweep_deg = float(
+            self.get_parameter('scan_half_sweep_deg').value
+        )
         self.motor_timeout_sec = float(self.get_parameter('motor_timeout_sec').value)
         self.calibration_resume_delay_sec = float(
             self.get_parameter('calibration_resume_delay_sec').value
@@ -209,6 +219,8 @@ class CartAlignSpecialistPolicyNode(Node):
         self.current_angular_velocity_rad_s: Optional[float] = None
         self.last_motor_rx_time = None
         self.control_phase = 'waiting_docking_target'
+        self.docking_activation_time = None
+        self.target_seen_since_activation = False
         self.calibration_stage = ''
         self.calibration_distance_traveled_m = 0.0
         self.calibration_move_distance_target_m = 0.0
@@ -222,6 +234,10 @@ class CartAlignSpecialistPolicyNode(Node):
         self.final_docking_last_update_time = None
         self.calibration_resume_time = None
         self.target_loss_wait_start_time = None
+        self.scan_settle_end_time = None
+        self.scan_last_update_time = None
+        self.scan_angle_from_center_rad = 0.0
+        self.scan_direction_sign = 1.0
         self.current_status = ''
         self.pending_target_msg: Optional[PointStamped] = None
         self.pending_target_rx_time = None
@@ -306,6 +322,12 @@ class CartAlignSpecialistPolicyNode(Node):
             raise ValueError('control_rate_hz must be > 0.')
         if self.target_timeout_sec <= 0.0:
             raise ValueError('target_timeout_sec must be > 0.')
+        if self.scan_no_target_timeout_sec <= 0.0:
+            raise ValueError('scan_no_target_timeout_sec must be > 0.')
+        if self.scan_settle_sec < 0.0:
+            raise ValueError('scan_settle_sec must be >= 0.')
+        if self.scan_half_sweep_deg <= 0.0 or self.scan_half_sweep_deg > 180.0:
+            raise ValueError('scan_half_sweep_deg must be in (0, 180].')
         if self.motor_timeout_sec <= 0.0:
             raise ValueError('motor_timeout_sec must be > 0.')
         if self.calibration_resume_delay_sec < 0.0:
@@ -440,12 +462,20 @@ class CartAlignSpecialistPolicyNode(Node):
     ) -> None:
         self.active_docking_target = docking_target
         self._reset_motion_state()
+        self.docking_activation_time = now
         if (
             clear_target_state
             or self._is_target_cache_stale(now)
             or self._should_clear_target_state_for_new_marker_context(docking_target)
         ):
             self._clear_target_state()
+        self.target_seen_since_activation = (
+            self.last_target_rx_time is not None
+            and self.target_x_local_m is not None
+            and self.target_y_local_m is not None
+            and self.target_yaw_error_rad is not None
+            and not self._is_target_cache_stale(now)
+        )
         self.control_phase = 'align'
         self._publish_cmd_vel(
             linear_x_m_s=0.0,
@@ -468,6 +498,8 @@ class CartAlignSpecialistPolicyNode(Node):
 
     def _reset_motion_state(self) -> None:
         self.calibration_stage = ''
+        self.docking_activation_time = None
+        self.target_seen_since_activation = False
         self.calibration_distance_traveled_m = 0.0
         self.calibration_move_distance_target_m = 0.0
         self.calibration_move_motion_sign = 1.0
@@ -480,6 +512,10 @@ class CartAlignSpecialistPolicyNode(Node):
         self.final_docking_last_update_time = None
         self.calibration_resume_time = None
         self.target_loss_wait_start_time = None
+        self.scan_settle_end_time = None
+        self.scan_last_update_time = None
+        self.scan_angle_from_center_rad = 0.0
+        self.scan_direction_sign = 1.0
         self.pending_target_msg = None
         self.pending_target_rx_time = None
         self.suppress_robot_docking_target_x_calibration = False
@@ -513,12 +549,18 @@ class CartAlignSpecialistPolicyNode(Node):
         if marker_id != self._get_expected_target_marker_id():
             self._handle_invalid_target_marker_id(now)
             return
+        self.target_seen_since_activation = True
         if self.control_phase == 'calibration':
             self.pending_target_msg = msg
             self.pending_target_rx_time = now
             return
 
         self._apply_canonical_target_measurement(msg, now)
+        if self.control_phase == 'scan':
+            self._start_scan_settle(now)
+            return
+        if self.control_phase == 'scan_settle':
+            return
         if self.control_phase == 'target_loss_pause':
             self.target_loss_wait_start_time = None
             self.control_phase = 'align'
@@ -645,6 +687,14 @@ class CartAlignSpecialistPolicyNode(Node):
             self._run_post_calibration_pause(now)
             return
 
+        if self.control_phase == 'scan':
+            self._run_scan(now)
+            return
+
+        if self.control_phase == 'scan_settle':
+            self._run_scan_settle(now)
+            return
+
         if self.control_phase == 'target_loss_pause':
             self._run_target_loss_pause(now)
             return
@@ -664,6 +714,17 @@ class CartAlignSpecialistPolicyNode(Node):
             or self.last_target_rx_time is None
             or self.last_target_state_update_time is None
         ):
+            if (
+                not self.target_seen_since_activation
+                and self.docking_activation_time is not None
+            ):
+                dt_since_activation = (
+                    now - self.docking_activation_time
+                ).nanoseconds * 1e-9
+                if dt_since_activation > self.scan_no_target_timeout_sec:
+                    self._start_scan(now)
+                    self._run_scan(now)
+                    return
             self._publish_zero('waiting_target')
             return
 
@@ -845,7 +906,7 @@ class CartAlignSpecialistPolicyNode(Node):
 
         self._update_target_state_from_odometry(now)
 
-        angular_limit = max(self.near_target_angular_speed_limit_rad_s, 0.3)
+        angular_limit = self._get_calibration_angular_speed_limit_rad_s()
         linear_limit = self.near_target_linear_speed_limit_m_s
 
         if self.calibration_stage == 'rotate_out':
@@ -979,6 +1040,75 @@ class CartAlignSpecialistPolicyNode(Node):
         self._start_calibration(now)
         self._run_calibration(now)
 
+    def _start_scan(self, now) -> None:
+        if self.control_phase == 'scan':
+            return
+        self.control_phase = 'scan'
+        self.scan_last_update_time = now
+        self.scan_angle_from_center_rad = 0.0
+        self.scan_direction_sign = 1.0
+        self.scan_settle_end_time = None
+        self._publish_cmd_vel(linear_x_m_s=0.0, angular_z_rad_s=0.0)
+        self._set_status('scan')
+
+    def _run_scan(self, now) -> None:
+        if (
+            self.current_linear_velocity_m_s is None
+            or self.current_angular_velocity_rad_s is None
+            or self.last_motor_rx_time is None
+        ):
+            self._publish_zero('waiting_motor_vel')
+            return
+        dt_motor = (now - self.last_motor_rx_time).nanoseconds * 1e-9
+        if dt_motor > self.motor_timeout_sec:
+            self._publish_zero('stale_motor_vel')
+            return
+        if self.scan_last_update_time is None:
+            self.scan_last_update_time = now
+        dt = (now - self.scan_last_update_time).nanoseconds * 1e-9
+        if dt < 0.0:
+            dt = 0.0
+        self.scan_last_update_time = now
+        self.scan_angle_from_center_rad += (
+            self.current_angular_velocity_rad_s * dt
+        )
+        half_sweep_rad = math.radians(self.scan_half_sweep_deg)
+        if self.scan_angle_from_center_rad >= half_sweep_rad:
+            self.scan_angle_from_center_rad = half_sweep_rad
+            self.scan_direction_sign = -1.0
+        elif self.scan_angle_from_center_rad <= -half_sweep_rad:
+            self.scan_angle_from_center_rad = -half_sweep_rad
+            self.scan_direction_sign = 1.0
+        self._publish_cmd_vel(
+            linear_x_m_s=0.0,
+            angular_z_rad_s=(
+                self.scan_direction_sign
+                * self._get_calibration_angular_speed_limit_rad_s()
+            ),
+        )
+
+    def _start_scan_settle(self, now) -> None:
+        self.control_phase = 'scan_settle'
+        self.scan_settle_end_time = now + Duration(seconds=self.scan_settle_sec)
+        self.scan_last_update_time = None
+        self.scan_angle_from_center_rad = 0.0
+        self._publish_cmd_vel(linear_x_m_s=0.0, angular_z_rad_s=0.0)
+        self._set_status('scan_settle')
+
+    def _run_scan_settle(self, now) -> None:
+        self._publish_cmd_vel(linear_x_m_s=0.0, angular_z_rad_s=0.0)
+        if (
+            self.last_target_rx_time is None
+            or (now - self.last_target_rx_time).nanoseconds * 1e-9
+            > self.target_timeout_sec
+        ):
+            self._start_scan(now)
+            return
+        if self.scan_settle_end_time is None or now >= self.scan_settle_end_time:
+            self.scan_settle_end_time = None
+            self.control_phase = 'align'
+            self._set_status('align')
+
     def _run_post_calibration_pause(self, now) -> None:
         self._publish_cmd_vel(linear_x_m_s=0.0, angular_z_rad_s=0.0)
         if self.calibration_resume_time is None or now >= self.calibration_resume_time:
@@ -1074,6 +1204,9 @@ class CartAlignSpecialistPolicyNode(Node):
         msg.data = bool(enabled)
         self.rl_docking_done_active = msg.data
         self.rl_docking_done_pub.publish(msg)
+
+    def _get_calibration_angular_speed_limit_rad_s(self) -> float:
+        return max(self.near_target_angular_speed_limit_rad_s, 0.3)
 
     def _get_active_final_distance_m(self) -> float:
         if self.active_docking_target == 1:

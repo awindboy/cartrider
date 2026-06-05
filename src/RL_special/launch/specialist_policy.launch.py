@@ -31,7 +31,7 @@ PROFILE_DEFAULTS = {
         'target_x_offset_m': REAR_TARGET_X_OFFSET_M,
         'rear_target_y_offset_m': 0.0,
         'rear_calibration_safe_axis_x_m': 0.15,
-        'rear_calibration_target_x_threshold_m': 0.10,
+        'rear_calibration_target_x_threshold_m': 0.0,
         'final_docking_motion_sign': 1.0,
         'motor_state_topic': '/rmd_state',
         'cmd_vel_topic': '/cmd_vel',
@@ -217,6 +217,18 @@ def _build_policy_node(context):
         'target_timeout_sec': _parse_float(
             LaunchConfiguration('target_timeout_sec').perform(context),
             'target_timeout_sec',
+        ),
+        'scan_no_target_timeout_sec': _parse_float(
+            LaunchConfiguration('scan_no_target_timeout_sec').perform(context),
+            'scan_no_target_timeout_sec',
+        ),
+        'scan_settle_sec': _parse_float(
+            LaunchConfiguration('scan_settle_sec').perform(context),
+            'scan_settle_sec',
+        ),
+        'scan_half_sweep_deg': _parse_float(
+            LaunchConfiguration('scan_half_sweep_deg').perform(context),
+            'scan_half_sweep_deg',
         ),
         'motor_timeout_sec': _parse_float(
             LaunchConfiguration('motor_timeout_sec').perform(context),
@@ -534,6 +546,9 @@ def generate_launch_description() -> LaunchDescription:
             ),
             DeclareLaunchArgument('control_rate_hz', default_value='30.0'),
             DeclareLaunchArgument('target_timeout_sec', default_value='0.3'),
+            DeclareLaunchArgument('scan_no_target_timeout_sec', default_value='3.0'),
+            DeclareLaunchArgument('scan_settle_sec', default_value='1.0'),
+            DeclareLaunchArgument('scan_half_sweep_deg', default_value='45.0'),
             DeclareLaunchArgument('motor_timeout_sec', default_value='1000.0'),
             DeclareLaunchArgument('target_xy_stop_tolerance_m', default_value='0.03'),
             DeclareLaunchArgument('target_yaw_stop_tolerance_deg', default_value='2.0'),
